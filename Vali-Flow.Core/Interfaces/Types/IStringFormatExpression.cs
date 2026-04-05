@@ -10,15 +10,19 @@ namespace Vali_Flow.Core.Interfaces.Types;
 public interface IStringFormatExpression<out TBuilder, T>
 {
     /// <summary>Ensures that the selected string is a valid email address.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsEmail(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected property is a valid URL (http/https).</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsUrl(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected property is a valid E.164 phone number.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsPhoneNumber(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected property is a valid GUID.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsGuid(Expression<Func<T, string?>> selector);
 
     /// <summary>Ensures that the selected string is a valid JSON format.</summary>
@@ -38,6 +42,7 @@ public interface IStringFormatExpression<out TBuilder, T>
     TBuilder NotBase64(Expression<Func<T, string?>> selector);
 
     /// <summary>Ensures that the selected string matches the given regular expression pattern.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder RegexMatch(Expression<Func<T, string?>> selector, string pattern);
 
     /// <summary>Validates that the selected string matches the wildcard <paramref name="pattern"/>.
@@ -46,17 +51,22 @@ public interface IStringFormatExpression<out TBuilder, T>
     TBuilder MatchesWildcard(Expression<Func<T, string?>> selector, string pattern);
 
     /// <summary>Validates that the selected string is a valid credit card number format.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsCreditCard(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected string is a valid IPv4 address.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsIPv4(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected string is a valid IPv6 address.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsIPv6(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected string is a valid CSS hex color code (#RGB or #RRGGBB).</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsHexColor(Expression<Func<T, string?>> selector);
 
     /// <summary>Validates that the selected string is a valid URL slug.</summary>
+    /// <remarks><b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder IsSlug(Expression<Func<T, string?>> selector);
 }

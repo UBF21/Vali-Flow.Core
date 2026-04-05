@@ -89,8 +89,9 @@ public interface ICollectionExpression<out TBuilder, T>
     /// builder.All(x => x.Orders, order => order.Amount > 100);
     /// </code>
     /// </example>
+    /// <remarks><b>EF Core:</b> <c>Enumerable.All</c> with a lambda predicate is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder All<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
-    
+
     /// <summary>
     /// Ensures that at least one element in the selected collection satisfies the given condition.
     /// </summary>
@@ -103,8 +104,9 @@ public interface ICollectionExpression<out TBuilder, T>
     /// builder.Any(x => x.Orders, order => order.Status == "Pending");
     /// </code>
     /// </example>
+    /// <remarks><b>EF Core:</b> <c>Enumerable.Any</c> with a lambda predicate is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder Any<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
-    
+
     /// <summary>
     /// Ensures that the selected collection contains the specified value.
     /// </summary>
@@ -117,8 +119,9 @@ public interface ICollectionExpression<out TBuilder, T>
     /// builder.Contains(x => x.Tags, "Important");
     /// </code>
     /// </example>
+    /// <remarks><b>EF Core:</b> <c>Enumerable.Contains</c> with a closure is not translatable to SQL. For EF Core queries use <see cref="In{TValue}"/> which generates SQL <c>IN (...)</c>.</remarks>
     TBuilder Contains<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, TValue value);
-    
+
     /// <summary>
     /// Ensures that the selected collection contains a distinct number of elements equal to the specified count.
     /// </summary>
@@ -130,8 +133,9 @@ public interface ICollectionExpression<out TBuilder, T>
     /// builder.DistinctCount(x => x.Categories, 3);
     /// </code>
     /// </example>
+    /// <remarks><b>EF Core:</b> <c>Enumerable.Distinct()</c> is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder DistinctCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count);
-    
+
     /// <summary>
     /// Ensures that none of the elements in the selected collection satisfy the given condition.
     /// </summary>
@@ -144,6 +148,7 @@ public interface ICollectionExpression<out TBuilder, T>
     /// builder.None(x => x.Orders, order => order.Status == "Cancelled");
     /// </code>
     /// </example>
+    /// <remarks><b>EF Core:</b> Uses <c>Enumerable.Any</c> internally. Not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder None<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
 
     /// <summary>Validates that the selected collection is empty.</summary>
@@ -156,6 +161,7 @@ public interface ICollectionExpression<out TBuilder, T>
     TBuilder MaxCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int max);
 
     /// <summary>Validates that the selected collection contains duplicate elements.</summary>
+    /// <remarks><b>EF Core:</b> Uses <c>GroupBy()</c> which is not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder HasDuplicates<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector);
 
     /// <summary>
@@ -184,6 +190,7 @@ public interface ICollectionExpression<out TBuilder, T>
 
     /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.
     /// Equivalent to <see cref="EachItem{TValue}"/> but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse.</summary>
+    /// <remarks><b>EF Core:</b> Uses <c>Enumerable.All</c> internally. Not translatable to SQL. Use with in-memory collections only.</remarks>
     TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, ValiFlow<TValue> filter);
 
 }
