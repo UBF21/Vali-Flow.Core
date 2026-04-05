@@ -27,7 +27,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// <summary>Validates that the selected collection is not null and contains at least one element.</summary>
     public TBuilder NotEmpty<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && val.Any();
         return _builder.Add(selector, predicate);
     }
@@ -41,8 +41,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder In<TValue>(Expression<Func<T, TValue>> selector, IEnumerable<TValue> values)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(values);
 
         List<TValue> valueList = values.ToList();
         if (valueList.Count == 0)
@@ -61,8 +61,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder NotIn<TValue>(Expression<Func<T, TValue>> selector, IEnumerable<TValue> values)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(values);
 
         List<TValue> valueList = values.ToList();
         if (valueList.Count == 0)
@@ -76,7 +76,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// <summary>Validates that the selected collection has exactly <paramref name="count"/> elements.</summary>
     public TBuilder Count<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "count must be >= 0.");
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && val.Count() == count;
         return _builder.Add(selector, predicate);
@@ -90,7 +90,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder CountBetween<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, int min, int max)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (min < 0) throw new ArgumentOutOfRangeException(nameof(min), "min must be >= 0.");
         if (max < min) throw new ArgumentOutOfRangeException(nameof(max), "max must be >= min.");
 
@@ -107,8 +107,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     public TBuilder All<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector,
         Expression<Func<TValue, bool>> predicate)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         var method = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
 
@@ -129,8 +129,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     public TBuilder Any<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector,
         Expression<Func<TValue, bool>> predicate)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         var method = _enumerableAnyMethod.MakeGenericMethod(typeof(TValue));
 
@@ -151,7 +151,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder Contains<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, TValue value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<IEnumerable<TValue>, bool>> predicate = collection => collection != null && collection.Contains(value);
         return _builder.Add(selector, predicate);
     }
@@ -163,7 +163,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder DistinctCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "count must be >= 0.");
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && val.Distinct().Count() == count;
         return _builder.Add(selector, predicate);
@@ -178,8 +178,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     public TBuilder None<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector,
         Expression<Func<TValue, bool>> predicate)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         var anyMethod = _enumerableAnyMethod.MakeGenericMethod(typeof(TValue));
 
@@ -195,7 +195,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// <summary>Validates that the selected collection is not null and contains no elements.</summary>
     public TBuilder Empty<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && !val.Any();
         return _builder.Add(selector, predicate);
     }
@@ -203,7 +203,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// <summary>Validates that the selected collection has at least <paramref name="min"/> elements.</summary>
     public TBuilder MinCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int min)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (min < 0) throw new ArgumentOutOfRangeException(nameof(min), "min must be >= 0.");
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && val.Count() >= min;
         return _builder.Add(selector, predicate);
@@ -212,7 +212,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// <summary>Validates that the selected collection has at most <paramref name="max"/> elements. A <c>null</c> collection fails validation.</summary>
     public TBuilder MaxCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int max)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (max < 0) throw new ArgumentOutOfRangeException(nameof(max), "max must be >= 0.");
         Expression<Func<IEnumerable<TValue?>, bool>> predicate = val => val != null && val.Count() <= max;
         return _builder.Add(selector, predicate);
@@ -225,7 +225,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder HasDuplicates<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<IEnumerable<TValue>, bool>> predicate = val =>
             val != null && val.GroupBy(x => x).Any(g => g.Count() > 1);
         return _builder.Add(selector, predicate);
@@ -247,8 +247,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         Expression<Func<T, IEnumerable<TValue>>> selector,
         ValiFlow<TValue> filter)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (filter == null) throw new ArgumentNullException(nameof(filter));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(filter);
         var innerExpr = filter.Build();
         var allMethod = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
         var param = selector.Parameters[0];

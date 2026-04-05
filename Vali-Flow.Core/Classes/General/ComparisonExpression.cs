@@ -19,7 +19,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
     public TBuilder NotNull<TValue>(Expression<Func<T, TValue?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TValue?, bool>> predicate = value => value != null;
         return _builder.Add(selector, predicate);
     }
@@ -28,7 +28,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
     public TBuilder Null<TValue>(Expression<Func<T, TValue?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TValue?, bool>> predicate = value => value == null;
         return _builder.Add(selector, predicate);
     }
@@ -37,7 +37,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
     public TBuilder EqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : IEquatable<TValue>
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var param = Expression.Parameter(typeof(TValue), "v");
         var body = Expression.Equal(param, Expression.Constant(value, typeof(TValue)));
         Expression<Func<TValue, bool>> predicate = Expression.Lambda<Func<TValue, bool>>(body, param);
@@ -48,7 +48,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
     public TBuilder NotEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : IEquatable<TValue>
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var param = Expression.Parameter(typeof(TValue), "v");
         var body = Expression.NotEqual(param, Expression.Constant(value, typeof(TValue)));
         Expression<Func<TValue, bool>> predicate = Expression.Lambda<Func<TValue, bool>>(body, param);
@@ -60,7 +60,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <param name="selector">Selects the enum property to validate.</param>
     public TBuilder IsInEnum<TEnum>(Expression<Func<T, TEnum>> selector) where TEnum : struct, Enum
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TEnum, bool>> predicate = val => Enum.IsDefined(typeof(TEnum), val);
         return _builder.Add(selector, predicate);
     }
@@ -70,7 +70,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <param name="selector">Selects the property to validate.</param>
     public TBuilder IsDefault<TValue>(Expression<Func<T, TValue>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var defaultValue = default(TValue);
         Expression<Func<TValue, bool>> predicate = val => EqualityComparer<TValue>.Default.Equals(val, defaultValue);
         return _builder.Add(selector, predicate);
@@ -81,7 +81,7 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     /// <param name="selector">Selects the property to validate.</param>
     public TBuilder IsNotDefault<TValue>(Expression<Func<T, TValue>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var defaultValue = default(TValue);
         Expression<Func<TValue, bool>> predicate = val => !EqualityComparer<TValue>.Default.Equals(val, defaultValue);
         return _builder.Add(selector, predicate);

@@ -508,7 +508,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// </remarks>
     public TBuilder WithMessage(Func<string> messageFactory)
     {
-        if (messageFactory == null) throw new ArgumentNullException(nameof(messageFactory));
+        ArgumentNullException.ThrowIfNull(messageFactory);
 
         var fork = ForkIfFrozen();
         if (fork != null)

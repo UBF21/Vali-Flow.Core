@@ -16,7 +16,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder ExactDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var start = date.Date;
         var end = date.Date.AddDays(1);
         Expression<Func<DateTime, bool>> p = val => val >= start && val < end;
@@ -25,7 +25,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.Date;
         Expression<Func<DateTime, bool>> predicate = val => val < datePart;
         return _builder.Add(selector, predicate);
@@ -33,7 +33,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.Date;
         Expression<Func<DateTime, bool>> predicate = val => val >= datePart.AddDays(1);
         return _builder.Add(selector, predicate);
@@ -41,21 +41,21 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsBefore(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val < date;
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsAfter(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val > date;
         return _builder.Add(selector, p);
     }
 
     public TBuilder BetweenDates(Expression<Func<T, DateTime>> selector, DateTime startDate, DateTime endDate)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (endDate.Date < startDate.Date)
             throw new ArgumentOutOfRangeException(nameof(endDate), "endDate must be >= startDate.");
         var start = startDate.Date;
@@ -67,9 +67,9 @@ public class DateTimeExpressionQuery<TBuilder, T>
     public TBuilder BetweenDates(Expression<Func<T, DateTime>> selector,
         Expression<Func<T, DateTime>> startDateSelector, Expression<Func<T, DateTime>> endDateSelector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (startDateSelector == null) throw new ArgumentNullException(nameof(startDateSelector));
-        if (endDateSelector == null) throw new ArgumentNullException(nameof(endDateSelector));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(startDateSelector);
+        ArgumentNullException.ThrowIfNull(endDateSelector);
 
         var param = selector.Parameters[0];
         var valBody = selector.Body;
@@ -84,21 +84,21 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder SameMonthAs(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val.Year == date.Year && val.Month == date.Month;
         return _builder.Add(selector, p);
     }
 
     public TBuilder SameYearAs(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val.Year == date.Year;
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsInMonth(Expression<Func<T, DateTime>> selector, int month)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (month < 1 || month > 12)
             throw new ArgumentOutOfRangeException(nameof(month), "month must be between 1 and 12.");
         Expression<Func<DateTime, bool>> p = val => val.Month == month;
@@ -107,7 +107,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsInYear(Expression<Func<T, DateTime>> selector, int year)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (year < 1 || year > 9999)
             throw new ArgumentOutOfRangeException(nameof(year), "year must be between 1 and 9999.");
         Expression<Func<DateTime, bool>> p = val => val.Year == year;
@@ -116,21 +116,21 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder FutureDate(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val > DateTime.UtcNow;
         return _builder.Add(selector, p);
     }
 
     public TBuilder PastDate(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val < DateTime.UtcNow;
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsWeekend(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val =>
             val.DayOfWeek == DayOfWeek.Saturday || val.DayOfWeek == DayOfWeek.Sunday;
         return _builder.Add(selector, p);
@@ -138,7 +138,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsWeekday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val =>
             val.DayOfWeek != DayOfWeek.Saturday && val.DayOfWeek != DayOfWeek.Sunday;
         return _builder.Add(selector, p);
@@ -146,14 +146,14 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsDayOfWeek(Expression<Func<T, DateTime>> selector, DayOfWeek day)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val.DayOfWeek == day;
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsToday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var start = DateTime.UtcNow.Date;
         var end = start.AddDays(1);
         Expression<Func<DateTime, bool>> p = val => val >= start && val < end;
@@ -162,7 +162,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsYesterday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var start = DateTime.UtcNow.Date.AddDays(-1);
         var end = start.AddDays(1);
         Expression<Func<DateTime, bool>> p = val => val >= start && val < end;
@@ -171,7 +171,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsTomorrow(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var start = DateTime.UtcNow.Date.AddDays(1);
         var end = start.AddDays(1);
         Expression<Func<DateTime, bool>> p = val => val >= start && val < end;
@@ -180,7 +180,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder InLastDays(Expression<Func<T, DateTime>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
         var todayStart = DateTime.UtcNow.Date;
         var fromStart = todayStart.AddDays(-days);
@@ -190,7 +190,7 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder InNextDays(Expression<Func<T, DateTime>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
         var tomorrowStart = DateTime.UtcNow.Date.AddDays(1);
         var untilEnd = tomorrowStart.AddDays(days);
@@ -200,21 +200,21 @@ public class DateTimeExpressionQuery<TBuilder, T>
 
     public TBuilder IsFirstDayOfMonth(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val.Day == 1;
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsLastDayOfMonth(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> p = val => val.Day == DateTime.DaysInMonth(val.Year, val.Month);
         return _builder.Add(selector, p);
     }
 
     public TBuilder IsInQuarter(Expression<Func<T, DateTime>> selector, int quarter)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (quarter < 1 || quarter > 4)
             throw new ArgumentOutOfRangeException(nameof(quarter), "quarter must be between 1 and 4.");
         var firstMonth = (quarter - 1) * 3 + 1;

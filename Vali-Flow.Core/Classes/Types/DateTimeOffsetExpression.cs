@@ -21,7 +21,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder FutureDate(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val > DateTimeOffset.UtcNow;
         return _builder.Add(selector, predicate);
     }
@@ -33,7 +33,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder PastDate(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val < DateTimeOffset.UtcNow;
         return _builder.Add(selector, predicate);
     }
@@ -45,7 +45,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsToday(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date == DateTimeOffset.UtcNow.UtcDateTime.Date;
         return _builder.Add(selector, predicate);
     }
@@ -57,7 +57,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsYesterday(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date == DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-1);
         return _builder.Add(selector, predicate);
     }
@@ -69,7 +69,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsTomorrow(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date == DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(1);
         return _builder.Add(selector, predicate);
     }
@@ -82,7 +82,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsWeekend(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val =>
             val.DayOfWeek == DayOfWeek.Saturday || val.DayOfWeek == DayOfWeek.Sunday;
         return _builder.Add(selector, predicate);
@@ -96,7 +96,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsWeekday(Expression<Func<T, DateTimeOffset>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val =>
             val.DayOfWeek != DayOfWeek.Saturday && val.DayOfWeek != DayOfWeek.Sunday;
         return _builder.Add(selector, predicate);
@@ -110,7 +110,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsDayOfWeek(Expression<Func<T, DateTimeOffset>> selector, DayOfWeek dayOfWeek)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.DayOfWeek == dayOfWeek;
         return _builder.Add(selector, predicate);
     }
@@ -123,7 +123,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsInMonth(Expression<Func<T, DateTimeOffset>> selector, int month)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (month < 1 || month > 12)
             throw new ArgumentOutOfRangeException(nameof(month), "month must be between 1 and 12.");
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.Month == month;
@@ -138,7 +138,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder IsInYear(Expression<Func<T, DateTimeOffset>> selector, int year)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (year < 1 || year > 9999)
             throw new ArgumentOutOfRangeException(nameof(year), "year must be between 1 and 9999.");
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.Year == year;
@@ -148,7 +148,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is before <paramref name="date"/> (full timestamp comparison, offset-aware).</summary>
     public TBuilder IsBefore(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val < date;
         return _builder.Add(selector, predicate);
     }
@@ -156,14 +156,14 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is after <paramref name="date"/> (full timestamp comparison, offset-aware).</summary>
     public TBuilder IsAfter(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTimeOffset, bool>> predicate = val => val > date;
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder BetweenDates(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset from, DateTimeOffset to)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (to < from)
             throw new ArgumentOutOfRangeException(nameof(to), "to must be greater than or equal to from.");
         Expression<Func<DateTimeOffset, bool>> predicate = val => val >= from && val <= to;
@@ -178,7 +178,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder ExactDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.UtcDateTime.Date;
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date == datePart;
         return _builder.Add(selector, predicate);
@@ -192,7 +192,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.UtcDateTime.Date;
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date < datePart;
         return _builder.Add(selector, predicate);
@@ -206,7 +206,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.UtcDateTime.Date;
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date > datePart;
         return _builder.Add(selector, predicate);
@@ -219,7 +219,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder SameMonthAs(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var month = date.Month;
         var year = date.Year;
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.Month == month && val.Year == year;
@@ -233,7 +233,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder SameYearAs(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var year = date.Year;
         Expression<Func<DateTimeOffset, bool>> predicate = val => val.Year == year;
         return _builder.Add(selector, predicate);
@@ -248,7 +248,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder InLastDays(Expression<Func<T, DateTimeOffset>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
         Expression<Func<DateTimeOffset, bool>> predicate =
@@ -267,7 +267,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// </remarks>
     public TBuilder InNextDays(Expression<Func<T, DateTimeOffset>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
         Expression<Func<DateTimeOffset, bool>> predicate =

@@ -15,7 +15,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder MinLength(Expression<Func<T, string?>> selector, int minLength)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (minLength <= 0)
             throw new ArgumentOutOfRangeException(nameof(minLength), "minLength must be at least 1. Use IsNotNullOrEmpty() to require a non-empty string.");
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val) && val.Length >= minLength;
@@ -24,7 +24,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder MaxLength(Expression<Func<T, string?>> selector, int maxLength)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (maxLength <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxLength), "maxLength must be at least 1. Use IsNullOrEmpty() to require an empty or null string.");
         Expression<Func<string?, bool>> predicate = val => val == null || val.Length <= maxLength;
@@ -33,7 +33,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder ExactLength(Expression<Func<T, string?>> selector, int length)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (length < 0)
             throw new ArgumentOutOfRangeException(nameof(length), "length must be >= 0.");
         Expression<Func<string?, bool>> predicate = val => val != null && val.Length == length;
@@ -42,7 +42,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder LengthBetween(Expression<Func<T, string?>> selector, int min, int max)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (min < 0) throw new ArgumentOutOfRangeException(nameof(min), "min must be >= 0.");
         if (max < min) throw new ArgumentOutOfRangeException(nameof(max), "max must be >= min.");
         Expression<Func<string?, bool>> predicate = val => val != null && val.Length >= min && val.Length <= max;
@@ -51,35 +51,35 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder IsNullOrEmpty(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => string.IsNullOrEmpty(val);
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder IsNotNullOrEmpty(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val);
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder IsNullOrWhiteSpace(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val == null || val.Trim() == "";
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder IsNotNullOrWhiteSpace(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val != null && val.Trim() != "";
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder StartsWith(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value))
             throw new ArgumentException("Value cannot be null or empty.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val != null && val.StartsWith(value);
@@ -88,7 +88,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder EndsWith(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value))
             throw new ArgumentException("Value cannot be null or empty.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val != null && val.EndsWith(value);
@@ -97,8 +97,8 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder Contains(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(value);
         if (value.Length == 0)
             throw new ArgumentException("value cannot be empty for Contains(). An empty string would match every non-null value.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val != null && val.Contains(value);
@@ -107,29 +107,29 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder IsTrimmed(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val != null && val == val.Trim();
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder IsLowerCase(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val != null && val == val.ToLower();
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder IsUpperCase(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val != null && val == val.ToUpper();
         return _builder.Add(selector, predicate);
     }
 
     public TBuilder EqualToIgnoreCase(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(value);
         var lower = value.ToLowerInvariant();
         Expression<Func<string?, bool>> predicate = val => val != null && val.ToLower() == lower;
         return _builder.Add(selector, predicate);
@@ -137,7 +137,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder StartsWithIgnoreCase(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         var lower = value.ToLowerInvariant();
         Expression<Func<string?, bool>> predicate = val => val != null && val.ToLower().StartsWith(lower);
@@ -146,7 +146,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder EndsWithIgnoreCase(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         var lower = value.ToLowerInvariant();
         Expression<Func<string?, bool>> predicate = val => val != null && val.ToLower().EndsWith(lower);
@@ -155,7 +155,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder ContainsIgnoreCase(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         var lower = value.ToLowerInvariant();
         Expression<Func<string?, bool>> predicate = val => val != null && val.ToLower().Contains(lower);
@@ -164,7 +164,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder NotContains(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val == null || !val.Contains(value);
         return _builder.Add(selector, predicate);
@@ -172,7 +172,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder NotStartsWith(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val == null || !val.StartsWith(value);
         return _builder.Add(selector, predicate);
@@ -180,7 +180,7 @@ public class StringExpressionQuery<TBuilder, T>
 
     public TBuilder NotEndsWith(Expression<Func<T, string?>> selector, string value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value)) throw new ArgumentException("value must not be null or empty.", nameof(value));
         Expression<Func<string?, bool>> predicate = val => val == null || !val.EndsWith(value);
         return _builder.Add(selector, predicate);

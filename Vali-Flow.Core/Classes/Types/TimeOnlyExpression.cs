@@ -17,7 +17,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> is strictly before <paramref name="time"/>.</summary>
     public TBuilder IsBefore(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TimeOnly, bool>> predicate = val => val < time;
         return _builder.Add(selector, predicate);
     }
@@ -25,7 +25,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> is strictly after <paramref name="time"/>.</summary>
     public TBuilder IsAfter(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TimeOnly, bool>> predicate = val => val > time;
         return _builder.Add(selector, predicate);
     }
@@ -47,7 +47,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsBetween(Expression<Func<T, TimeOnly>> selector, TimeOnly from, TimeOnly to)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (to < from)
             throw new ArgumentOutOfRangeException(nameof(to), "to must be >= from. Midnight-crossing ranges are not supported; use Or() to combine two separate conditions.");
         Expression<Func<TimeOnly, bool>> predicate = val => val >= from && val <= to;
@@ -57,7 +57,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls in the AM half of the day (hour &lt; 12).</summary>
     public TBuilder IsAM(Expression<Func<T, TimeOnly>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TimeOnly, bool>> predicate = val => val.Hour < 12;
         return _builder.Add(selector, predicate);
     }
@@ -65,7 +65,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls in the PM half of the day (hour &gt;= 12).</summary>
     public TBuilder IsPM(Expression<Func<T, TimeOnly>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TimeOnly, bool>> predicate = val => val.Hour >= 12;
         return _builder.Add(selector, predicate);
     }
@@ -73,7 +73,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> equals exactly <paramref name="time"/>.</summary>
     public TBuilder IsExactTime(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<TimeOnly, bool>> predicate = val => val == time;
         return _builder.Add(selector, predicate);
     }
@@ -81,7 +81,7 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls within the specified <paramref name="hour"/> (0–23).</summary>
     public TBuilder IsInHour(Expression<Func<T, TimeOnly>> selector, int hour)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (hour < 0 || hour > 23)
             throw new ArgumentOutOfRangeException(nameof(hour), "hour must be between 0 and 23.");
         Expression<Func<TimeOnly, bool>> predicate = val => val.Hour == hour;

@@ -779,8 +779,8 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
         Action<ValiFlowQuery<TProperty>> configure)
         where TProperty : class
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(configure);
         var nestedBuilder = new ValiFlowQuery<TProperty>();
         configure(nestedBuilder);
         var nestedExpr = nestedBuilder.Build();
@@ -807,8 +807,8 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
 
     public static Expression<Func<T, bool>> Combine(ValiFlowQuery<T> left, ValiFlowQuery<T> right, bool and = true)
     {
-        if (left == null) throw new ArgumentNullException(nameof(left));
-        if (right == null) throw new ArgumentNullException(nameof(right));
+        ArgumentNullException.ThrowIfNull(left);
+        ArgumentNullException.ThrowIfNull(right);
         return CombineExpressions(left.Build(), right.Build(), and);
     }
 
@@ -820,7 +820,7 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
 
     public static Expression<Func<T, bool>> operator !(ValiFlowQuery<T> flow)
     {
-        if (flow == null) throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
         return flow.BuildNegated();
     }
 }

@@ -27,7 +27,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string has at least <paramref name="minLength"/> characters.</summary>
     public TBuilder MinLength(Expression<Func<T, string?>> selector, int minLength)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (minLength <= 0)
             throw new ArgumentOutOfRangeException(nameof(minLength), "minLength must be at least 1. Use IsNotNullOrEmpty() to require a non-empty string.");
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val) && val.Length >= minLength;
@@ -37,7 +37,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string has at most <paramref name="maxLength"/> characters.</summary>
     public TBuilder MaxLength(Expression<Func<T, string?>> selector, int maxLength)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (maxLength <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxLength), "maxLength must be at least 1. Use IsNullOrEmpty() to require an empty or null string.");
         Expression<Func<string?, bool>> predicate = val => val == null || val.Length <= maxLength;
@@ -62,7 +62,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder RegexMatch(Expression<Func<T, string?>> selector, string pattern)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(pattern)) throw new ArgumentException("Pattern cannot be empty", nameof(pattern));
 
         var compiled = GetOrCreateRegex(pattern);
@@ -92,7 +92,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string is null or empty.</summary>
     public TBuilder IsNullOrEmpty(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => string.IsNullOrEmpty(val);
         return _builder.Add(selector, predicate);
     }
@@ -100,7 +100,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string is not null and not empty.</summary>
     public TBuilder IsNotNullOrEmpty(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val);
         return _builder.Add(selector, predicate);
     }
@@ -112,7 +112,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsEmail(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && RegularExpression.EmailPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -123,7 +123,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder EndsWith(Expression<Func<T, string?>> selector, string value,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value))
         {
             throw new ArgumentException("Value cannot be null or empty.", nameof(value));
@@ -137,7 +137,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder StartsWith(Expression<Func<T, string?>> selector, string value,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (string.IsNullOrEmpty(value))
         {
             throw new ArgumentException("Value cannot be null or empty.", nameof(value));
@@ -157,8 +157,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder Contains(Expression<Func<T, string?>> selector, string value,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(value);
 
         Expression<Func<string?, bool>> predicate = val => val != null && val.Contains(value, comparison);
         return _builder.Add(selector, predicate);
@@ -167,7 +167,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string has exactly <paramref name="length"/> characters.</summary>
     public TBuilder ExactLength(Expression<Func<T, string?>> selector, int length)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (length < 0)
             throw new ArgumentOutOfRangeException(nameof(length), "length must be >= 0.");
         Expression<Func<string?, bool>> predicate = val => val != null && val.Length == length;
@@ -184,7 +184,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder EqualsIgnoreCase(Expression<Func<T, string?>> selector, string? value)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (value == null)
             throw new ArgumentNullException(nameof(value),
                 "Use IsNull() or IsNullOrEmpty() to check for null values.");
@@ -202,7 +202,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsTrimmed(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => val != null && val == val.Trim();
         return _builder.Add(selector, predicate);
     }
@@ -214,7 +214,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder HasOnlyDigits(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val) && val.All(char.IsDigit);
         return _builder.Add(selector, predicate);
     }
@@ -226,7 +226,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder HasOnlyLetters(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrEmpty(val) && val.All(char.IsLetter);
         return _builder.Add(selector, predicate);
     }
@@ -238,7 +238,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder HasLettersAndNumbers(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && val.Any(char.IsLetter) && val.Any(char.IsDigit);
         return _builder.Add(selector, predicate);
@@ -251,7 +251,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder HasSpecialCharacters(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && val.Any(c => !char.IsLetterOrDigit(c));
         return _builder.Add(selector, predicate);
@@ -268,7 +268,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsJson(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => Validation.IsValidJson(val);
         return _builder.Add(selector, predicate);
     }
@@ -280,7 +280,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsBase64(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) &&
             val.Length % 4 == 0 &&
@@ -296,7 +296,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder NotJson(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !Validation.IsValidJson(val);
         return _builder.Add(selector, predicate);
     }
@@ -308,7 +308,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder NotBase64(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             string.IsNullOrEmpty(val) ||
             val.Length % 4 != 0 ||
@@ -333,7 +333,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException("Value is null, empty, or contains only whitespace.", nameof(value));
 
-        if (selectors == null) throw new ArgumentNullException(nameof(selectors));
+        ArgumentNullException.ThrowIfNull(selectors);
 
         if (!selectors.Any())
             throw new ArgumentException("Selectors list cannot be empty.", nameof(selectors));
@@ -408,7 +408,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsUrl(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && RegularExpression.UrlPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -421,7 +421,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsPhoneNumber(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && RegularExpression.PhonePattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -434,7 +434,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsGuid(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && RegularExpression.GuidPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -449,7 +449,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsUpperCase(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && val.All(char.IsUpper);
         return _builder.Add(selector, predicate);
@@ -464,7 +464,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsLowerCase(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             !string.IsNullOrEmpty(val) && val.All(char.IsLower);
         return _builder.Add(selector, predicate);
@@ -473,7 +473,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string length falls within [<paramref name="min"/>, <paramref name="max"/>] (inclusive).</summary>
     public TBuilder LengthBetween(Expression<Func<T, string?>> selector, int min, int max)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (min < 0) throw new ArgumentOutOfRangeException(nameof(min), "min must be >= 0.");
         if (max < min) throw new ArgumentOutOfRangeException(nameof(max), "max must be >= min.");
         Expression<Func<string?, bool>> predicate = val =>
@@ -484,7 +484,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string is null, empty, or consists only of whitespace characters.</summary>
     public TBuilder IsNullOrWhiteSpace(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => string.IsNullOrWhiteSpace(val);
         return _builder.Add(selector, predicate);
     }
@@ -492,7 +492,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <summary>Validates that the selected string is not null, not empty, and not whitespace-only.</summary>
     public TBuilder IsNotNullOrWhiteSpace(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val => !string.IsNullOrWhiteSpace(val);
         return _builder.Add(selector, predicate);
     }
@@ -504,7 +504,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsCreditCard(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             val != null && RegularExpression.CreditCardPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -514,7 +514,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>Use this method only with in-memory collections (LINQ-to-Objects) — regex is not EF Core translatable.</remarks>
     public TBuilder IsIPv4(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             val != null && RegularExpression.IPv4Pattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -524,7 +524,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>Use this method only with in-memory collections (LINQ-to-Objects) — regex is not EF Core translatable.</remarks>
     public TBuilder IsIPv6(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             val != null && RegularExpression.IPv6Pattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -534,7 +534,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>Use this method only with in-memory collections (LINQ-to-Objects) — regex is not EF Core translatable.</remarks>
     public TBuilder IsHexColor(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             val != null && RegularExpression.HexColorPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -544,7 +544,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>Use this method only with in-memory collections (LINQ-to-Objects) — regex is not EF Core translatable.</remarks>
     public TBuilder IsSlug(Expression<Func<T, string?>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<string?, bool>> predicate = val =>
             val != null && RegularExpression.SlugPattern.IsMatch(val);
         return _builder.Add(selector, predicate);
@@ -555,8 +555,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>In-memory only — not EF Core translatable.</remarks>
     public TBuilder MatchesWildcard(Expression<Func<T, string?>> selector, string pattern)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (pattern == null) throw new ArgumentNullException(nameof(pattern));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(pattern);
         var regexPattern = "^" + Regex.Escape(pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
         var compiled = new Regex(regexPattern, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout);
         Expression<Func<string?, bool>> predicate = value => value != null && compiled.IsMatch(value);
@@ -568,8 +568,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder IsOneOf(Expression<Func<T, string?>> selector, IReadOnlyCollection<string> values,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Count == 0) throw new ArgumentException("values must not be empty.", nameof(values));
         var captured = values.ToArray();
         Expression<Func<string?, bool>> predicate = value =>

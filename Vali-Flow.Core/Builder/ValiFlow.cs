@@ -899,8 +899,8 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
 
     public static Expression<Func<T, bool>> Combine(ValiFlow<T> left, ValiFlow<T> right, bool and = true)
     {
-        if (left == null) throw new ArgumentNullException(nameof(left));
-        if (right == null) throw new ArgumentNullException(nameof(right));
+        ArgumentNullException.ThrowIfNull(left);
+        ArgumentNullException.ThrowIfNull(right);
         return CombineExpressions(left.Build(), right.Build(), and);
     }
 
@@ -908,7 +908,7 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public static Expression<Func<T, bool>> operator |(ValiFlow<T> left, ValiFlow<T> right) => Combine(left, right, and: false);
     public static Expression<Func<T, bool>> operator !(ValiFlow<T> flow)
     {
-        if (flow == null) throw new ArgumentNullException(nameof(flow));
+        ArgumentNullException.ThrowIfNull(flow);
         return flow.BuildNegated();
     }
 

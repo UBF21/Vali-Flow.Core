@@ -24,7 +24,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder FutureDate(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val > DateTime.Now;
         return _builder.Add(selector, predicate);
     }
@@ -38,7 +38,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder PastDate(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val < DateTime.Now;
         return _builder.Add(selector, predicate);
     }
@@ -52,7 +52,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder BetweenDates(Expression<Func<T, DateTime>> selector, DateTime startDate, DateTime endDate)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (endDate < startDate)
             throw new ArgumentOutOfRangeException(nameof(endDate), "endDate must be greater than or equal to startDate.");
         Expression<Func<DateTime, bool>> predicate = val => val.Date >= startDate.Date && val.Date <= endDate.Date;
@@ -67,9 +67,9 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     public TBuilder BetweenDates(Expression<Func<T, DateTime>> selector,
         Expression<Func<T, DateTime>> startDateSelector, Expression<Func<T, DateTime>> endDateSelector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (startDateSelector == null) throw new ArgumentNullException(nameof(startDateSelector));
-        if (endDateSelector == null) throw new ArgumentNullException(nameof(endDateSelector));
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(startDateSelector);
+        ArgumentNullException.ThrowIfNull(endDateSelector);
 
         var param = selector.Parameters[0];
         var dateProp = typeof(DateTime).GetProperty(nameof(DateTime.Date))!;
@@ -100,7 +100,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder ExactDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Date == date.Date;
         return _builder.Add(selector, predicate);
     }
@@ -115,7 +115,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.Date;
         Expression<Func<DateTime, bool>> predicate = val => val.Date < datePart;
         return _builder.Add(selector, predicate);
@@ -131,7 +131,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         var datePart = date.Date;
         Expression<Func<DateTime, bool>> predicate = val => val.Date > datePart;
         return _builder.Add(selector, predicate);
@@ -148,7 +148,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsToday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Date == DateTime.Today;
         return _builder.Add(selector, predicate);
     }
@@ -164,7 +164,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsYesterday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Date == DateTime.Today.AddDays(-1);
         return _builder.Add(selector, predicate);
     }
@@ -180,7 +180,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsTomorrow(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Date == DateTime.Today.AddDays(1);
         return _builder.Add(selector, predicate);
     }
@@ -197,7 +197,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder InLastDays(Expression<Func<T, DateTime>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
 
@@ -217,7 +217,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder InNextDays(Expression<Func<T, DateTime>> selector, int days)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
 
@@ -228,7 +228,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on a Saturday or Sunday.</summary>
     public TBuilder IsWeekend(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val =>
             val.DayOfWeek == DayOfWeek.Saturday || val.DayOfWeek == DayOfWeek.Sunday;
         return _builder.Add(selector, predicate);
@@ -237,7 +237,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on a weekday (Monday–Friday).</summary>
     public TBuilder IsWeekday(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val =>
             val.DayOfWeek != DayOfWeek.Saturday && val.DayOfWeek != DayOfWeek.Sunday;
         return _builder.Add(selector, predicate);
@@ -250,7 +250,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder IsLeapYear(Expression<Func<T, DateTime>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => DateTime.IsLeapYear(val.Year);
         return _builder.Add(selector, predicate);
     }
@@ -263,7 +263,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder SameMonthAs(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Year == date.Year && val.Month == date.Month;
         return _builder.Add(selector, predicate);
     }
@@ -276,7 +276,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// </remarks>
     public TBuilder SameYearAs(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.Year == date.Year;
         return _builder.Add(selector, predicate);
     }
@@ -284,7 +284,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on the specified <paramref name="day"/>.</summary>
     public TBuilder IsDayOfWeek(Expression<Func<T, DateTime>> selector, DayOfWeek day)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val.DayOfWeek == day;
         return _builder.Add(selector, predicate);
     }
@@ -292,7 +292,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> is in the specified month (1–12).</summary>
     public TBuilder IsInMonth(Expression<Func<T, DateTime>> selector, int month)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (month < 1 || month > 12)
             throw new ArgumentOutOfRangeException(nameof(month), "Month must be between 1 and 12.");
         Expression<Func<DateTime, bool>> predicate = val => val.Month == month;
@@ -302,7 +302,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> is in the specified <paramref name="year"/>.</summary>
     public TBuilder IsInYear(Expression<Func<T, DateTime>> selector, int year)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         if (year < 1 || year > 9999)
             throw new ArgumentOutOfRangeException(nameof(year), "year must be between 1 and 9999.");
         Expression<Func<DateTime, bool>> predicate = val => val.Year == year;
@@ -312,7 +312,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> is strictly before <paramref name="date"/>.</summary>
     public TBuilder IsBefore(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val < date;
         return _builder.Add(selector, predicate);
     }
@@ -320,7 +320,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> is strictly after <paramref name="date"/>.</summary>
     public TBuilder IsAfter(Expression<Func<T, DateTime>> selector, DateTime date)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<DateTime, bool>> predicate = val => val > date;
         return _builder.Add(selector, predicate);
     }

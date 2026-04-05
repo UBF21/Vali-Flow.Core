@@ -15,13 +15,13 @@ public class BooleanExpressionQuery<TBuilder, T>
 
     public TBuilder IsTrue(Expression<Func<T, bool>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         return _builder.Add(selector);
     }
 
     public TBuilder IsFalse(Expression<Func<T, bool>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<T, bool>> negated = Expression.Lambda<Func<T, bool>>(
             Expression.Not(selector.Body), selector.Parameters);
         return _builder.Add(negated);

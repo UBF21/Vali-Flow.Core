@@ -17,14 +17,14 @@ public class BooleanExpression<TBuilder, T> : IBooleanExpression<TBuilder, T>
     /// <summary>Validates that the selected boolean value is <c>true</c>.</summary>
     public TBuilder IsTrue(Expression<Func<T, bool>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         return _builder.Add(selector);
     }
 
     /// <summary>Validates that the selected boolean value is <c>false</c>.</summary>
     public TBuilder IsFalse(Expression<Func<T, bool>> selector)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         Expression<Func<T, bool>> negated = Expression.Lambda<Func<T, bool>>(
             Expression.Not(selector.Body), selector.Parameters);
         return _builder.Add(negated);
