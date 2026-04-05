@@ -1,6 +1,9 @@
 using System.Linq.Expressions;
+using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Models;
 
 namespace Vali_Flow.Core.Interfaces.General;
+
 
 /// <summary>
 /// Defines operations for building, adding conditions, and evaluating logical expressions for an entity of type <typeparamref name="T"/>.
@@ -10,14 +13,28 @@ namespace Vali_Flow.Core.Interfaces.General;
 public interface IExpression<out TBuilder,T>
 {
     /// <summary>
+    /// Creates a new, independent builder pre-populated with all conditions from this instance.
+    /// The clone starts unfrozen so new conditions can be appended freely.
+    /// </summary>
+    /// <remarks>
+    /// Enables the same composition pattern as <c>IQueryable</c>: build a base set of rules,
+    /// then derive specializations without modifying the original.
+    /// Compiled delegates are not copied — the clone recompiles on first use.
+    /// </remarks>
+    TBuilder Clone();
+
+    /// <summary>
     /// Builds a boolean expression from the added conditions.
     /// </summary>
     /// <returns>A boolean expression representing the evaluation of the added conditions.</returns>
     /// <example>
     /// <code>
-    /// var builder = new ConditionBuilder();
-    /// builder.Add(x => x.Age > 18).Add(x => x.Name == "John");
-    /// var expression = builder.Build(); // The resulting expression represents the condition (Age > 18) AND (Name == "John")
+    /// var filter = new ValiFlow&lt;Product&gt;()
+    ///     .NotNull(p => p.Name)
+    ///     .GreaterThan(p => p.Price, 0m)
+    ///     .Build();
+    ///
+    /// var validProducts = dbContext.Products.Where(filter).ToList();
     /// </code>
     /// </example>
     Expression<Func<T, bool>> Build();
@@ -37,6 +54,27 @@ public interface IExpression<out TBuilder,T>
     /// and <c>false</c> for those that do.
     /// </remarks>
     Expression<Func<T, bool>> BuildNegated();
+
+    /// <summary>
+    /// Compiles the built expression into a cached <see cref="Func{T, TResult}"/> delegate and
+    /// permanently freezes the builder. The delegate is compiled once on the first call and reused
+    /// on all subsequent calls.
+    /// </summary>
+    /// <remarks>
+    /// After <c>BuildCached()</c> returns, the builder is frozen: any subsequent mutation call
+    /// (<c>Add</c>, <c>Or</c>, <c>And</c>, <c>WithMessage</c>, etc.) returns a <em>new independent
+    /// fork</em> rather than modifying this instance. This is identical to how <c>IQueryable.Where()</c>
+    /// always returns a new query object. This is the recommended way to finalize a shared,
+    /// long-lived builder that multiple call sites can derive specialized variants from.
+    /// </remarks>
+    Func<T, bool> BuildCached();
+
+    /// <summary>
+    /// Builds the expression combining all local conditions AND any globally registered filters
+    /// for type <typeparamref name="T"/> via <see cref="ValiFlowGlobal"/>.
+    /// If no global filters are registered, behaves identically to <see cref="Build"/>.
+    /// </summary>
+    Expression<Func<T, bool>> BuildWithGlobal();
 
     /// <summary>
     /// Adds a condition to the list of conditions based on a boolean expression.
@@ -82,7 +120,7 @@ public interface IExpression<out TBuilder,T>
     /// </code>
     /// </example>
     TBuilder AddSubGroup(Action<IExpression<TBuilder,T>> group);
-    
+
     /// <summary>
     /// Defines a logical "AND" operation between conditions.
     /// </summary>
@@ -93,7 +131,7 @@ public interface IExpression<out TBuilder,T>
     /// builder.Add(x => x.Age > 18).And().Add(x => x.Name == "John");
     /// // The resulting expression will be (Age > 18) AND (Name == "John")
     /// </code>
-    /// </example>  
+    /// </example>
     TBuilder And();
 
     /// <summary>
@@ -108,4 +146,206 @@ public interface IExpression<out TBuilder,T>
     /// </code>
     /// </example>
     TBuilder Or();
+
+    // -------------------------------------------------------------------------
+    // Validation — evaluate a single instance
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Evaluates the built conditions against a single <paramref name="instance"/>.
+    /// Equivalent to calling <c>Build().Compile()(instance)</c>.
+    /// </summary>
+    /// <param name="instance">The object to validate.</param>
+    /// <returns><c>true</c> if the instance satisfies all conditions; otherwise <c>false</c>.</returns>
+    /// <remarks>
+    /// Evaluates ALL conditions regardless of whether they have associated error metadata.
+    /// This is different from <see cref="Validate"/> which only checks annotated conditions.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// bool ok = new ValiFlow&lt;Order&gt;()
+    ///     .NotNull(o => o.CustomerId)
+    ///     .GreaterThan(o => o.Total, 0)
+    ///     .IsValid(order);
+    /// </code>
+    /// </example>
+    bool IsValid(T instance);
+
+    /// <summary>
+    /// Evaluates the negated conditions against a single <paramref name="instance"/>.
+    /// Returns <c>true</c> when the instance does NOT satisfy the built conditions.
+    /// </summary>
+    /// <param name="instance">The object to validate.</param>
+    bool IsNotValid(T instance);
+
+    // -------------------------------------------------------------------------
+    // Conditional add
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Adds the condition only when <paramref name="condition"/> is <c>true</c>; otherwise returns the builder unchanged.
+    /// </summary>
+    TBuilder AddIf(bool condition, Expression<Func<T, bool>> expression);
+
+    /// <summary>
+    /// Adds a selector+predicate condition only when <paramref name="condition"/> is <c>true</c>.
+    /// </summary>
+    TBuilder AddIf<TValue>(bool condition, Expression<Func<T, TValue>> selector, Expression<Func<TValue, bool>> predicate);
+
+    // -------------------------------------------------------------------------
+    // When / Unless
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Adds conditions defined by <paramref name="then"/> only when <paramref name="condition"/> evaluates to <c>true</c> at runtime.
+    /// </summary>
+    TBuilder When(Expression<Func<T, bool>> condition, Action<IExpression<TBuilder, T>> then);
+
+    /// <summary>
+    /// Adds conditions defined by <paramref name="unless"/> only when <paramref name="condition"/> evaluates to <c>false</c> at runtime.
+    /// </summary>
+    TBuilder Unless(Expression<Func<T, bool>> condition, Action<IExpression<TBuilder, T>> unless);
+
+    // -------------------------------------------------------------------------
+    // Nested validation
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Validates a nested object by applying conditions configured in an inner <see cref="ValiFlow{TProperty}"/>.
+    /// Automatically returns false if the selected property is null.
+    /// </summary>
+    /// <typeparam name="TProperty">The type of the nested property. Must be a reference type (class).</typeparam>
+    /// <remarks>
+    /// The <c>where TProperty : class</c> constraint exists because this method inserts an automatic
+    /// null-check for the selected property before evaluating inner conditions. A null check requires a
+    /// reference type — value types (structs) can never be null and would make the null guard a compile-time
+    /// no-op or runtime error.<br/>
+    /// If you need to validate fields of a nested struct, use <see cref="Add{TValue}"/> or
+    /// <see cref="AddSubGroup"/> to compose conditions directly on the struct's fields.
+    /// </remarks>
+    TBuilder ValidateNested<TProperty>(
+        Expression<Func<T, TProperty>> selector,
+        Action<ValiFlow<TProperty>> configure)
+        where TProperty : class;
+
+    // -------------------------------------------------------------------------
+    // Error metadata
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Attaches a human-readable message to the most recently added condition.
+    /// Used by <see cref="Validate"/> to populate <see cref="ValidationResult"/> errors.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithMessage(string message);
+
+    /// <summary>
+    /// Attaches an error code and message to the most recently added condition.
+    /// Used by <see cref="Validate"/> to populate <see cref="ValidationResult"/> errors.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithError(string errorCode, string message);
+
+    /// <summary>
+    /// Attaches an error code, message, and severity to the most recently added condition.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithError(string errorCode, string message, Severity severity);
+
+    /// <summary>
+    /// Attaches an error code, message, and property path to the most recently added condition.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithError(string errorCode, string message, string propertyPath);
+
+    /// <summary>
+    /// Attaches an error code, message, property path, and severity to the most recently added condition.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithError(string errorCode, string message, string propertyPath, Severity severity);
+
+    /// <summary>
+    /// Sets the severity of the most recently added condition's error metadata.
+    /// </summary>
+    /// <remarks>
+    /// If called before any condition has been added via <see cref="Add"/>, this call is silently ignored.
+    /// Ensure at least one condition is added before calling this method.
+    /// </remarks>
+    TBuilder WithSeverity(Severity severity);
+
+    // -------------------------------------------------------------------------
+    // Validation result
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Evaluates each condition that has an associated message/error code and returns a
+    /// <see cref="ValidationResult"/> containing all failures.
+    /// </summary>
+    /// <param name="instance">The object to validate.</param>
+    /// <remarks>
+    /// <b>Important:</b> Only conditions annotated with <see cref="WithMessage"/> or <see cref="WithError"/>
+    /// are evaluated here. Conditions added without error metadata are silently skipped.
+    /// To evaluate ALL conditions (with or without metadata), use <see cref="IsValid"/> instead.
+    /// Additionally, each annotated condition is evaluated independently — <see cref="Or"/> grouping semantics are not respected. A condition belonging to an Or-group may be reported as an error even if the overall <see cref="IsValid"/> result is <see langword="true"/>. Use <see cref="IsValid"/> when full Or/And boolean semantics are required.
+    /// </remarks>
+    ValidationResult Validate(T instance);
+
+    /// <summary>
+    /// Runs <see cref="Validate"/> for every item in <paramref name="instances"/> and yields each
+    /// item together with its <see cref="ValidationResult"/>.
+    /// </summary>
+    IEnumerable<(T Item, ValidationResult Result)> ValidateAll(IEnumerable<T> instances);
+
+    // -------------------------------------------------------------------------
+    // Expression utilities
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns a human-readable description of the built expression tree.
+    /// Useful for debugging, logging, and displaying active filters in the UI.
+    /// </summary>
+    string Explain();
+
+    /// <summary>
+    /// Permanently seals this builder as a <em>fork point</em>.
+    /// Any subsequent call to a mutation method (<c>Add</c>, <c>Or</c>, <c>And</c>,
+    /// <c>WithMessage</c>, <c>WithError</c>, etc.) returns a <em>new independent clone</em>
+    /// (a fork) instead of modifying this instance — the same composable pattern as
+    /// <c>IQueryable&lt;T&gt;</c> where each <c>.Where()</c> produces a new query.
+    /// </summary>
+    /// <remarks>
+    /// Called automatically by <c>BuildCached()</c>, <c>IsValid()</c>, <c>IsNotValid()</c>, and
+    /// <c>Validate()</c>. Call it explicitly when you want to seal a shared builder at startup
+    /// before handing it to multiple threads.
+    ///
+    /// <b>IQueryable-like pattern:</b>
+    /// <code>
+    /// var shared = new ValiFlow&lt;User&gt;().IsNotNull(u => u.Email);
+    /// shared.Freeze();
+    ///
+    /// // Both return new independent builders; shared is unchanged.
+    /// var adminRule  = shared.IsTrue(u => u.IsAdmin);
+    /// var activeRule = shared.IsTrue(u => u.IsActive);
+    /// </code>
+    ///
+    /// Note: if a mutation method result is not assigned (e.g., <c>shared.Add(...);</c> with
+    /// no assignment), the fork is silently discarded — exactly like an unassigned
+    /// <c>IQueryable.Where()</c> call.
+    /// </remarks>
+    void Freeze();
 }

@@ -1,0 +1,55 @@
+# — CLAUDEIGNORE —
+# Generado por /flows/onboard
+# Stack: .NET 8/9 — biblioteca NuGet, xUnit tests
+
+# Build outputs
+bin/
+obj/
+dist/
+out/
+
+# NuGet packages locales
+packages/
+*.nupkg
+*.snupkg
+
+# Test results & coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+lcov.info
+htmlcov/
+
+# IDE
+.idea/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docview
+*.vcxproj.filters
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.cert
+secrets/
+
+# Roslyn / análisis estático (generados)
+.roslyn/
+*.GeneratedMSBuildEditorConfig.editorconfig
+
+# Source maps
+*.map

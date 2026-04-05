@@ -10,7 +10,7 @@ To add Vali-Flow.Core to your .NET project, install it via NuGet with the follow
 ```sh
 dotnet add package Vali-Flow.Core
 ```
-Ensure your project targets a compatible .NET version (e.g., .NET 6.0 or later) for optimal performance. Vali-Flow.Core is lightweight and dependency-free, making it easy to integrate into any .NET application.
+Ensure your project targets a compatible .NET version (e.g., .NET 8.0 or 9.0) for optimal performance. Vali-Flow.Core is lightweight and dependency-free, making it easy to integrate into any .NET application.
 
 ## Usage 🛠️
 
@@ -136,21 +136,20 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
-### Recent Updates
+## What's New in v1.4.5 🆕
 
-- Fixed operator precedence for **And/Or** operations in BaseExpression. Now correctly groups conditions combined with OR, ensuring expressions like **`x => x.Deleted == null &amp;&amp; (string.IsNullOrEmpty(request.Search) || x.Nombre.Contains(request.Search))`** are generated as expected.
-- Replaced  **`^1`** operator with  **`_conditions.Count - 1`** in **And/Or** methods to ensure compatibility with C# versions prior to 8.0, resolving compilation errors.
-- Added  **`Contains`** method with support for **`StringComparison.OrdinalIgnoreCase`** , allowing case-insensitive string comparisons without using **`ToLower()`** or **`ToUpper()`**. Improves readability and performance.
-- Improved consistency between **`Add().Or().Add()`** and **`AddSubGroup`**, ensuring both approaches produce the same correct results.
-- Enhanced code readability and maintainability by encapsulating case-insensitive comparison logic in the `Contains` method.
+- **`ValiFlowQuery<T>`**: EF Core-safe query builder — only exposes predicates translatable by SQL Server, PostgreSQL, MySQL (Pomelo 5.0+), SQLite, and Oracle 7.0+
+- **`ValiFlowGlobal`**: ambient filter registry applied via `BuildWithGlobal()`
+- **`ValiSort<T>`**: fluent sort builder for `IQueryable` and `IEnumerable`
+- **`ValidateNested<TProperty>`**: validate nested objects with automatic null check
+- **`BuildCached()`**: compile expression once, reuse safely across threads
+- **`WithSeverity`**: mark conditions as Info, Warning, Error, or Critical
+- **`ValidationResult`**: batch validation with per-severity access
+- **`ValiFlowQuery` nullable numeric overloads**: `int?`, `long?`, `decimal?`, `double?`, `float?`
+- **Thread-safe expression cache**: lock-free `Volatile`/`Interlocked` pattern on ARM64
+- **Expression tree node aliasing fixes**: all cross-property methods use reference-distinct nodes
 
-
-### Planned Features
-
-- Support for more complex expression transformations.
-- Integration with advanced LINQ query optimization techniques.
-
-Follow the project on GitHub for updates on new features and improvements!
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## Donations 💖
 If you find **Vali-Flow.Core** useful and would like to support its development, consider making a donation:
@@ -160,6 +159,9 @@ If you find **Vali-Flow.Core** useful and would like to support its development,
 
 
 Your contributions help keep this project alive and improve its development! 🚀
+
+## Changelog 📋
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of all changes.
 
 ## License 📜
 This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).

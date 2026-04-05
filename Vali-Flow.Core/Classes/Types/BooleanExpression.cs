@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.Types;
 
@@ -10,16 +11,22 @@ public class BooleanExpression<TBuilder, T> : IBooleanExpression<TBuilder, T>
 
     public BooleanExpression(BaseExpression<TBuilder, T> builder)
     {
-        _builder = builder;
+        _builder = builder ?? throw new ArgumentNullException(nameof(builder));
     }
 
-    public TBuilder IsTrue(Func<T, bool> selector)
+    /// <summary>Validates that the selected boolean value is <c>true</c>.</summary>
+    public TBuilder IsTrue(Expression<Func<T, bool>> selector)
     {
-        return _builder.Add(x => selector(x) == true);
+        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        return _builder.Add(selector);
     }
 
-    public TBuilder IsFalse(Func<T, bool> selector)
+    /// <summary>Validates that the selected boolean value is <c>false</c>.</summary>
+    public TBuilder IsFalse(Expression<Func<T, bool>> selector)
     {
-        return _builder.Add(x => selector(x) == false);
+        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        Expression<Func<T, bool>> negated = Expression.Lambda<Func<T, bool>>(
+            Expression.Not(selector.Body), selector.Parameters);
+        return _builder.Add(negated);
     }
 }

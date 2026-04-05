@@ -38,14 +38,14 @@ public interface IStringExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder NullOrEmpty(Expression<Func<T, string?>> selector);
+    TBuilder IsNullOrEmpty(Expression<Func<T, string?>> selector);
 
     /// <summary>
     /// Ensures that the selected string is not empty.
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder NotNullOrEmpty(Expression<Func<T, string?>> selector);
+    TBuilder IsNotNullOrEmpty(Expression<Func<T, string?>> selector);
 
     /// <summary>
     /// Ensures that the selected string is a valid email address.
@@ -59,16 +59,20 @@ public interface IStringExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <param name="value">The value that the string should end with.</param>
+    /// <param name="comparison">The string comparison rule to use. Defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder EndsWith(Expression<Func<T, string>> selector, string value);
+    TBuilder EndsWith(Expression<Func<T, string?>> selector, string value,
+        StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Ensures that the selected string starts with the specified value.
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <param name="value">The value that the string should start with.</param>
+    /// <param name="comparison">The string comparison rule to use. Defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder StartsWith(Expression<Func<T, string>> selector, string value);
+    TBuilder StartsWith(Expression<Func<T, string?>> selector, string value,
+        StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Ensures that the selected string contains the specified value.
@@ -77,7 +81,7 @@ public interface IStringExpression<out TBuilder, T>
     /// <param name="value">The value that the string should contain.</param>
     /// <param name="comparison">Allow values to be case sensitive or case insensitive</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder Contains(Expression<Func<T, string>> selector, string value,
+    TBuilder Contains(Expression<Func<T, string?>> selector, string value,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -101,7 +105,7 @@ public interface IStringExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder Trimmed(Expression<Func<T, string?>> selector);
+    TBuilder IsTrimmed(Expression<Func<T, string?>> selector);
 
     /// <summary>
     /// Ensures that the selected string contains only digits.
@@ -136,6 +140,10 @@ public interface IStringExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
+    /// <remarks>
+    /// <b>EF Core:</b> JSON parsing is not translatable to SQL by EF Core.
+    /// Use this method only with in-memory collections (LINQ-to-Objects).
+    /// </remarks>
     TBuilder IsJson(Expression<Func<T, string?>> selector);
 
     /// <summary>
@@ -143,21 +151,33 @@ public interface IStringExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
+    /// <remarks>
+    /// <b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL by EF Core.
+    /// Use this method only with in-memory collections (LINQ-to-Objects).
+    /// </remarks>
     TBuilder IsBase64(Expression<Func<T, string?>> selector);
 
     /// <summary>
-    /// Ensures that the selected string is a invalid JSON format.
+    /// Ensures that the selected string is not a valid JSON format.
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder IsNotJson(Expression<Func<T, string?>> selector);
+    /// <remarks>
+    /// <b>EF Core:</b> JSON parsing is not translatable to SQL by EF Core.
+    /// Use this method only with in-memory collections (LINQ-to-Objects).
+    /// </remarks>
+    TBuilder NotJson(Expression<Func<T, string?>> selector);
 
     /// <summary>
-    /// Ensures that the selected string is a invalid Base64 encoded string.
+    /// Ensures that the selected string is not a valid Base64 encoded string.
     /// </summary>
     /// <param name="selector">Expression to select the string property.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder IsNotBase64(Expression<Func<T, string?>> selector);
+    /// <remarks>
+    /// <b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL by EF Core.
+    /// Use this method only with in-memory collections (LINQ-to-Objects).
+    /// </remarks>
+    TBuilder NotBase64(Expression<Func<T, string?>> selector);
 
     /// <summary>
     /// Adds a validation rule to check if any of the specified string properties contain at least one of the given search terms.
@@ -175,7 +195,56 @@ public interface IStringExpression<out TBuilder, T>
     /// - The validation succeeds if at least one term is found in any of the specified properties.
     /// - The comparison is case-insensitive.
     /// </remarks>
-    public TBuilder Contains(string value, List<Expression<Func<T, string>>> selectors,
+    public TBuilder Contains(string value, List<Expression<Func<T, string?>>> selectors,
+        StringComparison comparison = StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Validates that the selected property is a valid URL (http/https).</summary>
+    TBuilder IsUrl(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property is a valid E.164 phone number.</summary>
+    TBuilder IsPhoneNumber(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property is a valid GUID.</summary>
+    TBuilder IsGuid(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property contains only uppercase letters.</summary>
+    TBuilder IsUpperCase(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property contains only lowercase letters.</summary>
+    TBuilder IsLowerCase(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property length is between <paramref name="min"/> and <paramref name="max"/> (inclusive).</summary>
+    TBuilder LengthBetween(Expression<Func<T, string?>> selector, int min, int max);
+
+    /// <summary>Validates that the selected property is null or whitespace.</summary>
+    TBuilder IsNullOrWhiteSpace(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected property is not null and not whitespace.</summary>
+    TBuilder IsNotNullOrWhiteSpace(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string is a valid credit card number format.</summary>
+    TBuilder IsCreditCard(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string is a valid IPv4 address.</summary>
+    TBuilder IsIPv4(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string is a valid IPv6 address.</summary>
+    TBuilder IsIPv6(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string is a valid CSS hex color code (#RGB or #RRGGBB).</summary>
+    TBuilder IsHexColor(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string is a valid URL slug.</summary>
+    TBuilder IsSlug(Expression<Func<T, string?>> selector);
+
+    /// <summary>Validates that the selected string matches the wildcard <paramref name="pattern"/>.
+    /// Supports '*' (zero or more characters) and '?' (exactly one character). Case-insensitive by default.</summary>
+    /// <remarks>In-memory only — not EF Core translatable.</remarks>
+    TBuilder MatchesWildcard(Expression<Func<T, string?>> selector, string pattern);
+
+    /// <summary>Validates that the selected string is one of the allowed <paramref name="values"/> (exact match).</summary>
+    /// <remarks>In-memory only — not EF Core translatable due to StringComparison parameter.</remarks>
+    TBuilder IsOneOf(Expression<Func<T, string?>> selector, IReadOnlyCollection<string> values,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
 }

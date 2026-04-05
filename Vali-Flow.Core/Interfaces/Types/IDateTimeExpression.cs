@@ -22,8 +22,11 @@ public interface IDateTimeExpression<out TBuilder, T>
     TBuilder PastDate(Expression<Func<T, DateTime>> selector);
     
     /// <summary>
-    /// Ensures that the selected date is within a specific range.
+    /// Ensures that the selected date is within a specific range (date-only, inclusive).
     /// </summary>
+    /// <remarks>
+    /// <b>EF Core:</b> Uses <c>val.Date</c> which is not universally translatable to SQL. Use with in-memory collections only.
+    /// </remarks>
     /// <param name="selector">Expression to select the date property.</param>
     /// <param name="startDate">The start of the date range.</param>
     /// <param name="endDate">The end of the date range.</param>
@@ -39,8 +42,11 @@ public interface IDateTimeExpression<out TBuilder, T>
         Expression<Func<T, DateTime>> endDateSelector);
     
     /// <summary>
-    /// Ensures that the selected date matches a specific date.
+    /// Ensures that the selected date matches a specific date (date-only comparison).
     /// </summary>
+    /// <remarks>
+    /// <b>EF Core:</b> Uses <c>val.Date</c> which is not universally translatable to SQL. Use with in-memory collections only.
+    /// </remarks>
     /// <param name="selector">Expression to select the date property.</param>
     /// <param name="date">The exact date required.</param>
     TBuilder ExactDate(Expression<Func<T, DateTime>> selector, DateTime date);
@@ -122,4 +128,19 @@ public interface IDateTimeExpression<out TBuilder, T>
     /// <param name="selector">Expression to select the date property.</param>
     /// <param name="date">The date to compare the year with.</param>
     TBuilder SameYearAs(Expression<Func<T, DateTime>> selector, DateTime date);
+
+    /// <summary>Validates that the selected date falls on the specified day of the week.</summary>
+    TBuilder IsDayOfWeek(Expression<Func<T, DateTime>> selector, DayOfWeek day);
+
+    /// <summary>Validates that the selected date is in the specified month (1–12).</summary>
+    TBuilder IsInMonth(Expression<Func<T, DateTime>> selector, int month);
+
+    /// <summary>Validates that the selected date is in the specified year.</summary>
+    TBuilder IsInYear(Expression<Func<T, DateTime>> selector, int year);
+
+    /// <summary>Validates that the selected date is strictly before <paramref name="date"/>.</summary>
+    TBuilder IsBefore(Expression<Func<T, DateTime>> selector, DateTime date);
+
+    /// <summary>Validates that the selected date is strictly after <paramref name="date"/>.</summary>
+    TBuilder IsAfter(Expression<Func<T, DateTime>> selector, DateTime date);
 }

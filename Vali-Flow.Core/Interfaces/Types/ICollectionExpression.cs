@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Vali_Flow.Core.Builder;
 
 namespace Vali_Flow.Core.Interfaces.Types;
 
@@ -144,5 +145,49 @@ public interface ICollectionExpression<out TBuilder, T>
     /// </code>
     /// </example>
     TBuilder None<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
-    
+
+    /// <summary>Validates that the selected collection is empty.</summary>
+    TBuilder Empty<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector);
+
+    /// <summary>Validates that the selected collection contains at least <paramref name="min"/> elements.</summary>
+    TBuilder MinCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int min);
+
+    /// <summary>Validates that the selected collection contains at most <paramref name="max"/> elements.</summary>
+    TBuilder MaxCount<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int max);
+
+    /// <summary>Validates that the selected collection contains duplicate elements.</summary>
+    TBuilder HasDuplicates<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector);
+
+    /// <summary>
+    /// Validates that every element in the selected collection satisfies the conditions
+    /// configured in the inner <see cref="ValiFlow{TValue}"/> builder.
+    /// </summary>
+    /// <remarks>
+    /// <b>EF Core:</b> Uses <c>Enumerable.All</c> internally. When applied to an EF Core
+    /// <c>IQueryable</c>, the collection will be evaluated client-side (in memory) rather than
+    /// translated to SQL. Use this method only with in-memory collections or when the collection
+    /// is already loaded as a navigation property.
+    /// </remarks>
+    TBuilder EachItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure);
+
+    /// <summary>
+    /// Validates that at least one element in the selected collection satisfies the conditions
+    /// configured in the inner <see cref="ValiFlow{TValue}"/> builder.
+    /// </summary>
+    /// <remarks>
+    /// <b>EF Core:</b> Uses <c>Enumerable.Any</c> internally. When applied to an EF Core
+    /// <c>IQueryable</c>, the collection will be evaluated client-side (in memory) rather than
+    /// translated to SQL. Use this method only with in-memory collections or when the collection
+    /// is already loaded as a navigation property.
+    /// </remarks>
+    TBuilder AnyItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure);
+
+    /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.
+    /// Equivalent to <see cref="EachItem{TValue}"/> but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse.</summary>
+    TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, ValiFlow<TValue> filter);
+
+    /// <summary>Validates that the selected collection has exactly <paramref name="count"/> elements.
+    /// Equivalent to <see cref="Count{TValue}(Expression{Func{T,IEnumerable{TValue?}}},int)"/>.</summary>
+    TBuilder CountEquals<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count);
+
 }

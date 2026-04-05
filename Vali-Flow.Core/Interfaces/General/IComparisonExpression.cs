@@ -40,4 +40,19 @@ public interface IComparisonExpression<out TBuilder, T>
     /// <param name="value">The value to compare against.</param>
     /// <returns>The builder instance for method chaining.</returns>
     TBuilder NotEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : IEquatable<TValue>;
+
+    /// <summary>Validates that the selected <typeparamref name="TEnum"/> value is a defined member of its enum type.</summary>
+    TBuilder IsInEnum<TEnum>(Expression<Func<T, TEnum>> selector) where TEnum : struct, Enum;
+
+    /// <summary>Validates that the selected property equals <c>default(<typeparamref name="TValue"/>)</c>.</summary>
+    TBuilder IsDefault<TValue>(Expression<Func<T, TValue>> selector);
+
+    /// <summary>Validates that the selected property does NOT equal <c>default(<typeparamref name="TValue"/>)</c>.</summary>
+    TBuilder IsNotDefault<TValue>(Expression<Func<T, TValue>> selector);
+
+    /// <summary>Validates that the selected value is null. Alias for <c>Null</c>.</summary>
+    TBuilder IsNull<TValue>(Expression<Func<T, TValue?>> selector);
+
+    /// <summary>Validates that the selected value is not null. Alias for <c>NotNull</c>.</summary>
+    TBuilder IsNotNull<TValue>(Expression<Func<T, TValue?>> selector);
 }

@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+
 namespace Vali_Flow.Core.Interfaces.Types;
 
 /// <summary>
@@ -12,12 +14,12 @@ public interface IBooleanExpression<out TBuilder,T>
     /// </summary>
     /// <param name="selector">A function that selects a boolean value from the object.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder IsTrue(Func<T, bool> selector);
+    TBuilder IsTrue(Expression<Func<T, bool>> selector);
     
     /// <summary>
     /// Validates that the specified condition evaluates to false.
     /// </summary>
     /// <param name="selector">A function that selects a boolean value from the object.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder IsFalse(Func<T, bool> selector);
+    TBuilder IsFalse(Expression<Func<T, bool>> selector);
 }
