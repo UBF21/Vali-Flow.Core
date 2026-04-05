@@ -827,10 +827,10 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         Expression<Func<T, bool>> right,
         bool and)
     {
-        if (left.Body is ConstantExpression { Value: true }) return right;
-        if (right.Body is ConstantExpression { Value: true }) return left;
+        if (left.Body is ConstantExpression { Value: true }) { return right; }
+        if (right.Body is ConstantExpression { Value: true }) { return left; }
         var param = left.Parameters[0];
-        var rBody = new ParameterReplacer(right.Parameters[0], param).Visit(right.Body)!;
+        var rBody = new ParameterReplacer(right.Parameters[0], param).Visit(right.Body);
         var body = and ? Expression.AndAlso(left.Body, rBody) : Expression.OrElse(left.Body, rBody);
         return Expression.Lambda<Func<T, bool>>(body, param);
     }
