@@ -506,7 +506,7 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
         where TValue : IComparable<TValue>
         => _numericExpression.InRange(selector, min, max);
 
-    ValiFlow<T> INumericExpression<ValiFlow<T>, T>.EqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value)
+    ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.EqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         => _numericExpression.EqualTo(selector, value);
 
     // ── Cross-property comparisons ─────────────────────────────────────────────
