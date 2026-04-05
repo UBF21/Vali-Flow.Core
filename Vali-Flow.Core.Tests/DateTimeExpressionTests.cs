@@ -280,31 +280,31 @@ public class DateTimeExpressionTests
     }
 
     [Fact]
-    public void BeforeDate_DateTime_DateBeforeCutoff_ReturnsTrue()
+    public void IsBefore_DateTime_DateBeforeCutoff_ReturnsTrue()
     {
-        var filter = new ValiFlow<Product>().BeforeDate(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
+        var filter = new ValiFlow<Product>().IsBefore(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
         filter(MakeProduct(new DateTime(2025, 6, 14, 23, 59, 0))).Should().BeTrue();
     }
 
     [Fact]
-    public void BeforeDate_DateTime_SameDayCutoff_ReturnsFalse()
+    public void IsBefore_DateTime_SameMomentCutoff_ReturnsFalse()
     {
-        var filter = new ValiFlow<Product>().BeforeDate(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
-        filter(MakeProduct(new DateTime(2025, 6, 15, 8, 0, 0))).Should().BeFalse();
+        var filter = new ValiFlow<Product>().IsBefore(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
+        filter(MakeProduct(new DateTime(2025, 6, 15, 0, 0, 0))).Should().BeFalse();
     }
 
     [Fact]
-    public void AfterDate_DateTime_DateAfterCutoff_ReturnsTrue()
+    public void IsAfter_DateTime_DateAfterCutoff_ReturnsTrue()
     {
-        var filter = new ValiFlow<Product>().AfterDate(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
+        var filter = new ValiFlow<Product>().IsAfter(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
         filter(MakeProduct(new DateTime(2025, 6, 16, 0, 0, 0))).Should().BeTrue();
     }
 
     [Fact]
-    public void AfterDate_DateTime_SameDayCutoff_ReturnsFalse()
+    public void IsAfter_DateTime_SameMomentCutoff_ReturnsFalse()
     {
-        var filter = new ValiFlow<Product>().AfterDate(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
-        filter(MakeProduct(new DateTime(2025, 6, 15, 8, 0, 0))).Should().BeFalse();
+        var filter = new ValiFlow<Product>().IsAfter(p => p.CreatedAt, new DateTime(2025, 6, 15)).Build().Compile();
+        filter(MakeProduct(new DateTime(2025, 6, 15, 0, 0, 0))).Should().BeFalse();
     }
 
     [Fact]

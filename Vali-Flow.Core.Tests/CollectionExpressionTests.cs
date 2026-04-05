@@ -309,7 +309,7 @@ public class CollectionExpressionNegativeTests
     }
 }
 
-public class AllMatchAndCountEqualsTests
+public class AllMatchAndCountTests
 {
     private record TagEntity(List<string>? Tags);
 
@@ -380,44 +380,44 @@ public class AllMatchAndCountEqualsTests
         act.Should().Throw<ArgumentNullException>().WithParameterName("selector");
     }
 
-    // CountEquals — exact count matches → true
+    // Count — exact count matches → true
     [Fact]
-    public void CountEquals_ExactCount_ReturnsTrue()
+    public void Count_ExactCount_ReturnsTrue()
     {
         var filter = new ValiFlow<TagEntity>()
-            .CountEquals<string>(e => e.Tags, 2)
+            .Count<string>(e => e.Tags, 2)
             .Build().Compile();
 
         filter(MakeEntity(new List<string> { "a", "b" })).Should().BeTrue();
     }
 
-    // CountEquals — wrong count → false
+    // Count — wrong count → false
     [Fact]
-    public void CountEquals_WrongCount_ReturnsFalse()
+    public void Count_WrongCount_ReturnsFalse()
     {
         var filter = new ValiFlow<TagEntity>()
-            .CountEquals<string>(e => e.Tags, 3)
+            .Count<string>(e => e.Tags, 3)
             .Build().Compile();
 
         filter(MakeEntity(new List<string> { "a", "b" })).Should().BeFalse();
     }
 
-    // CountEquals — null collection → false
+    // Count — null collection → false
     [Fact]
-    public void CountEquals_NullCollection_ReturnsFalse()
+    public void Count_NullCollection_ReturnsFalse()
     {
         var filter = new ValiFlow<TagEntity>()
-            .CountEquals<string>(e => e.Tags, 0)
+            .Count<string>(e => e.Tags, 0)
             .Build().Compile();
 
         filter(MakeEntity(null)).Should().BeFalse();
     }
 
-    // CountEquals — null selector → throws ArgumentNullException
+    // Count — null selector → throws ArgumentNullException
     [Fact]
-    public void CountEquals_NullSelector_ThrowsArgumentNullException()
+    public void Count_NullSelector_ThrowsArgumentNullException()
     {
-        Action act = () => new ValiFlow<TagEntity>().CountEquals<string>(null!, 2);
+        Action act = () => new ValiFlow<TagEntity>().Count<string>(null!, 2);
         act.Should().Throw<ArgumentNullException>().WithParameterName("selector");
     }
 }

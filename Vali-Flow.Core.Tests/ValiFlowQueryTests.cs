@@ -1021,14 +1021,14 @@ public class ValiFlowQueryTests
         filter(new ShortNullableEntity(null)).Should().BeFalse();
     }
 
-    // ── BeforeDate / AfterDate / ExactDate (DateTime) ────────────────────────
+    // ── IsBefore / IsAfter / ExactDate (DateTime) ────────────────────────
 
     [Fact]
-    public void BeforeDate_DateTime_MatchesEarlierDate()
+    public void IsBefore_DateTime_MatchesEarlierDate()
     {
         var boundary = new DateTime(2026, 3, 15);
         var filter = new ValiFlowQuery<QueryEntityEx>()
-            .BeforeDate(e => e.CreatedAt, boundary)
+            .IsBefore(e => e.CreatedAt, boundary)
             .Build().Compile();
 
         filter(new QueryEntityEx(null, null, null, null, null,
@@ -1040,17 +1040,17 @@ public class ValiFlowQueryTests
     }
 
     [Fact]
-    public void AfterDate_DateTime_MatchesLaterDate()
+    public void IsAfter_DateTime_MatchesLaterDate()
     {
         var boundary = new DateTime(2026, 3, 15);
         var filter = new ValiFlowQuery<QueryEntityEx>()
-            .AfterDate(e => e.CreatedAt, boundary)
+            .IsAfter(e => e.CreatedAt, boundary)
             .Build().Compile();
 
         filter(new QueryEntityEx(null, null, null, null, null,
             new DateTime(2026, 3, 16, 0, 0, 0), DateOnly.MinValue)).Should().BeTrue();
         filter(new QueryEntityEx(null, null, null, null, null,
-            new DateTime(2026, 3, 15, 23, 59, 59), DateOnly.MinValue)).Should().BeFalse();
+            new DateTime(2026, 3, 15, 0, 0, 0), DateOnly.MinValue)).Should().BeFalse();
         filter(new QueryEntityEx(null, null, null, null, null,
             new DateTime(2026, 3, 14, 0, 0, 0), DateOnly.MinValue)).Should().BeFalse();
     }

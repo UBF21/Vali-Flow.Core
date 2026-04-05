@@ -41,7 +41,6 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     private Func<T, bool>? _cachedFunc;
     private Func<T, bool>? _cachedNegatedFunc;
     private Expression<Func<T, bool>>? _cachedExpression;
-    private readonly object _validateLock = new();
     private int _frozen; // 0 = mutable, 1 = frozen
 
     /// <inheritdoc/>
@@ -185,7 +184,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             throw new ArgumentNullException(nameof(expression));
         }
         EnsureValidCondition(expression);
-        _conditions = _conditions.Add(new ConditionEntry<T>(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, null, Severity.Error));
+        _conditions = _conditions.Add(new ConditionEntry<T>(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, Severity.Error));
         Volatile.Write(ref _nextIsAnd, 1);
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
@@ -593,23 +592,9 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         {
             var entry = snapshot[i];
             if (entry.Message == null && entry.ErrorCode == null && entry.MessageFactory == null)
-            {
                 continue;
-            }
 
-            Func<T, bool>? compiled;
-            lock (_validateLock)
-            {
-                var current = _conditions[i];
-                compiled = current.CompiledFunc;
-                if (compiled == null)
-                {
-                    compiled = current.Condition.Compile();
-                    _conditions = _conditions.SetItem(i, current with { CompiledFunc = compiled });
-                }
-            }
-
-            if (!compiled(instance))
+            if (!entry.CompiledFunc.Value(instance))  // Lazy<T> is thread-safe (ExecutionAndPublication)
             {
                 var resolvedMessage = entry.MessageFactory?.Invoke() ?? entry.Message;
                 errors.Add(new ValidationError(resolvedMessage ?? entry.ErrorCode!, entry.ErrorCode, entry.PropertyPath, entry.Severity));

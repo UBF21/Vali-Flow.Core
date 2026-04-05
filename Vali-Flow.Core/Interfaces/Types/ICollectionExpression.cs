@@ -186,9 +186,4 @@ public interface ICollectionExpression<out TBuilder, T>
     /// Equivalent to <see cref="EachItem{TValue}"/> but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse.</summary>
     TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, ValiFlow<TValue> filter);
 
-    /// <summary>Validates that the selected collection has exactly <paramref name="count"/> elements.
-    /// Equivalent to <see cref="Count{TValue}(Expression{Func{T,IEnumerable{TValue?}}},int)"/>.</summary>
-    [Obsolete("Use Count instead. CountEquals will be removed in a future version.")]
-    TBuilder CountEquals<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count);
-
 }

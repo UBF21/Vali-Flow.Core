@@ -116,14 +116,6 @@ public class DateOnlyExpressionQuery<TBuilder, T>
         return _builder.Add(selector, p);
     }
 
-    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
-    public TBuilder BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
-        => IsBefore(selector, date);
-
-    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
-    public TBuilder AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
-        => IsAfter(selector, date);
-
     public TBuilder IsYesterday(Expression<Func<T, DateOnly>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);

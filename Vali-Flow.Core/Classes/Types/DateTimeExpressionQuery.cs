@@ -23,24 +23,6 @@ public class DateTimeExpressionQuery<TBuilder, T>
         return _builder.Add(selector, p);
     }
 
-    [Obsolete("BeforeDate normalizes the boundary to date.Date (midnight), comparing val < date.Date. IsBefore compares val < date including time-of-day. They are NOT equivalent — choose based on your use case. BeforeDate will be removed in a future version.")]
-    public TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.Date;
-        Expression<Func<DateTime, bool>> predicate = val => val < datePart;
-        return _builder.Add(selector, predicate);
-    }
-
-    [Obsolete("AfterDate normalizes the boundary to the next day midnight (val >= date.Date.AddDays(1)), not val > date. IsAfter compares val > date including time-of-day. They are NOT equivalent — choose based on your use case. AfterDate will be removed in a future version.")]
-    public TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.Date;
-        Expression<Func<DateTime, bool>> predicate = val => val >= datePart.AddDays(1);
-        return _builder.Add(selector, predicate);
-    }
-
     public TBuilder IsBefore(Expression<Func<T, DateTime>> selector, DateTime date)
     {
         ArgumentNullException.ThrowIfNull(selector);

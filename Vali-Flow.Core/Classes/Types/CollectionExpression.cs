@@ -231,12 +231,6 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         return _builder.Add(selector, predicate);
     }
 
-    /// <summary>Validates that the selected collection has exactly <paramref name="count"/> elements.
-    /// Equivalent to <see cref="Count{TValue}(Expression{Func{T,IEnumerable{TValue?}}},int)"/>.</summary>
-    [Obsolete("Use Count instead. CountEquals will be removed in a future version.")]
-    public TBuilder CountEquals<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count)
-        => Count<TValue>(selector, count);
-
     /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.</summary>
     /// <remarks>
     /// Equivalent to <see cref="EachItem{TValue}(Expression{Func{T,IEnumerable{TValue}}},Action{ValiFlow{TValue}})"/>

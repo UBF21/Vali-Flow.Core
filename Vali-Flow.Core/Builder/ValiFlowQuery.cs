@@ -522,14 +522,6 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on <paramref name="date"/> (date-only, ignoring time-of-day).</summary>
     public ValiFlowQuery<T> ExactDate(Expression<Func<T, DateTime>> selector, DateTime date) => _dateTime.ExactDate(selector, date);
 
-    /// <summary>Validates that the selected <see cref="DateTime"/> falls before <paramref name="date"/> (date-only comparison, ignores time-of-day).</summary>
-    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
-    public ValiFlowQuery<T> BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date) => _dateTime.BeforeDate(selector, date);
-
-    /// <summary>Validates that the selected <see cref="DateTime"/> falls after <paramref name="date"/> (date-only comparison, ignores time-of-day).</summary>
-    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
-    public ValiFlowQuery<T> AfterDate(Expression<Func<T, DateTime>> selector, DateTime date) => _dateTime.AfterDate(selector, date);
-
     /// <summary>Validates that the selected <see cref="DateTime"/> is before <paramref name="date"/> (full DateTime comparison including time-of-day).</summary>
     public ValiFlowQuery<T> IsBefore(Expression<Func<T, DateTime>> selector, DateTime date) => _dateTime.IsBefore(selector, date);
 
@@ -632,14 +624,6 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> falls on the same UTC calendar date as <paramref name="date"/>.</summary>
     public ValiFlowQuery<T> ExactDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date) => _dateTimeOffset.ExactDate(selector, date);
 
-    /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is before the UTC calendar date of <paramref name="date"/> (date-only comparison).</summary>
-    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
-    public ValiFlowQuery<T> BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date) => _dateTimeOffset.BeforeDate(selector, date);
-
-    /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is after the UTC calendar date of <paramref name="date"/> (date-only comparison).</summary>
-    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
-    public ValiFlowQuery<T> AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date) => _dateTimeOffset.AfterDate(selector, date);
-
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> falls in the same calendar year and month as <paramref name="date"/>.</summary>
     public ValiFlowQuery<T> SameMonthAs(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date) => _dateTimeOffset.SameMonthAs(selector, date);
 
@@ -704,14 +688,6 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> equals <paramref name="date"/>.</summary>
     public ValiFlowQuery<T> ExactDate(Expression<Func<T, DateOnly>> selector, DateOnly date) => _dateOnly.ExactDate(selector, date);
-
-    /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly before <paramref name="date"/>.</summary>
-    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
-    public ValiFlowQuery<T> BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date) => _dateOnly.BeforeDate(selector, date);
-
-    /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly after <paramref name="date"/>.</summary>
-    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
-    public ValiFlowQuery<T> AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date) => _dateOnly.AfterDate(selector, date);
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> equals yesterday's UTC date.</summary>
     public ValiFlowQuery<T> IsYesterday(Expression<Func<T, DateOnly>> selector) => _dateOnly.IsYesterday(selector);

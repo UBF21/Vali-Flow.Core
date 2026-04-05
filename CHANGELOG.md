@@ -5,6 +5,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-04-05
+
+### Breaking Changes
+
+- **Removed deprecated methods**: `BeforeDate`, `AfterDate` (use `IsBefore`/`IsAfter`), `CountEquals` (use `Count`)
+- **`IStringExpression<TBuilder,T>`** now inherits from 4 focused sub-interfaces:
+  - `IStringLengthExpression` — MinLength, MaxLength, ExactLength, LengthBetween
+  - `IStringContentExpression` — StartsWith, EndsWith, Contains, EqualToIgnoreCase, IsOneOf
+  - `IStringStateExpression` — IsNullOrEmpty, IsNullOrWhiteSpace, IsTrimmed, IsLowerCase, IsUpperCase, HasOnlyDigits, HasOnlyLetters, HasLettersAndNumbers, HasSpecialCharacters
+  - `IStringFormatExpression` — IsEmail, IsUrl, IsGuid, IsJson, IsBase64, RegexMatch, MatchesWildcard, IsCreditCard, IsIPv4, IsIPv6, IsHexColor, IsSlug
+  - If you implemented `IStringExpression` directly, implement the 4 sub-interfaces instead.
+
+### Performance
+
+- `ConditionEntry<T>` now compiles predicates lazily via `Lazy<Func<T,bool>>` — thread-safe without explicit locking. `Validate()` no longer acquires a lock per condition.
+
+### Migration Guide
+
+| v1.x | v2.0 |
+|------|------|
+| `BeforeDate(selector, date)` | `IsBefore(selector, date)` |
+| `AfterDate(selector, date)` | `IsAfter(selector, date)` |
+| `CountEquals(selector, n)` | `Count(selector, n)` |
+
 ## [1.7.0] - 2026-04-04
 
 ### Architecture

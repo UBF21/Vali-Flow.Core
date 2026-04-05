@@ -104,24 +104,6 @@ public class DateTimeOffsetExpressionQuery<TBuilder, T>
         return _builder.Add(selector, p);
     }
 
-    [Obsolete("BeforeDate normalizes the boundary to UTC day start (val < date.UtcDateTime.Date at 00:00Z), ignoring time-of-day. IsBefore compares the full DateTimeOffset including time and offset. They are NOT equivalent — choose based on your use case. BeforeDate will be removed in a future version.")]
-    public TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var dayStart = new DateTimeOffset(date.UtcDateTime.Date, TimeSpan.Zero);
-        Expression<Func<DateTimeOffset, bool>> p = val => val < dayStart;
-        return _builder.Add(selector, p);
-    }
-
-    [Obsolete("AfterDate normalizes the boundary to UTC next day start (val >= date.UtcDateTime.Date.AddDays(1) at 00:00Z), not val > date. IsAfter compares the full DateTimeOffset including time and offset. They are NOT equivalent — choose based on your use case. AfterDate will be removed in a future version.")]
-    public TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var dayEnd = new DateTimeOffset(date.UtcDateTime.Date.AddDays(1), TimeSpan.Zero);
-        Expression<Func<DateTimeOffset, bool>> p = val => val >= dayEnd;
-        return _builder.Add(selector, p);
-    }
-
     public TBuilder SameMonthAs(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
         ArgumentNullException.ThrowIfNull(selector);

@@ -460,7 +460,7 @@
 - Fixed InRange: min &lt;= max validation
 - Fixed ValiSort enumerable reflection: MethodInfo cached per key type (plain Dictionary, non-thread-safe by design)
         </PackageReleaseNotes>
-        <Version>2.7.0</Version>
+        <Version>3.0.0</Version>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PackageIcon>logo_vali_flow_core_.png</PackageIcon>

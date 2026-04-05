@@ -190,30 +190,6 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
-    [Obsolete("BeforeDate compares only the UTC date part (val.UtcDateTime.Date < date.UtcDateTime.Date), ignoring time-of-day. IsBefore compares the full DateTimeOffset including time and offset. They are NOT equivalent — choose based on your use case. BeforeDate will be removed in a future version.")]
-    public TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.UtcDateTime.Date;
-        Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date < datePart;
-        return _builder.Add(selector, predicate);
-    }
-
-    /// <summary>Validates that the selected <see cref="DateTimeOffset"/> falls after the UTC calendar date of <paramref name="date"/> (date-only comparison, time ignored).</summary>
-    /// <remarks>
-    /// Compares <c>.UtcDateTime.Date</c> on both values.
-    /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
-    /// Use this method only with in-memory collections (LINQ-to-Objects).
-    /// </remarks>
-    [Obsolete("AfterDate compares only the UTC date part (val.UtcDateTime.Date > date.UtcDateTime.Date), ignoring time-of-day. IsAfter compares the full DateTimeOffset including time and offset. They are NOT equivalent — choose based on your use case. AfterDate will be removed in a future version.")]
-    public TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.UtcDateTime.Date;
-        Expression<Func<DateTimeOffset, bool>> predicate = val => val.UtcDateTime.Date > datePart;
-        return _builder.Add(selector, predicate);
-    }
-
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> falls in the same calendar year and month as <paramref name="date"/>.</summary>
     /// <remarks>
     /// Uses <c>DateTimeOffset.Month</c> and <c>DateTimeOffset.Year</c>, which reflect the <b>stored offset</b>, not UTC.

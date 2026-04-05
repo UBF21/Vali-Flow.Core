@@ -105,40 +105,6 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
         return _builder.Add(selector, predicate);
     }
 
-    /// <summary>Validates that the selected <see cref="DateTime"/> date part is strictly before <paramref name="date"/> (date-only comparison).</summary>
-    /// <remarks>
-    /// Compares only the date part (<c>val.Date &lt; date.Date</c>), ignoring time-of-day.
-    /// A value of 2026-03-28 23:59 is NOT before 2026-03-28 (same date). Use <see cref="IsBefore"/>
-    /// for a full <see cref="DateTime"/> comparison that includes time-of-day.
-    /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable by EF Core. Use this method
-    /// only with in-memory collections (LINQ-to-Objects).
-    /// </remarks>
-    [Obsolete("BeforeDate compares only the date part (val.Date < date.Date), ignoring time-of-day. IsBefore compares the full DateTime including time. They are NOT equivalent — choose based on your use case. BeforeDate will be removed in a future version.")]
-    public TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.Date;
-        Expression<Func<DateTime, bool>> predicate = val => val.Date < datePart;
-        return _builder.Add(selector, predicate);
-    }
-
-    /// <summary>Validates that the selected <see cref="DateTime"/> date part is strictly after <paramref name="date"/> (date-only comparison).</summary>
-    /// <remarks>
-    /// Compares only the date part (<c>val.Date &gt; date.Date</c>), ignoring time-of-day.
-    /// A value of 2026-03-28 00:01 is NOT after 2026-03-28 (same date). Use <see cref="IsAfter"/>
-    /// for a full <see cref="DateTime"/> comparison that includes time-of-day.
-    /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable by EF Core. Use this method
-    /// only with in-memory collections (LINQ-to-Objects).
-    /// </remarks>
-    [Obsolete("AfterDate compares only the date part (val.Date > date.Date), ignoring time-of-day. IsAfter compares the full DateTime including time. They are NOT equivalent — choose based on your use case. AfterDate will be removed in a future version.")]
-    public TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var datePart = date.Date;
-        Expression<Func<DateTime, bool>> predicate = val => val.Date > datePart;
-        return _builder.Add(selector, predicate);
-    }
-
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls on today's date.
     /// </summary>

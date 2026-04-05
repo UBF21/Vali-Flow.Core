@@ -136,47 +136,28 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
-## What's New in v1.7.0 🆕
+## What's New in v3.0.0
 
-### Architecture
-- **`ValiFlowQuery<T>` is no longer a God Class** — refactored from 2 300+ lines to ~530 lines using the same composition pattern as `ValiFlow<T>`. All method bodies live in 9 focused domain classes (`*ExpressionQuery`). Public API unchanged.
+### Breaking Changes
+- **Removed `BeforeDate` / `AfterDate`** — use `IsBefore` / `IsAfter` (full DateTime/DateTimeOffset comparison including time-of-day).
+- **Removed `CountEquals`** — use `Count` (identical semantics).
+- **`IStringExpression<TBuilder,T>` segregated into 4 focused sub-interfaces**:
+  - `IStringLengthExpression` — MinLength, MaxLength, ExactLength, LengthBetween
+  - `IStringContentExpression` — StartsWith, EndsWith, Contains, EqualToIgnoreCase, IsOneOf
+  - `IStringStateExpression` — IsNullOrEmpty, IsNullOrWhiteSpace, IsTrimmed, IsLowerCase, IsUpperCase, HasOnlyDigits/Letters/SpecialCharacters
+  - `IStringFormatExpression` — IsEmail, IsUrl, IsGuid, IsJson, IsBase64, RegexMatch, MatchesWildcard, IsCreditCard, IsIPv4/IPv6, IsHexColor, IsSlug
+  - If you implemented `IStringExpression` directly, implement the 4 sub-interfaces instead.
 
-### New EF Core-safe methods on `ValiFlowQuery<T>`
+### Performance
+- `ConditionEntry<T>` now compiles predicates lazily via `Lazy<Func<T,bool>>` — thread-safe without explicit locking. `Validate()` no longer acquires a per-condition lock.
 
-**String**
-| Method | SQL equivalent |
-|--------|---------------|
-| `IsTrimmed` | `LTRIM(RTRIM(x)) = x` |
-| `IsLowerCase` | `LOWER(x) = x` |
-| `IsUpperCase` | `UPPER(x) = x` |
-| `EqualToIgnoreCase(value)` | `LOWER(x) = LOWER(value)` |
-| `StartsWithIgnoreCase(value)` | `LOWER(x) LIKE 'v%'` |
-| `EndsWithIgnoreCase(value)` | `LOWER(x) LIKE '%v'` |
-| `ContainsIgnoreCase(value)` | `LOWER(x) LIKE '%v%'` |
-| `NotContains(value)` | `x NOT LIKE '%v%'` |
-| `NotStartsWith(value)` | `x NOT LIKE 'v%'` |
-| `NotEndsWith(value)` | `x NOT LIKE '%v'` |
+### Migration Guide
 
-**Numeric (`int` and `long`)**
-| Method | SQL equivalent |
-|--------|---------------|
-| `IsEven` | `x % 2 = 0` |
-| `IsOdd` | `x % 2 != 0` |
-| `IsMultipleOf(n)` | `x % n = 0` |
-
-**DateTime / DateTimeOffset / DateOnly**
-| Method | Notes |
-|--------|-------|
-| `IsWeekend` / `IsWeekday` | `.DayOfWeek` — not supported on SQLite |
-| `IsDayOfWeek(day)` | `.DayOfWeek` — not supported on SQLite |
-| `IsToday` / `IsYesterday` / `IsTomorrow` | UTC boundaries captured at build time |
-| `InLastDays(n)` / `InNextDays(n)` | Sliding UTC window (constants) |
-| `IsFirstDayOfMonth` / `IsLastDayOfMonth` | `.Day` property |
-| `IsInQuarter(q)` | Month-range comparison |
-
-### Bug Fixes
-- `EqualTo` / `NotEqualTo` now accept nullable types correctly
-- `StringExpression` internal `ReplaceParamVisitor` replaced with canonical `ParameterReplacer`
+| v1.x | v2.0 |
+|------|------|
+| `BeforeDate(selector, date)` | `IsBefore(selector, date)` |
+| `AfterDate(selector, date)` | `IsAfter(selector, date)` |
+| `CountEquals(selector, n)` | `Count(selector, n)` |
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
