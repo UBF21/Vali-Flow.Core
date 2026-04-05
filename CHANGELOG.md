@@ -5,6 +5,57 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-04
+
+### Architecture
+
+- **ValiFlowQuery<T> God Class eliminated**: reduced from 2 329 lines to ~530 lines by extracting all method bodies into 9 domain-specific composition classes (`BooleanExpressionQuery`, `ComparisonExpressionQuery`, `StringExpressionQuery`, `CollectionExpressionQuery`, `NumericExpressionQuery`, `DateTimeExpressionQuery`, `DateTimeOffsetExpressionQuery`, `DateOnlyExpressionQuery`, `TimeOnlyExpressionQuery`). `ValiFlowQuery<T>` is now a thin wrapper identical in structure to `ValiFlow<T>`. Public API unchanged.
+- Deleted `Constant.cs` and `Util.cs` (dead code — all literals inlined at usage site, `GetCurrentMethodName` had zero consumers).
+- Consolidated `ExpressionDeepCloner` into `ForceCloneVisitor` (was a structural duplicate); all cross-property expression methods now use the single canonical visitor.
+
+### New Features — ValiFlowQuery<T> (EF Core-safe)
+
+**String**
+- `IsTrimmed` — `val == val.Trim()` → SQL `LTRIM(RTRIM(x))` / `trim(x)`
+- `IsLowerCase` — `val == val.ToLower()` → SQL `LOWER(x)`
+- `IsUpperCase` — `val == val.ToUpper()` → SQL `UPPER(x)`
+- `EqualToIgnoreCase` — case-insensitive equality via `ToLower()` on both sides
+- `StartsWithIgnoreCase` — `LOWER(x) LIKE 'value%'`
+- `EndsWithIgnoreCase` — `LOWER(x) LIKE '%value'`
+- `ContainsIgnoreCase` — `LOWER(x) LIKE '%value%'`
+- `NotContains` — `!val.Contains(value)` → translatable negation
+- `NotStartsWith` — `!val.StartsWith(value)`
+- `NotEndsWith` — `!val.EndsWith(value)`
+
+**Numeric (int and long)**
+- `IsEven` — `val % 2 == 0` → EF Core translatable via modulo
+- `IsOdd` — `val % 2 != 0`
+- `IsMultipleOf(n)` — `val % n == 0`
+
+**DateTime**
+- `IsWeekend` / `IsWeekday` / `IsDayOfWeek` — via `.DayOfWeek` (SQL Server, PostgreSQL, MySQL Pomelo 5.0+; **not SQLite**)
+- `IsToday` / `IsYesterday` / `IsTomorrow` — UTC midnight boundaries captured at build time (EF-safe constants)
+- `InLastDays(n)` / `InNextDays(n)` — sliding UTC windows captured at build time
+- `IsFirstDayOfMonth` / `IsLastDayOfMonth` — via `.Day` property
+- `IsInQuarter(q)` — month-range comparison
+
+**DateTimeOffset**
+- `IsWeekend` / `IsWeekday` / `IsDayOfWeek` — same as DateTime variants
+- `IsFirstDayOfMonth` / `IsLastDayOfMonth` / `IsInQuarter(q)`
+
+**DateOnly**
+- `IsWeekend` / `IsWeekday` / `IsDayOfWeek`
+- `IsFirstDayOfMonth` / `IsLastDayOfMonth` / `IsInQuarter(q)`
+
+### Bug Fixes
+- `ComparisonExpression.EqualTo` / `NotEqualTo`: removed incorrect null guard — `Expression.Constant(value, typeof(TValue))` handles `null` correctly; fixes nullable value type comparisons.
+- `StringExpression`: replaced private `ReplaceParamVisitor` with the canonical `ParameterReplacer` from `ExpressionHelpers`; deleted the duplicate private class.
+
+### Test Coverage
+- xUnit test project added with **961 tests** (net9.0)
+- Full coverage: `ValiFlow<T>`, `ValiFlowQuery<T>`, `BaseExpression`, all type-specific expression classes, `ValiFlowGlobal`, `ValiSort`, `ValidateNested`, `AddIf`/`When`/`Unless`, freeze/clone, Or-group precedence, cross-property ranges
+- All 961 tests pass on net9.0
+
 ## [1.6.1] - 2026-03-28
 
 ### New Features

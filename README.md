@@ -136,18 +136,47 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
-## What's New in v1.4.5 🆕
+## What's New in v1.7.0 🆕
 
-- **`ValiFlowQuery<T>`**: EF Core-safe query builder — only exposes predicates translatable by SQL Server, PostgreSQL, MySQL (Pomelo 5.0+), SQLite, and Oracle 7.0+
-- **`ValiFlowGlobal`**: ambient filter registry applied via `BuildWithGlobal()`
-- **`ValiSort<T>`**: fluent sort builder for `IQueryable` and `IEnumerable`
-- **`ValidateNested<TProperty>`**: validate nested objects with automatic null check
-- **`BuildCached()`**: compile expression once, reuse safely across threads
-- **`WithSeverity`**: mark conditions as Info, Warning, Error, or Critical
-- **`ValidationResult`**: batch validation with per-severity access
-- **`ValiFlowQuery` nullable numeric overloads**: `int?`, `long?`, `decimal?`, `double?`, `float?`
-- **Thread-safe expression cache**: lock-free `Volatile`/`Interlocked` pattern on ARM64
-- **Expression tree node aliasing fixes**: all cross-property methods use reference-distinct nodes
+### Architecture
+- **`ValiFlowQuery<T>` is no longer a God Class** — refactored from 2 300+ lines to ~530 lines using the same composition pattern as `ValiFlow<T>`. All method bodies live in 9 focused domain classes (`*ExpressionQuery`). Public API unchanged.
+
+### New EF Core-safe methods on `ValiFlowQuery<T>`
+
+**String**
+| Method | SQL equivalent |
+|--------|---------------|
+| `IsTrimmed` | `LTRIM(RTRIM(x)) = x` |
+| `IsLowerCase` | `LOWER(x) = x` |
+| `IsUpperCase` | `UPPER(x) = x` |
+| `EqualToIgnoreCase(value)` | `LOWER(x) = LOWER(value)` |
+| `StartsWithIgnoreCase(value)` | `LOWER(x) LIKE 'v%'` |
+| `EndsWithIgnoreCase(value)` | `LOWER(x) LIKE '%v'` |
+| `ContainsIgnoreCase(value)` | `LOWER(x) LIKE '%v%'` |
+| `NotContains(value)` | `x NOT LIKE '%v%'` |
+| `NotStartsWith(value)` | `x NOT LIKE 'v%'` |
+| `NotEndsWith(value)` | `x NOT LIKE '%v'` |
+
+**Numeric (`int` and `long`)**
+| Method | SQL equivalent |
+|--------|---------------|
+| `IsEven` | `x % 2 = 0` |
+| `IsOdd` | `x % 2 != 0` |
+| `IsMultipleOf(n)` | `x % n = 0` |
+
+**DateTime / DateTimeOffset / DateOnly**
+| Method | Notes |
+|--------|-------|
+| `IsWeekend` / `IsWeekday` | `.DayOfWeek` — not supported on SQLite |
+| `IsDayOfWeek(day)` | `.DayOfWeek` — not supported on SQLite |
+| `IsToday` / `IsYesterday` / `IsTomorrow` | UTC boundaries captured at build time |
+| `InLastDays(n)` / `InNextDays(n)` | Sliding UTC window (constants) |
+| `IsFirstDayOfMonth` / `IsLastDayOfMonth` | `.Day` property |
+| `IsInQuarter(q)` | Month-range comparison |
+
+### Bug Fixes
+- `EqualTo` / `NotEqualTo` now accept nullable types correctly
+- `StringExpression` internal `ReplaceParamVisitor` replaced with canonical `ParameterReplacer`
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
