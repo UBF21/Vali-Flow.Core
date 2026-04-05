@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Builder;
 
@@ -122,7 +123,7 @@ public static class ValiFlowGlobal
                 {
                     var newParam = Expression.Parameter(typeof(T), f.Parameters[0].Name);
                     var converted = Expression.Convert(newParam, iface);
-                    var body = new GlobalParameterReplacer(f.Parameters[0], converted).Visit(f.Body);
+                    var body = new ParameterReplacer(f.Parameters[0], converted).Visit(f.Body);
                     result.Add(Expression.Lambda<Func<T, bool>>(body, newParam));
                 }
             }
@@ -131,18 +132,4 @@ public static class ValiFlowGlobal
         return result;
     }
 
-    private sealed class GlobalParameterReplacer : ExpressionVisitor
-    {
-        private readonly ParameterExpression _old;
-        private readonly Expression _new;
-
-        internal GlobalParameterReplacer(ParameterExpression old, Expression @new)
-        {
-            _old = old;
-            _new = @new;
-        }
-
-        protected override Expression VisitParameter(ParameterExpression node)
-            => node == _old ? _new : base.VisitParameter(node);
-    }
 }

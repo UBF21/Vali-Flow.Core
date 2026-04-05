@@ -64,3 +64,18 @@ ValiFlow<T> : BaseExpression<ValiFlow<T>, T>
 - The `^1` index operator is intentionally avoided (uses `_conditions.Count - 1`) for C# pre-8.0 compatibility.
 - `Contains(selector, value, comparison)` uses `string.Contains(string, StringComparison)` — NOT EF Core translatable. The multi-selector `Contains(value, selectors)` uses `ToLower()` + single-arg `Contains` internally (also not EF Core translatable due to `ToLower`).
 - The library is explicitly dependency-free — do not add NuGet dependencies.
+- `ExpressionHelpers.ParameterReplacer` is the single canonical parameter replacer — do not create local variants. It accepts `Expression` (not just `ParameterExpression`) as the replacement value, which covers the interface-filter cast case in `ValiFlowGlobal`.
+- `IExpressionAnnotator<TBuilder>` owns all `With*` methods (WithMessage, WithError, WithSeverity). `IExpressionBuilder<TBuilder,T>` inherits it. Consumers that only need annotation can depend on the narrower interface.
+
+## ValiFlow / ValiFlowQuery Synchrony Rule
+
+`ValiFlow<T>` (full feature set) and `ValiFlowQuery<T>` (EF Core-safe subset) are **manually mirrored**. This is the largest source of maintenance cost in the library. Until a source generator is added, follow this checklist when adding a new validation method:
+
+**Checklist — adding a new method:**
+- [ ] 1. Add implementation to the type-specific class in `Classes/Types/` (e.g., `StringExpression<TBuilder,T>`)
+- [ ] 2. Add declaration to the corresponding interface in `Interfaces/Types/` (e.g., `IStringExpression`)
+- [ ] 3. Add one-line delegation wrapper to `Builder/ValiFlow.cs`
+- [ ] 4. Add one-line delegation wrapper to `Builder/ValiFlowQuery.cs` **only if EF Core-translatable**. If the method uses Regex, StringComparison, char-level LINQ, or Enumerable.All/Any with predicates, skip ValiFlowQuery and add `<remarks>Not EF Core translatable</remarks>` to the interface declaration.
+- [ ] 5. Run `dotnet test` — 0 failures required before committing.
+
+**Known divergence:** ValiFlowQuery intentionally omits all regex-based string methods, `EqualToIgnoreCase`, `IsOneOf`, `IsTrimmed`, character-class checks, and collection predicate methods (All, Any, None, EachItem, AnyItem, AllMatch, DistinctCount, HasDuplicates).

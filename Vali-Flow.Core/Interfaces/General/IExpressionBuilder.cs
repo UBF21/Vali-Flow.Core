@@ -1,15 +1,15 @@
 using System.Linq.Expressions;
 using Vali_Flow.Core.Builder;
-using Vali_Flow.Core.Models;
 
 namespace Vali_Flow.Core.Interfaces.General;
 
 /// <summary>
 /// Defines condition-building operations for an expression targeting <typeparamref name="T"/>.
+/// Inherits from <see cref="IExpressionAnnotator{TBuilder}"/> for error metadata methods.
 /// </summary>
 /// <typeparam name="TBuilder">The concrete builder type (fluent return type).</typeparam>
 /// <typeparam name="T">The entity type being validated.</typeparam>
-public interface IExpressionBuilder<out TBuilder, T>
+public interface IExpressionBuilder<out TBuilder, T> : IExpressionAnnotator<TBuilder>
 {
     /// <summary>Adds a raw boolean expression as a condition.</summary>
     TBuilder Add(Expression<Func<T, bool>> expression);
@@ -44,21 +44,4 @@ public interface IExpressionBuilder<out TBuilder, T>
         Action<ValiFlow<TProperty>> configure)
         where TProperty : class;
 
-    /// <summary>Attaches a human-readable message to the most recently added condition.</summary>
-    TBuilder WithMessage(string message);
-
-    /// <summary>Attaches an error code and message to the most recently added condition.</summary>
-    TBuilder WithError(string errorCode, string message);
-
-    /// <summary>Attaches an error code, message, and severity to the most recently added condition.</summary>
-    TBuilder WithError(string errorCode, string message, Severity severity);
-
-    /// <summary>Attaches an error code, message, and property path to the most recently added condition.</summary>
-    TBuilder WithError(string errorCode, string message, string propertyPath);
-
-    /// <summary>Attaches an error code, message, property path, and severity to the most recently added condition.</summary>
-    TBuilder WithError(string errorCode, string message, string propertyPath, Severity severity);
-
-    /// <summary>Sets the severity of the most recently added condition's error metadata.</summary>
-    TBuilder WithSeverity(Severity severity);
 }

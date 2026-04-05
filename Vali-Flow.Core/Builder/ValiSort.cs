@@ -9,21 +9,42 @@ namespace Vali_Flow.Core.Builder;
 /// </summary>
 /// <remarks>
 /// <b>Thread safety:</b> A <c>ValiSort&lt;T&gt;</c> instance is not safe for concurrent use.
-/// <see cref="Apply(IEnumerable{T})"/> lazily compiles and caches the sort delegate on first call;
-/// do not call it from multiple threads simultaneously on the same instance.
 /// For concurrent scenarios, create a separate <c>ValiSort&lt;T&gt;</c> instance per thread.
 /// </remarks>
 public sealed class ValiSort<T> : IValiSort<T>
 {
-    // Plain Dictionary is intentional: ValiSort<T> is documented as non-thread-safe.
-    // Using ConcurrentDictionary would send a misleading thread-safety signal.
-    private readonly Dictionary<Type, System.Reflection.MethodInfo>
-        _orderByCache = new();
+    private readonly List<SortEntry> _sorts = new();
 
-    private readonly Dictionary<Type, System.Reflection.MethodInfo>
-        _thenByCache = new();
+    /// <summary>
+    /// Encapsulates sort criteria for one key: the original expression (for IQueryable),
+    /// and pre-compiled delegates (for IEnumerable) produced at registration time — no reflection needed.
+    /// </summary>
+    private readonly struct SortEntry
+    {
+        public LambdaExpression Selector { get; }
+        public bool Descending { get; }
+        public bool IsPrimary { get; }
 
-    private readonly List<(LambdaExpression Selector, bool Descending, bool IsPrimary, Delegate? CompiledDelegate)> _sorts = new();
+        /// <summary>Pre-compiled delegate for <c>OrderBy</c>/<c>OrderByDescending</c> on IEnumerable.</summary>
+        public Func<IEnumerable<T>, IOrderedEnumerable<T>>? OrderApply { get; }
+
+        /// <summary>Pre-compiled delegate for <c>ThenBy</c>/<c>ThenByDescending</c> on IEnumerable.</summary>
+        public Func<IOrderedEnumerable<T>, IOrderedEnumerable<T>>? ThenApply { get; }
+
+        public SortEntry(
+            LambdaExpression selector,
+            bool descending,
+            bool isPrimary,
+            Func<IEnumerable<T>, IOrderedEnumerable<T>>? orderApply,
+            Func<IOrderedEnumerable<T>, IOrderedEnumerable<T>>? thenApply)
+        {
+            Selector = selector;
+            Descending = descending;
+            IsPrimary = isPrimary;
+            OrderApply = orderApply;
+            ThenApply = thenApply;
+        }
+    }
 
     /// <summary>Sets the primary sort key, replacing any previously configured sort criteria.</summary>
     /// <remarks>
@@ -32,96 +53,87 @@ public sealed class ValiSort<T> : IValiSort<T>
     /// </remarks>
     public IValiSort<T> By<TKey>(Expression<Func<T, TKey>> selector, bool descending = false)
     {
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
-
+        ArgumentNullException.ThrowIfNull(selector);
         _sorts.Clear();
-        _sorts.Add((selector, descending, true, null));
+
+        var compiled = selector.Compile();
+        Func<IEnumerable<T>, IOrderedEnumerable<T>> orderApply = descending
+            ? source => source.OrderByDescending(compiled)
+            : source => source.OrderBy(compiled);
+
+        _sorts.Add(new SortEntry(selector, descending, true, orderApply, null));
         return this;
     }
 
+    /// <summary>Adds a secondary sort key. Must be called after <see cref="By{TKey}"/>.</summary>
     public IValiSort<T> ThenBy<TKey>(Expression<Func<T, TKey>> selector, bool descending = false)
     {
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
-
+        ArgumentNullException.ThrowIfNull(selector);
         if (_sorts.Count == 0)
         {
             throw new InvalidOperationException("Call By() before ThenBy().");
         }
 
-        _sorts.Add((selector, descending, false, null));
+        var compiled = selector.Compile();
+        Func<IOrderedEnumerable<T>, IOrderedEnumerable<T>> thenApply = descending
+            ? source => source.ThenByDescending(compiled)
+            : source => source.ThenBy(compiled);
+
+        _sorts.Add(new SortEntry(selector, descending, false, null, thenApply));
         return this;
     }
 
+    /// <summary>Applies the configured sort criteria to an <see cref="IQueryable{T}"/> (EF Core / SQL).</summary>
     public IOrderedQueryable<T> Apply(IQueryable<T> query)
     {
-        if (query == null)
-        {
-            throw new ArgumentNullException(nameof(query));
-        }
-
+        ArgumentNullException.ThrowIfNull(query);
         if (_sorts.Count == 0)
         {
             throw new InvalidOperationException("No sort criteria defined. Call By() first.");
         }
 
         IOrderedQueryable<T>? result = null;
-        foreach (var (selector, descending, isPrimary, _) in _sorts)
+        foreach (var entry in _sorts)
         {
-            if (isPrimary || result == null)
-            {
-                result = ApplyOrderBy(query, selector, descending);
-            }
-            else
-            {
-                result = ApplyThenBy(result, selector, descending);
-            }
+            result = entry.IsPrimary || result == null
+                ? ApplyOrderBy(query, entry.Selector, entry.Descending)
+                : ApplyThenBy(result, entry.Selector, entry.Descending);
         }
 
         return result ?? throw new InvalidOperationException("Failed to apply sort criteria.");
     }
 
-    /// <summary>Applies the configured sort criteria to an in-memory sequence.</summary>
-    /// <remarks>This overload evaluates the sort in memory. For database queries, use <see cref="Apply(IQueryable{T})"/> instead.</remarks>
+    /// <summary>Applies the configured sort criteria to an in-memory <see cref="IEnumerable{T}"/>.</summary>
+    /// <remarks>
+    /// Sort delegates are compiled eagerly in <see cref="By{TKey}"/> and <see cref="ThenBy{TKey}"/>,
+    /// so this overload performs no reflection or lazy compilation at call time.
+    /// For database queries, use <see cref="Apply(IQueryable{T})"/> instead.
+    /// </remarks>
     public IOrderedEnumerable<T> Apply(IEnumerable<T> source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
-
+        ArgumentNullException.ThrowIfNull(source);
         if (_sorts.Count == 0)
         {
             throw new InvalidOperationException("No sort criteria defined. Call By() first.");
         }
 
         IOrderedEnumerable<T>? result = null;
-        for (int i = 0; i < _sorts.Count; i++)
+        foreach (var entry in _sorts)
         {
-            var (selector, descending, isPrimary, compiled) = _sorts[i];
-            if (compiled == null)
+            if (entry.IsPrimary || result == null)
             {
-                compiled = selector.Compile();
-                _sorts[i] = (selector, descending, isPrimary, compiled);
-            }
-            if (isPrimary || result == null)
-            {
-                result = ApplyOrderByEnumerable(source, selector, descending, compiled);
+                result = entry.OrderApply!(source);
             }
             else
             {
-                result = ApplyThenByEnumerable(result, selector, descending, compiled);
+                result = entry.ThenApply!(result);
             }
         }
 
         return result!;
     }
 
+    /// <summary>Returns a human-readable description of the configured sort order.</summary>
     public string Explain()
     {
         if (_sorts.Count == 0)
@@ -132,11 +144,11 @@ public sealed class ValiSort<T> : IValiSort<T>
         var parts = new List<string>();
         for (int i = 0; i < _sorts.Count; i++)
         {
-            var (selector, descending, _, _) = _sorts[i];
-            string name = selector.Body is MemberExpression member
+            var entry = _sorts[i];
+            string name = entry.Selector.Body is MemberExpression member
                 ? member.Member.Name
-                : selector.Body.ToString();
-            string dir = descending ? "DESC" : "ASC";
+                : entry.Selector.Body.ToString();
+            string dir = entry.Descending ? "DESC" : "ASC";
             parts.Add(i == 0 ? $"ORDER BY {name} {dir}" : $"{name} {dir}");
         }
 
@@ -165,47 +177,5 @@ public sealed class ValiSort<T> : IValiSort<T>
                 new[] { typeof(T), selector.ReturnType },
                 query.Expression,
                 Expression.Quote(selector)));
-    }
-
-    private IOrderedEnumerable<T> ApplyOrderByEnumerable(
-        IEnumerable<T> source, LambdaExpression selector, bool descending, Delegate compiled)
-    {
-        if (!_orderByCache.TryGetValue(selector.ReturnType, out var method))
-        {
-            method = typeof(ValiSort<T>)
-                .GetMethod(nameof(ApplyOrderByTyped),
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(selector.ReturnType);
-            _orderByCache[selector.ReturnType] = method;
-        }
-        return (IOrderedEnumerable<T>)method.Invoke(null, new object[] { source, compiled, descending })!;
-    }
-
-    private IOrderedEnumerable<T> ApplyThenByEnumerable(
-        IOrderedEnumerable<T> source, LambdaExpression selector, bool descending, Delegate compiled)
-    {
-        if (!_thenByCache.TryGetValue(selector.ReturnType, out var method))
-        {
-            method = typeof(ValiSort<T>)
-                .GetMethod(nameof(ApplyThenByTyped),
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(selector.ReturnType);
-            _thenByCache[selector.ReturnType] = method;
-        }
-        return (IOrderedEnumerable<T>)method.Invoke(null, new object[] { source, compiled, descending })!;
-    }
-
-    private static IOrderedEnumerable<T> ApplyOrderByTyped<TKey>(
-        IEnumerable<T> source, Delegate compiledDelegate, bool descending)
-    {
-        var compiled = (Func<T, TKey>)compiledDelegate;
-        return descending ? source.OrderByDescending(compiled) : source.OrderBy(compiled);
-    }
-
-    private static IOrderedEnumerable<T> ApplyThenByTyped<TKey>(
-        IOrderedEnumerable<T> source, Delegate compiledDelegate, bool descending)
-    {
-        var compiled = (Func<T, TKey>)compiledDelegate;
-        return descending ? source.ThenByDescending(compiled) : source.ThenBy(compiled);
     }
 }
