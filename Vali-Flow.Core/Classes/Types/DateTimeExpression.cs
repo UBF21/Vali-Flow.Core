@@ -113,7 +113,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable by EF Core. Use this method
     /// only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
-    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
+    [Obsolete("BeforeDate compares only the date part (val.Date < date.Date), ignoring time-of-day. IsBefore compares the full DateTime including time. They are NOT equivalent — choose based on your use case. BeforeDate will be removed in a future version.")]
     public TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -130,7 +130,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable by EF Core. Use this method
     /// only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
-    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
+    [Obsolete("AfterDate compares only the date part (val.Date > date.Date), ignoring time-of-day. IsAfter compares the full DateTime including time. They are NOT equivalent — choose based on your use case. AfterDate will be removed in a future version.")]
     public TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
     {
         ArgumentNullException.ThrowIfNull(selector);

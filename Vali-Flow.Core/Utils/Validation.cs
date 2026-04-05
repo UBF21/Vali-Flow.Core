@@ -3,9 +3,9 @@ using System.Text.Json;
 namespace Vali_Flow.Core.Utils;
 
 /// <summary>
-/// Provides helper methods for validations.
+/// Provides helper methods for JSON validations.
 /// </summary>
-internal static class Validation
+internal static class JsonValidation
 {
     /// <summary>
     /// Checks whether a given string is a valid JSON.

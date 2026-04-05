@@ -179,20 +179,12 @@ public class DateOnlyExpression<TBuilder, T> : IDateOnlyExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly before <paramref name="date"/>.</summary>
     [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public TBuilder BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<DateOnly, bool>> predicate = val => val < date;
-        return _builder.Add(selector, predicate);
-    }
+        => IsBefore(selector, date);
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly after <paramref name="date"/>.</summary>
     [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public TBuilder AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<DateOnly, bool>> predicate = val => val > date;
-        return _builder.Add(selector, predicate);
-    }
+        => IsAfter(selector, date);
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> equals yesterday's UTC date.</summary>
     public TBuilder IsYesterday(Expression<Func<T, DateOnly>> selector)

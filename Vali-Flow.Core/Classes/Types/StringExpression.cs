@@ -269,7 +269,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder IsJson(Expression<Func<T, string?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<string?, bool>> predicate = val => Validation.IsValidJson(val);
+        Expression<Func<string?, bool>> predicate = val => JsonValidation.IsValidJson(val);
         return _builder.Add(selector, predicate);
     }
 
@@ -297,7 +297,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     public TBuilder NotJson(Expression<Func<T, string?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<string?, bool>> predicate = val => !Validation.IsValidJson(val);
+        Expression<Func<string?, bool>> predicate = val => !JsonValidation.IsValidJson(val);
         return _builder.Add(selector, predicate);
     }
 
@@ -557,8 +557,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     {
         ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(pattern);
-        var regexPattern = "^" + Regex.Escape(pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
-        var compiled = new Regex(regexPattern, RegexOptions.IgnoreCase | RegexOptions.Compiled, RegexTimeout);
+        var regexPattern = "(?i)^" + Regex.Escape(pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
+        var compiled = GetOrCreateRegex(regexPattern);
         Expression<Func<string?, bool>> predicate = value => value != null && compiled.IsMatch(value);
         return _builder.Add(selector, predicate);
     }
