@@ -136,7 +136,7 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
-## What's New in v3.0.0
+## What's New in v2.0.0
 
 ### Breaking Changes
 - **Removed `BeforeDate` / `AfterDate`** — use `IsBefore` / `IsAfter` (full DateTime/DateTimeOffset comparison including time-of-day).
