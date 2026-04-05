@@ -6,7 +6,7 @@ using static Vali_Flow.Core.Utils.ExpressionHelpers;
 namespace Vali_Flow.Core.Classes.General;
 
 public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, T>
-    where TBuilder : BaseExpression<TBuilder, T>,IComparisonExpression<TBuilder, T>,new()
+    where TBuilder : BaseExpression<TBuilder, T>, new()
 {
     private readonly BaseExpression<TBuilder, T> _builder;
 

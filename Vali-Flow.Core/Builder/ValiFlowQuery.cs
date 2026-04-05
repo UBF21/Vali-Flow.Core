@@ -30,7 +30,7 @@ namespace Vali_Flow.Core.Builder;
 public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
 {
     private readonly BooleanExpressionQuery<ValiFlowQuery<T>, T> _boolean;
-    private readonly ComparisonExpressionQuery<ValiFlowQuery<T>, T> _comparison;
+    private readonly ComparisonExpression<ValiFlowQuery<T>, T> _comparison;
     private readonly StringExpressionQuery<ValiFlowQuery<T>, T> _string;
     private readonly CollectionExpressionQuery<ValiFlowQuery<T>, T> _collection;
     private readonly NumericExpressionQuery<ValiFlowQuery<T>, T> _numeric;
@@ -42,7 +42,7 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
     public ValiFlowQuery()
     {
         _boolean = new BooleanExpressionQuery<ValiFlowQuery<T>, T>(this);
-        _comparison = new ComparisonExpressionQuery<ValiFlowQuery<T>, T>(this);
+        _comparison = new ComparisonExpression<ValiFlowQuery<T>, T>(this);
         _string = new StringExpressionQuery<ValiFlowQuery<T>, T>(this);
         _collection = new CollectionExpressionQuery<ValiFlowQuery<T>, T>(this);
         _numeric = new NumericExpressionQuery<ValiFlowQuery<T>, T>(this);
@@ -786,13 +786,7 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
         var nestedExpr = nestedBuilder.Build();
         if (nestedExpr.Body is ConstantExpression { Value: true })
             throw new ArgumentException("The configure action must add at least one condition.", nameof(configure));
-        var param = selector.Parameters[0];
-        var selectorBody = selector.Body;
-        var nestedBody = new ParameterReplacer(nestedExpr.Parameters[0], selectorBody).Visit(nestedExpr.Body)!;
-        var selectorBodyForNullCheck = new ForceCloneVisitor().Visit(selectorBody);
-        var nullCheck = Expression.NotEqual(selectorBodyForNullCheck, Expression.Constant(null, typeof(TProperty)));
-        var combined = Expression.AndAlso(nullCheck, nestedBody);
-        return Add(Expression.Lambda<Func<T, bool>>(combined, param));
+        return Add(BuildNestedExpression(selector, nestedExpr));
     }
 
     // ── WithError / WithSeverity overloads ────────────────────────────────────
@@ -815,14 +809,7 @@ public sealed class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>
     {
         if (left == null) throw new ArgumentNullException(nameof(left));
         if (right == null) throw new ArgumentNullException(nameof(right));
-        var l = left.Build();
-        var r = right.Build();
-        if (l.Body is ConstantExpression { Value: true }) return r;
-        if (r.Body is ConstantExpression { Value: true }) return l;
-        var param = l.Parameters[0];
-        var rBody = new ParameterReplacer(r.Parameters[0], param).Visit(r.Body)!;
-        var body = and ? Expression.AndAlso(l.Body, rBody) : Expression.OrElse(l.Body, rBody);
-        return Expression.Lambda<Func<T, bool>>(body, param);
+        return CombineExpressions(left.Build(), right.Build(), and);
     }
 
     public static Expression<Func<T, bool>> operator &(ValiFlowQuery<T> left, ValiFlowQuery<T> right)

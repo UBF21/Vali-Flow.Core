@@ -35,25 +35,7 @@ namespace Vali_Flow.Core.Classes.Base;
 public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
-    private volatile ImmutableList<(
-        Expression<Func<T, bool>> Condition,
-        bool IsAnd,
-        string? ErrorCode,
-        string? Message,
-        Func<string>? MessageFactory,
-        string? PropertyPath,
-        Func<T, bool>? CompiledFunc,
-        Severity Severity
-    )> _conditions = ImmutableList<(
-        Expression<Func<T, bool>> Condition,
-        bool IsAnd,
-        string? ErrorCode,
-        string? Message,
-        Func<string>? MessageFactory,
-        string? PropertyPath,
-        Func<T, bool>? CompiledFunc,
-        Severity Severity
-    )>.Empty;
+    private volatile ImmutableList<ConditionEntry> _conditions = ImmutableList<ConditionEntry>.Empty;
 
     private int _nextIsAnd = 1; // 1 = AND (default), 0 = OR — int for Volatile/Interlocked consistency with _frozen
     private Func<T, bool>? _cachedFunc;
@@ -77,10 +59,10 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         var groups = new List<List<Expression>>();
         List<Expression>? currentGroup = null;
 
-        foreach (var (condition, isAnd, _, _, _, _, _, _) in _conditions)
+        foreach (var entry in _conditions)
         {
-            var body = new ParameterReplacer(condition.Parameters[0], parameter).Visit(condition.Body);
-            if (!isAnd || currentGroup == null)
+            var body = new ParameterReplacer(entry.Condition.Parameters[0], parameter).Visit(entry.Condition.Body);
+            if (!entry.IsAnd || currentGroup == null)
             {
                 currentGroup = new List<Expression>();
                 groups.Add(currentGroup);
@@ -203,7 +185,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             throw new ArgumentNullException(nameof(expression));
         }
         EnsureValidCondition(expression);
-        _conditions = _conditions.Add((expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, null, Severity.Error));
+        _conditions = _conditions.Add(new ConditionEntry(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, null, Severity.Error));
         Volatile.Write(ref _nextIsAnd, 1);
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
@@ -480,13 +462,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             throw new ArgumentException("The configure action must add at least one condition.", nameof(configure));
         }
 
-        var param = selector.Parameters[0];
-        var selectorBody = selector.Body;
-        var nestedBody = new ParameterReplacer(nestedExpr.Parameters[0], selectorBody).Visit(nestedExpr.Body);
-        var selectorBodyForNullCheck = new ForceCloneVisitor().Visit(selectorBody);
-        var nullCheck = Expression.NotEqual(selectorBodyForNullCheck, Expression.Constant(null, typeof(TProperty)));
-        var combined = Expression.AndAlso(nullCheck, nestedBody);
-        return Add(Expression.Lambda<Func<T, bool>>(combined, param));
+        return Add(BuildNestedExpression(selector, nestedExpr));
     }
 
     // -------------------------------------------------------------------------
@@ -515,7 +491,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1,
-            (last.Condition, last.IsAnd, last.ErrorCode, message, null, last.PropertyPath, last.CompiledFunc, last.Severity));
+            last with { Message = message, MessageFactory = null });
         return (TBuilder)this;
     }
 
@@ -547,7 +523,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1,
-            (last.Condition, last.IsAnd, last.ErrorCode, last.Message, messageFactory, last.PropertyPath, last.CompiledFunc, last.Severity));
+            last with { MessageFactory = messageFactory });
         return (TBuilder)this;
     }
 
@@ -586,7 +562,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1,
-            (last.Condition, last.IsAnd, errorCode, message, null, last.PropertyPath, last.CompiledFunc, severity));
+            last with { ErrorCode = errorCode, Message = message, MessageFactory = null, Severity = severity });
         return (TBuilder)this;
     }
 
@@ -632,7 +608,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1,
-            (last.Condition, last.IsAnd, errorCode, message, null, propertyPath, last.CompiledFunc, severity));
+            last with { ErrorCode = errorCode, Message = message, MessageFactory = null, PropertyPath = propertyPath, Severity = severity });
         return (TBuilder)this;
     }
 
@@ -657,7 +633,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1,
-            (last.Condition, last.IsAnd, last.ErrorCode, last.Message, last.MessageFactory, last.PropertyPath, last.CompiledFunc, severity));
+            last with { Severity = severity });
         return (TBuilder)this;
     }
 
@@ -700,9 +676,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
                 if (compiled == null)
                 {
                     compiled = current.Condition.Compile();
-                    _conditions = _conditions.SetItem(i,
-                        (current.Condition, current.IsAnd, current.ErrorCode,
-                            current.Message, current.MessageFactory, current.PropertyPath, compiled, current.Severity));
+                    _conditions = _conditions.SetItem(i, current with { CompiledFunc = compiled });
                 }
             }
 
@@ -843,6 +817,24 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         }
     }
 
+    /// <summary>
+    /// Core implementation of builder combining. Merges two built expressions into one using
+    /// AND (<paramref name="and"/> = true) or OR (<paramref name="and"/> = false).
+    /// Handles the identity shortcuts: a constant-true left or right expression is bypassed.
+    /// </summary>
+    protected static Expression<Func<T, bool>> CombineExpressions(
+        Expression<Func<T, bool>> left,
+        Expression<Func<T, bool>> right,
+        bool and)
+    {
+        if (left.Body is ConstantExpression { Value: true }) return right;
+        if (right.Body is ConstantExpression { Value: true }) return left;
+        var param = left.Parameters[0];
+        var rBody = new ParameterReplacer(right.Parameters[0], param).Visit(right.Body)!;
+        var body = and ? Expression.AndAlso(left.Body, rBody) : Expression.OrElse(left.Body, rBody);
+        return Expression.Lambda<Func<T, bool>>(body, param);
+    }
+
     private static void EnsureValidCondition(Expression<Func<T, bool>> condition)
     {
         ValidateExpressionBody(condition.Body);
@@ -852,5 +844,33 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     {
         ValidateExpressionBody(condition.Body);
     }
+
+    /// <summary>
+    /// Shared helper for ValidateNested implementations. Given a selector and an already-built
+    /// nested expression, produces a combined null-check + inner-condition expression on <typeparamref name="T"/>.
+    /// </summary>
+    protected static Expression<Func<T, bool>> BuildNestedExpression<TProperty>(
+        Expression<Func<T, TProperty>> selector,
+        Expression<Func<TProperty, bool>> nestedExpr)
+        where TProperty : class
+    {
+        var param = selector.Parameters[0];
+        var selectorBody = selector.Body;
+        var nestedBody = new ParameterReplacer(nestedExpr.Parameters[0], selectorBody).Visit(nestedExpr.Body);
+        var selectorBodyForNullCheck = new ForceCloneVisitor().Visit(selectorBody);
+        var nullCheck = Expression.NotEqual(selectorBodyForNullCheck, Expression.Constant(null, typeof(TProperty)));
+        var combined = Expression.AndAlso(nullCheck, nestedBody);
+        return Expression.Lambda<Func<T, bool>>(combined, param);
+    }
+
+    private sealed record ConditionEntry(
+        Expression<Func<T, bool>> Condition,
+        bool IsAnd,
+        string? ErrorCode,
+        string? Message,
+        Func<string>? MessageFactory,
+        string? PropertyPath,
+        Func<T, bool>? CompiledFunc,
+        Severity Severity);
 
 }

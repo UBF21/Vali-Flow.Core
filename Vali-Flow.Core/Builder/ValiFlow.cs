@@ -901,14 +901,7 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     {
         if (left == null) throw new ArgumentNullException(nameof(left));
         if (right == null) throw new ArgumentNullException(nameof(right));
-        var l = left.Build();
-        var r = right.Build();
-        if (l.Body is ConstantExpression { Value: true }) return r;
-        if (r.Body is ConstantExpression { Value: true }) return l;
-        var param = l.Parameters[0];
-        var rBody = new ParameterReplacer(r.Parameters[0], param).Visit(r.Body)!;
-        var body = and ? Expression.AndAlso(l.Body, rBody) : Expression.OrElse(l.Body, rBody);
-        return Expression.Lambda<Func<T, bool>>(body, param);
+        return CombineExpressions(left.Build(), right.Build(), and);
     }
 
     public static Expression<Func<T, bool>> operator &(ValiFlow<T> left, ValiFlow<T> right) => Combine(left, right, and: true);
