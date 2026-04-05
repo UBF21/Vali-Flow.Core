@@ -14,7 +14,7 @@ namespace Vali_Flow.Core.Classes.Base;
 /// <remarks>
 /// <b>Thread safety — builder phase:</b> A <c>BaseExpression</c> instance is <em>not</em> safe for
 /// concurrent mutation. All condition setup (<see cref="Add(System.Linq.Expressions.Expression{System.Func{T,bool}})"/>,
-/// <see cref="Or"/>, <see cref="And"/>, <see cref="WithMessage"/>, <see cref="WithError(string,string)"/>, etc.)
+/// <see cref="Or"/>, <see cref="And"/>, <see cref="WithMessage(string)"/>, <see cref="WithError(string,string)"/>, etc.)
 /// must happen on a single thread before the builder is used for validation.
 ///
 /// <b>Freeze contract:</b> Once the builder transitions to its <em>use</em> phase — triggered by the first
@@ -229,11 +229,11 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// that form the sub-group.
     /// </param>
     /// <remarks>
-    /// Error metadata (<see cref="WithMessage"/>, <see cref="WithError(string,string)"/>,
+    /// Error metadata (<see cref="WithMessage(string)"/>, <see cref="WithError(string,string)"/>,
     /// <see cref="WithSeverity"/>) applied to conditions inside the <paramref name="group"/>
     /// action is <b>not</b> visible to <see cref="Validate"/>. Only the boolean logic of the
     /// sub-group is preserved. To produce a <see cref="Models.ValidationError"/> for the
-    /// sub-group as a whole, chain <see cref="WithMessage"/> or <see cref="WithError(string,string)"/>
+    /// sub-group as a whole, chain <see cref="WithMessage(string)"/> or <see cref="WithError(string,string)"/>
     /// on the outer builder after calling <c>AddSubGroup</c>.
     /// </remarks>
     public TBuilder AddSubGroup(Action<IExpression<TBuilder, T>> group)
@@ -474,7 +474,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithMessage(string message)
     {
         var fork = ForkIfFrozen();
-        if (fork != null) return fork.WithMessage(message);
+        if (fork != null) { return fork.WithMessage(message); }
         if (string.IsNullOrEmpty(message))
             throw new ArgumentException("Message cannot be null or empty.", nameof(message));
         return MutateLastCondition(last => last with { Message = message, MessageFactory = null });
@@ -495,7 +495,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     {
         ArgumentNullException.ThrowIfNull(messageFactory);
         var fork = ForkIfFrozen();
-        if (fork != null) return fork.WithMessage(messageFactory);
+        if (fork != null) { return fork.WithMessage(messageFactory); }
         return MutateLastCondition(last => last with { MessageFactory = messageFactory });
     }
 
@@ -512,7 +512,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithError(string errorCode, string message, Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null) return fork.WithError(errorCode, message, severity);
+        if (fork != null) { return fork.WithError(errorCode, message, severity); }
         if (string.IsNullOrEmpty(errorCode))
             throw new ArgumentException("Error code cannot be null or empty.", nameof(errorCode));
         if (string.IsNullOrEmpty(message))
@@ -535,7 +535,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithError(string errorCode, string message, string propertyPath, Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null) return fork.WithError(errorCode, message, propertyPath, severity);
+        if (fork != null) { return fork.WithError(errorCode, message, propertyPath, severity); }
         if (string.IsNullOrEmpty(errorCode))
             throw new ArgumentException("Error code cannot be null or empty.", nameof(errorCode));
         if (string.IsNullOrEmpty(message))
@@ -548,19 +548,19 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <summary>Sets the severity level on the most recently added condition.</summary>
     /// <remarks>
     /// This method only affects the severity stored on the condition; it has no effect unless the condition
-    /// also has a message or error code (set via <see cref="WithMessage"/> or <see cref="WithError(string,string)"/>).
+    /// also has a message or error code (set via <see cref="WithMessage(string)"/> or <see cref="WithError(string,string)"/>).
     /// A condition with severity but no message or error code is silently skipped by <see cref="Validate"/>.
     /// </remarks>
     public TBuilder WithSeverity(Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null) return fork.WithSeverity(severity);
+        if (fork != null) { return fork.WithSeverity(severity); }
         return MutateLastCondition(last => last with { Severity = severity });
     }
 
     private TBuilder MutateLastCondition(Func<ConditionEntry<T>, ConditionEntry<T>> mutate)
     {
-        if (_conditions.Count == 0) return (TBuilder)this;
+        if (_conditions.Count == 0) { return (TBuilder)this; }
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1, mutate(last));
         return (TBuilder)this;
@@ -576,7 +576,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// </summary>
     /// <remarks>
     /// <b>Important:</b> <see cref="Validate"/> evaluates each condition with a
-    /// <see cref="WithMessage"/> or <see cref="WithError(string,string)"/> annotation independently.
+    /// <see cref="WithMessage(string)"/> or <see cref="WithError(string,string)"/> annotation independently.
     /// It does <b>not</b> respect <see cref="Or()"/> grouping semantics.
     /// A condition that belongs to an OR-group will still be reported as an error if it
     /// individually fails, even if another condition in the same OR-group passes and the
