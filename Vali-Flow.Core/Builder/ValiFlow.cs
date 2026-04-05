@@ -154,8 +154,8 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public ValiFlow<T> ExactLength(Expression<Func<T, string?>> selector, int length)
         => _stringExpression.ExactLength(selector, length);
 
-    public ValiFlow<T> EqualsIgnoreCase(Expression<Func<T, string?>> selector, string? value)
-        => _stringExpression.EqualsIgnoreCase(selector, value);
+    public ValiFlow<T> EqualToIgnoreCase(Expression<Func<T, string?>> selector, string? value)
+        => _stringExpression.EqualToIgnoreCase(selector, value);
 
     public ValiFlow<T> IsTrimmed(Expression<Func<T, string?>> selector)
         => _stringExpression.IsTrimmed(selector);
@@ -642,6 +642,7 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public ValiFlow<T> AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, ValiFlow<TValue> filter)
         => _collectionExpression.AllMatch(selector, filter);
 
+    [Obsolete("Use Count instead. CountEquals will be removed in a future version.")]
     public ValiFlow<T> CountEquals<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count)
         => _collectionExpression.CountEquals<TValue>(selector, count);
 
@@ -661,9 +662,11 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public ValiFlow<T> ExactDate(Expression<Func<T, DateTime>> selector, DateTime date)
         => _dateTimeExpression.ExactDate(selector, date);
 
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public ValiFlow<T> BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date)
         => _dateTimeExpression.BeforeDate(selector, date);
 
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public ValiFlow<T> AfterDate(Expression<Func<T, DateTime>> selector, DateTime date)
         => _dateTimeExpression.AfterDate(selector, date);
 
@@ -750,9 +753,11 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public ValiFlow<T> ExactDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
         => _dateTimeOffsetExpression.ExactDate(selector, date);
 
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public ValiFlow<T> BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
         => _dateTimeOffsetExpression.BeforeDate(selector, date);
 
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public ValiFlow<T> AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
         => _dateTimeOffsetExpression.AfterDate(selector, date);
 
@@ -822,9 +827,11 @@ public class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     public ValiFlow<T> ExactDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
         => _dateOnlyExpression.ExactDate(selector, date);
 
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public ValiFlow<T> BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
         => _dateOnlyExpression.BeforeDate(selector, date);
 
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public ValiFlow<T> AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
         => _dateOnlyExpression.AfterDate(selector, date);
 

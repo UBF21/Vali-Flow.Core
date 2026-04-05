@@ -240,12 +240,12 @@ public class StringExpressionTests
         filter.Compile()(MakeProduct(" hello ")).Should().BeFalse();
     }
 
-    // 17. EqualsIgnoreCase("hello")
+    // 17. EqualToIgnoreCase("hello")
     [Fact]
-    public void EqualsIgnoreCase_Hello_CaseInsensitiveMatch()
+    public void EqualToIgnoreCase_Hello_CaseInsensitiveMatch()
     {
         var filter = new ValiFlow<Product>()
-            .EqualsIgnoreCase(p => p.Name, "hello")
+            .EqualToIgnoreCase(p => p.Name, "hello")
             .Build();
 
         filter.Compile()(MakeProduct("hello")).Should().BeTrue();
@@ -393,14 +393,14 @@ public class StringExpressionTests
         filter(MakeProduct("not!base64")).Should().BeTrue();
     }
 
-    // ── EqualsIgnoreCase OrdinalIgnoreCase regression ─────────────────────────
+    // ── EqualToIgnoreCase OrdinalIgnoreCase regression ─────────────────────────
 
     [Fact]
-    public void EqualsIgnoreCase_OrdinalSemantics_DifferentCase_ReturnsTrue()
+    public void EqualToIgnoreCase_OrdinalSemantics_DifferentCase_ReturnsTrue()
     {
         // Arrange
         var filter = new ValiFlow<Product>()
-            .EqualsIgnoreCase(p => p.Name, "hello")
+            .EqualToIgnoreCase(p => p.Name, "hello")
             .Build().Compile();
 
         // Act & Assert
@@ -408,11 +408,11 @@ public class StringExpressionTests
     }
 
     [Fact]
-    public void EqualsIgnoreCase_NullValue_ReturnsFalse()
+    public void EqualToIgnoreCase_NullValue_ReturnsFalse()
     {
         // Arrange
         var filter = new ValiFlow<Product>()
-            .EqualsIgnoreCase(p => p.Name, "hello")
+            .EqualToIgnoreCase(p => p.Name, "hello")
             .Build().Compile();
 
         // Act & Assert

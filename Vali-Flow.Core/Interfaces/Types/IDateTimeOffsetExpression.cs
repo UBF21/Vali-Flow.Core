@@ -52,9 +52,11 @@ public interface IDateTimeOffsetExpression<out TBuilder, T>
     TBuilder ExactDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date);
 
     /// <summary>Validates that the selected DateTimeOffset falls before the UTC calendar date of <paramref name="date"/> (date-only, time ignored).</summary>
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date);
 
     /// <summary>Validates that the selected DateTimeOffset falls after the UTC calendar date of <paramref name="date"/> (date-only, time ignored).</summary>
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date);
 
     /// <summary>Validates that the selected DateTimeOffset falls in the same calendar year and month as <paramref name="date"/>.</summary>

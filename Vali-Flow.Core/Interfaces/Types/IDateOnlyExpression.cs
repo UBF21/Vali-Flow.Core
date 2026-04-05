@@ -21,8 +21,10 @@ public interface IDateOnlyExpression<out TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateOnly"/> equals <paramref name="date"/>.</summary>
     TBuilder ExactDate(Expression<Func<T, DateOnly>> selector, DateOnly date);
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly before <paramref name="date"/>.</summary>
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     TBuilder BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date);
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly after <paramref name="date"/>.</summary>
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     TBuilder AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date);
     /// <summary>Validates that the selected <see cref="DateOnly"/> equals yesterday's UTC date.</summary>
     TBuilder IsYesterday(Expression<Func<T, DateOnly>> selector);

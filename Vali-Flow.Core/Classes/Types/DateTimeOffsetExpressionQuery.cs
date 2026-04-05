@@ -104,6 +104,7 @@ public class DateTimeOffsetExpressionQuery<TBuilder, T>
         return _builder.Add(selector, p);
     }
 
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -112,6 +113,7 @@ public class DateTimeOffsetExpressionQuery<TBuilder, T>
         return _builder.Add(selector, p);
     }
 
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
         ArgumentNullException.ThrowIfNull(selector);

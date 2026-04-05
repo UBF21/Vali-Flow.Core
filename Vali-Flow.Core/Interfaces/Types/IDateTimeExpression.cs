@@ -56,13 +56,15 @@ public interface IDateTimeExpression<out TBuilder, T>
     /// </summary>
     /// <param name="selector">Expression to select the date property.</param>
     /// <param name="date">The date to compare against.</param>
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     TBuilder BeforeDate(Expression<Func<T, DateTime>> selector, DateTime date);
-    
+
     /// <summary>
     /// Ensures that the selected date is after a specified date.
     /// </summary>
     /// <param name="selector">Expression to select the date property.</param>
     /// <param name="date">The date to compare against.</param>
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     TBuilder AfterDate(Expression<Func<T, DateTime>> selector, DateTime date);
     
     /// <summary>

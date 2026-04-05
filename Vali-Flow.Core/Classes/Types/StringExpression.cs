@@ -182,7 +182,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <b>EF Core:</b> <c>string.Equals</c> with <see cref="StringComparison"/> is not reliably translatable to SQL across all EF Core providers.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
-    public TBuilder EqualsIgnoreCase(Expression<Func<T, string?>> selector, string? value)
+    public TBuilder EqualToIgnoreCase(Expression<Func<T, string?>> selector, string? value)
     {
         ArgumentNullException.ThrowIfNull(selector);
         if (value == null)

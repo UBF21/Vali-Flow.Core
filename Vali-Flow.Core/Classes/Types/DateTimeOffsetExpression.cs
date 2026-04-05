@@ -190,6 +190,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public TBuilder BeforeDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -204,6 +205,7 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
     /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public TBuilder AfterDate(Expression<Func<T, DateTimeOffset>> selector, DateTimeOffset date)
     {
         ArgumentNullException.ThrowIfNull(selector);

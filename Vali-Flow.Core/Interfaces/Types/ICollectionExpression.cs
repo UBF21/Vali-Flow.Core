@@ -188,6 +188,7 @@ public interface ICollectionExpression<out TBuilder, T>
 
     /// <summary>Validates that the selected collection has exactly <paramref name="count"/> elements.
     /// Equivalent to <see cref="Count{TValue}(Expression{Func{T,IEnumerable{TValue?}}},int)"/>.</summary>
+    [Obsolete("Use Count instead. CountEquals will be removed in a future version.")]
     TBuilder CountEquals<TValue>(Expression<Func<T, IEnumerable<TValue?>>> selector, int count);
 
 }

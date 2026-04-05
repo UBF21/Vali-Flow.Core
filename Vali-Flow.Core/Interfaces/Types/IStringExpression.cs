@@ -98,7 +98,7 @@ public interface IStringExpression<out TBuilder, T>
     /// <param name="selector">Expression to select the string property.</param>
     /// <param name="value">The value to compare against.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    TBuilder EqualsIgnoreCase(Expression<Func<T, string?>> selector, string? value);
+    TBuilder EqualToIgnoreCase(Expression<Func<T, string?>> selector, string? value);
 
     /// <summary>
     /// Ensures that the selected string has no leading or trailing spaces.

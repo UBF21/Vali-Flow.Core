@@ -35,7 +35,7 @@ namespace Vali_Flow.Core.Classes.Base;
 public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
-    private volatile ImmutableList<ConditionEntry> _conditions = ImmutableList<ConditionEntry>.Empty;
+    private volatile ImmutableList<ConditionEntry<T>> _conditions = ImmutableList<ConditionEntry<T>>.Empty;
 
     private int _nextIsAnd = 1; // 1 = AND (default), 0 = OR — int for Volatile/Interlocked consistency with _frozen
     private Func<T, bool>? _cachedFunc;
@@ -185,7 +185,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             throw new ArgumentNullException(nameof(expression));
         }
         EnsureValidCondition(expression);
-        _conditions = _conditions.Add(new ConditionEntry(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, null, Severity.Error));
+        _conditions = _conditions.Add(new ConditionEntry<T>(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, null, Severity.Error));
         Volatile.Write(ref _nextIsAnd, 1);
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
@@ -474,25 +474,10 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithMessage(string message)
     {
         var fork = ForkIfFrozen();
-        if (fork != null)
-        {
-            return fork.WithMessage(message);
-        }
-
+        if (fork != null) return fork.WithMessage(message);
         if (string.IsNullOrEmpty(message))
-        {
             throw new ArgumentException("Message cannot be null or empty.", nameof(message));
-        }
-
-        if (_conditions.Count == 0)
-        {
-            return (TBuilder)this;
-        }
-
-        var last = _conditions[_conditions.Count - 1];
-        _conditions = _conditions.SetItem(_conditions.Count - 1,
-            last with { Message = message, MessageFactory = null });
-        return (TBuilder)this;
+        return MutateLastCondition(last => last with { Message = message, MessageFactory = null });
     }
 
     /// <summary>Attaches a lazily-evaluated message factory to the most recently added condition. The factory is invoked each time <see cref="Validate"/> runs, enabling resource-based localization.</summary>
@@ -509,22 +494,9 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithMessage(Func<string> messageFactory)
     {
         ArgumentNullException.ThrowIfNull(messageFactory);
-
         var fork = ForkIfFrozen();
-        if (fork != null)
-        {
-            return fork.WithMessage(messageFactory);
-        }
-
-        if (_conditions.Count == 0)
-        {
-            return (TBuilder)this;
-        }
-
-        var last = _conditions[_conditions.Count - 1];
-        _conditions = _conditions.SetItem(_conditions.Count - 1,
-            last with { MessageFactory = messageFactory });
-        return (TBuilder)this;
+        if (fork != null) return fork.WithMessage(messageFactory);
+        return MutateLastCondition(last => last with { MessageFactory = messageFactory });
     }
 
     /// <summary>Attaches a structured error (<paramref name="errorCode"/> + <paramref name="message"/>) with <see cref="Severity.Error"/> to the most recently added condition.</summary>
@@ -540,30 +512,12 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithError(string errorCode, string message, Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null)
-        {
-            return fork.WithError(errorCode, message, severity);
-        }
-
+        if (fork != null) return fork.WithError(errorCode, message, severity);
         if (string.IsNullOrEmpty(errorCode))
-        {
             throw new ArgumentException("Error code cannot be null or empty.", nameof(errorCode));
-        }
-
         if (string.IsNullOrEmpty(message))
-        {
             throw new ArgumentException("Message cannot be null or empty.", nameof(message));
-        }
-
-        if (_conditions.Count == 0)
-        {
-            return (TBuilder)this;
-        }
-
-        var last = _conditions[_conditions.Count - 1];
-        _conditions = _conditions.SetItem(_conditions.Count - 1,
-            last with { ErrorCode = errorCode, Message = message, MessageFactory = null, Severity = severity });
-        return (TBuilder)this;
+        return MutateLastCondition(last => last with { ErrorCode = errorCode, Message = message, MessageFactory = null, Severity = severity });
     }
 
     /// <summary>Attaches a structured error with <paramref name="propertyPath"/> and <see cref="Severity.Error"/> to the most recently added condition.</summary>
@@ -581,35 +535,14 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithError(string errorCode, string message, string propertyPath, Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null)
-        {
-            return fork.WithError(errorCode, message, propertyPath, severity);
-        }
-
+        if (fork != null) return fork.WithError(errorCode, message, propertyPath, severity);
         if (string.IsNullOrEmpty(errorCode))
-        {
             throw new ArgumentException("Error code cannot be null or empty.", nameof(errorCode));
-        }
-
         if (string.IsNullOrEmpty(message))
-        {
             throw new ArgumentException("Message cannot be null or empty.", nameof(message));
-        }
-
         if (string.IsNullOrEmpty(propertyPath))
-        {
             throw new ArgumentException("Property path cannot be null or empty.", nameof(propertyPath));
-        }
-
-        if (_conditions.Count == 0)
-        {
-            return (TBuilder)this;
-        }
-
-        var last = _conditions[_conditions.Count - 1];
-        _conditions = _conditions.SetItem(_conditions.Count - 1,
-            last with { ErrorCode = errorCode, Message = message, MessageFactory = null, PropertyPath = propertyPath, Severity = severity });
-        return (TBuilder)this;
+        return MutateLastCondition(last => last with { ErrorCode = errorCode, Message = message, MessageFactory = null, PropertyPath = propertyPath, Severity = severity });
     }
 
     /// <summary>Sets the severity level on the most recently added condition.</summary>
@@ -621,19 +554,15 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public TBuilder WithSeverity(Severity severity)
     {
         var fork = ForkIfFrozen();
-        if (fork != null)
-        {
-            return fork.WithSeverity(severity);
-        }
+        if (fork != null) return fork.WithSeverity(severity);
+        return MutateLastCondition(last => last with { Severity = severity });
+    }
 
-        if (_conditions.Count == 0)
-        {
-            return (TBuilder)this;
-        }
-
+    private TBuilder MutateLastCondition(Func<ConditionEntry<T>, ConditionEntry<T>> mutate)
+    {
+        if (_conditions.Count == 0) return (TBuilder)this;
         var last = _conditions[_conditions.Count - 1];
-        _conditions = _conditions.SetItem(_conditions.Count - 1,
-            last with { Severity = severity });
+        _conditions = _conditions.SetItem(_conditions.Count - 1, mutate(last));
         return (TBuilder)this;
     }
 
@@ -862,15 +791,5 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         var combined = Expression.AndAlso(nullCheck, nestedBody);
         return Expression.Lambda<Func<T, bool>>(combined, param);
     }
-
-    private sealed record ConditionEntry(
-        Expression<Func<T, bool>> Condition,
-        bool IsAnd,
-        string? ErrorCode,
-        string? Message,
-        Func<string>? MessageFactory,
-        string? PropertyPath,
-        Func<T, bool>? CompiledFunc,
-        Severity Severity);
 
 }

@@ -177,6 +177,7 @@ public class DateOnlyExpression<TBuilder, T> : IDateOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly before <paramref name="date"/>.</summary>
+    [Obsolete("Use IsBefore instead. BeforeDate will be removed in a future version.")]
     public TBuilder BeforeDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -185,6 +186,7 @@ public class DateOnlyExpression<TBuilder, T> : IDateOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateOnly"/> is strictly after <paramref name="date"/>.</summary>
+    [Obsolete("Use IsAfter instead. AfterDate will be removed in a future version.")]
     public TBuilder AfterDate(Expression<Func<T, DateOnly>> selector, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(selector);
