@@ -100,7 +100,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         var countVar = Expression.Variable(typeof(int), "c");
         var countMethod = typeof(Enumerable)
             .GetMethods()
-            .First(m => m.Name == "Count" && m.GetParameters().Length == 1)
+            .Single(m => m.Name == "Count" && m.GetParameters().Length == 1)
             .MakeGenericMethod(typeof(TValue));
 
         var nullCheck = Expression.NotEqual(valParam, Expression.Constant(null, typeof(IEnumerable<TValue>)));

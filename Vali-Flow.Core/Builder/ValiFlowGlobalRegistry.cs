@@ -55,11 +55,14 @@ public sealed class ValiFlowGlobalRegistry
         ArgumentNullException.ThrowIfNull(filter);
         lock (_lock)
         {
-            if (!_filters.ContainsKey(typeof(T)))
-                _filters[typeof(T)] = new List<LambdaExpression>();
-            _filters[typeof(T)].Add(filter);
+            if (!_filters.TryGetValue(typeof(T), out var list))
+            {
+                list = new List<LambdaExpression>();
+                _filters[typeof(T)] = list;
+            }
+            list.Add(filter);
+            _filtersCache.Clear();
         }
-        _filtersCache.Clear();
     }
 
     /// <summary>Removes all globally registered filters for type <typeparamref name="T"/>.</summary>
@@ -68,8 +71,8 @@ public sealed class ValiFlowGlobalRegistry
         lock (_lock)
         {
             _filters.Remove(typeof(T));
+            _filtersCache.Clear();
         }
-        _filtersCache.Clear();
     }
 
     /// <summary>Removes all registered filters for all types. Useful in test teardown to prevent cross-test state pollution.</summary>
@@ -78,8 +81,8 @@ public sealed class ValiFlowGlobalRegistry
         lock (_lock)
         {
             _filters.Clear();
+            _filtersCache.Clear();
         }
-        _filtersCache.Clear();
     }
 
     /// <summary>Returns <c>true</c> if any filters are registered for <typeparamref name="T"/> or any interface it implements.</summary>
