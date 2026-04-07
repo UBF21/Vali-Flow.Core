@@ -33,7 +33,8 @@ public partial class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     INumericExpression<ValiFlow<T>, T>, IComparableExpression<ValiFlow<T>, T>,
     IDateTimeExpression<ValiFlow<T>, T>,
     IDateTimeOffsetExpression<ValiFlow<T>, T>, IDateOnlyExpression<ValiFlow<T>, T>,
-    ITimeOnlyExpression<ValiFlow<T>, T>
+    ITimeOnlyExpression<ValiFlow<T>, T>,
+    INestedValidation<ValiFlow<T>, T>
 {
     [ForwardInterface]
     private readonly IBooleanExpression<ValiFlow<T>, T> _booleanExpression;
@@ -158,6 +159,9 @@ public partial class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
         ArgumentNullException.ThrowIfNull(right);
         return CombineExpressions(left.Build(), right.Build(), and);
     }
+
+    /// <inheritdoc/>
+    protected override ValiFlow<TProperty> CreateNestedBuilder<TProperty>() => new ValiFlow<TProperty>();
 
     /// <summary>Combines two builders with AND semantics (<c>left &amp;&amp; right</c>).</summary>
     public static Expression<Func<T, bool>> operator &(ValiFlow<T> left, ValiFlow<T> right) => Combine(left, right, and: true);

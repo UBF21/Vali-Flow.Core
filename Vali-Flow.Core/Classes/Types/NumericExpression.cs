@@ -351,75 +351,22 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
     }
 
     TBuilder IComparableExpression<TBuilder, T>.GreaterThan<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentNullException.ThrowIfNull(otherSelector);
-        var param = selector.Parameters[0];
-        var otherBody = new ParameterReplacer(otherSelector.Parameters[0], param).Visit(otherSelector.Body)!;
-        var compareToMethod = typeof(IComparable<TValue>).GetMethod(nameof(IComparable<TValue>.CompareTo))!;
-        var selectorBodyForCall = new ForceCloneVisitor().Visit(selector.Body)!;
-        var callExpr = Expression.Call(selectorBodyForCall, compareToMethod, otherBody);
-        Expression body;
-        if (typeof(TValue).IsValueType)
-        {
-            body = Expression.GreaterThan(callExpr, Expression.Constant(0));
-        }
-        else
-        {
-            Expression freshBody = new ForceCloneVisitor().Visit(selector.Body)!;
-            var nullCheck = Expression.NotEqual(freshBody, Expression.Constant(null, typeof(TValue)));
-            body = Expression.AndAlso(nullCheck, Expression.GreaterThan(callExpr, Expression.Constant(0)));
-        }
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
-    }
+        => AddCrossPropertyComparableComparison(selector, otherSelector, ExpressionType.GreaterThan);
 
     TBuilder IComparableExpression<TBuilder, T>.GreaterThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentNullException.ThrowIfNull(otherSelector);
-        var param = selector.Parameters[0];
-        var otherBody = new ParameterReplacer(otherSelector.Parameters[0], param).Visit(otherSelector.Body)!;
-        var compareToMethod = typeof(IComparable<TValue>).GetMethod(nameof(IComparable<TValue>.CompareTo))!;
-        var selectorBodyForCall = new ForceCloneVisitor().Visit(selector.Body)!;
-        var callExpr = Expression.Call(selectorBodyForCall, compareToMethod, otherBody);
-        Expression body;
-        if (typeof(TValue).IsValueType)
-        {
-            body = Expression.GreaterThanOrEqual(callExpr, Expression.Constant(0));
-        }
-        else
-        {
-            Expression freshBody = new ForceCloneVisitor().Visit(selector.Body)!;
-            var nullCheck = Expression.NotEqual(freshBody, Expression.Constant(null, typeof(TValue)));
-            body = Expression.AndAlso(nullCheck, Expression.GreaterThanOrEqual(callExpr, Expression.Constant(0)));
-        }
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
-    }
+        => AddCrossPropertyComparableComparison(selector, otherSelector, ExpressionType.GreaterThanOrEqual);
 
     TBuilder IComparableExpression<TBuilder, T>.LessThan<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentNullException.ThrowIfNull(otherSelector);
-        var param = selector.Parameters[0];
-        var otherBody = new ParameterReplacer(otherSelector.Parameters[0], param).Visit(otherSelector.Body)!;
-        var compareToMethod = typeof(IComparable<TValue>).GetMethod(nameof(IComparable<TValue>.CompareTo))!;
-        var selectorBodyForCall = new ForceCloneVisitor().Visit(selector.Body)!;
-        var callExpr = Expression.Call(selectorBodyForCall, compareToMethod, otherBody);
-        Expression body;
-        if (typeof(TValue).IsValueType)
-        {
-            body = Expression.LessThan(callExpr, Expression.Constant(0));
-        }
-        else
-        {
-            Expression freshBody = new ForceCloneVisitor().Visit(selector.Body)!;
-            var nullCheck = Expression.NotEqual(freshBody, Expression.Constant(null, typeof(TValue)));
-            body = Expression.AndAlso(nullCheck, Expression.LessThan(callExpr, Expression.Constant(0)));
-        }
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
-    }
+        => AddCrossPropertyComparableComparison(selector, otherSelector, ExpressionType.LessThan);
 
     TBuilder IComparableExpression<TBuilder, T>.LessThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
+        => AddCrossPropertyComparableComparison(selector, otherSelector, ExpressionType.LessThanOrEqual);
+
+    private TBuilder AddCrossPropertyComparableComparison<TValue>(
+        Expression<Func<T, TValue>> selector,
+        Expression<Func<T, TValue>> otherSelector,
+        ExpressionType comparisonType)
+        where TValue : IComparable<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(otherSelector);
@@ -428,16 +375,17 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
         var compareToMethod = typeof(IComparable<TValue>).GetMethod(nameof(IComparable<TValue>.CompareTo))!;
         var selectorBodyForCall = new ForceCloneVisitor().Visit(selector.Body)!;
         var callExpr = Expression.Call(selectorBodyForCall, compareToMethod, otherBody);
+        var compareResult = Expression.MakeBinary(comparisonType, callExpr, Expression.Constant(0));
         Expression body;
         if (typeof(TValue).IsValueType)
         {
-            body = Expression.LessThanOrEqual(callExpr, Expression.Constant(0));
+            body = compareResult;
         }
         else
         {
             Expression freshBody = new ForceCloneVisitor().Visit(selector.Body)!;
             var nullCheck = Expression.NotEqual(freshBody, Expression.Constant(null, typeof(TValue)));
-            body = Expression.AndAlso(nullCheck, Expression.LessThanOrEqual(callExpr, Expression.Constant(0)));
+            body = Expression.AndAlso(nullCheck, compareResult);
         }
         return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
     }

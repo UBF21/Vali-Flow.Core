@@ -12,6 +12,7 @@ public interface IExpression<out TBuilder, T> :
     IExpressionBuilder<TBuilder, T>,
     IExpressionEvaluator<T>,
     IExpressionCompiler<T>,
-    IExpressionLifecycle<TBuilder>
+    IExpressionLifecycle<TBuilder>,
+    INestedValidation<TBuilder, T>
 {
 }

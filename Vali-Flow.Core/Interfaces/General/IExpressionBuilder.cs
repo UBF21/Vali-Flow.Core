@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Vali_Flow.Core.Builder;
 
 namespace Vali_Flow.Core.Interfaces.General;
 
@@ -37,11 +36,5 @@ public interface IExpressionBuilder<out TBuilder, T> : IExpressionAnnotator<TBui
 
     /// <summary>Adds conditions from <paramref name="unless"/> only when <paramref name="condition"/> is <c>false</c> at runtime.</summary>
     TBuilder Unless(Expression<Func<T, bool>> condition, Action<IExpression<TBuilder, T>> unless);
-
-    /// <summary>Validates a nested reference-type property using an inner <see cref="ValiFlow{TProperty}"/>.</summary>
-    TBuilder ValidateNested<TProperty>(
-        Expression<Func<T, TProperty>> selector,
-        Action<ValiFlow<TProperty>> configure)
-        where TProperty : class;
 
 }

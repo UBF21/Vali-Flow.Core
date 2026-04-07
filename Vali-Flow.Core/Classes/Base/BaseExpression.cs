@@ -40,7 +40,7 @@ namespace Vali_Flow.Core.Classes.Base;
 /// from a frozen builder, the new instance is created via <c>new TBuilder()</c> without the injected services.
 /// For service-aware validation, pass services as method parameters or use a factory pattern instead.
 /// </remarks>
-public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
+public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
     private volatile ImmutableList<ConditionEntry<T>> _conditions = ImmutableList<ConditionEntry<T>>.Empty;
@@ -811,12 +811,10 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
     /// <summary>
     /// Factory used by <see cref="ValidateNested{TProperty}"/> to create the inner builder.
-    /// Override in subclasses (e.g. <c>ValiFlowQuery&lt;T&gt;</c>) to return the correct
-    /// concrete builder type so that nested validation stays EF-safe.
+    /// Must be overridden in each concrete subclass to return the appropriate builder type.
     /// </summary>
-    protected virtual Builder.ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
-        where TProperty : class
-        => new Builder.ValiFlow<TProperty>();
+    protected abstract Builder.ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
+        where TProperty : class;
 
     /// <summary>
     /// Shared helper for ValidateNested implementations. Given a selector and an already-built

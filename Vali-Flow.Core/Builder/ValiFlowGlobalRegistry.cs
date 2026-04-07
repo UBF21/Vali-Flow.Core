@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
@@ -41,6 +42,7 @@ public sealed class ValiFlowGlobalRegistry
 {
     private readonly Dictionary<Type, List<LambdaExpression>> _filters = new();
     private readonly object _lock = new();
+    private readonly ConcurrentDictionary<Type, object> _filtersCache = new();
 
     /// <summary>Registers a global filter expression applied to all <typeparamref name="T"/> queries via <c>BuildWithGlobal(registry)</c>.</summary>
     /// <remarks>
@@ -57,6 +59,7 @@ public sealed class ValiFlowGlobalRegistry
                 _filters[typeof(T)] = new List<LambdaExpression>();
             _filters[typeof(T)].Add(filter);
         }
+        _filtersCache.Clear();
     }
 
     /// <summary>Removes all globally registered filters for type <typeparamref name="T"/>.</summary>
@@ -66,6 +69,7 @@ public sealed class ValiFlowGlobalRegistry
         {
             _filters.Remove(typeof(T));
         }
+        _filtersCache.Clear();
     }
 
     /// <summary>Removes all registered filters for all types. Useful in test teardown to prevent cross-test state pollution.</summary>
@@ -75,6 +79,7 @@ public sealed class ValiFlowGlobalRegistry
         {
             _filters.Clear();
         }
+        _filtersCache.Clear();
     }
 
     /// <summary>Returns <c>true</c> if any filters are registered for <typeparamref name="T"/> or any interface it implements.</summary>
@@ -94,8 +99,12 @@ public sealed class ValiFlowGlobalRegistry
     }
 
     /// <summary>Returns a snapshot of all filters registered for <typeparamref name="T"/> and any interfaces it implements.</summary>
+    /// <remarks>Results are cached per type and invalidated automatically when <see cref="Register{T}"/>, <see cref="Clear{T}"/>, or <see cref="ClearAll"/> is called.</remarks>
     public IReadOnlyList<Expression<Func<T, bool>>> GetFilters<T>()
     {
+        if (_filtersCache.TryGetValue(typeof(T), out var cached))
+            return (IReadOnlyList<Expression<Func<T, bool>>>)cached;
+
         List<LambdaExpression>? exactSnapshot = null;
         List<(Type Iface, List<LambdaExpression> Filters)>? ifaceSnapshot = null;
 
@@ -131,6 +140,8 @@ public sealed class ValiFlowGlobalRegistry
             }
         }
 
-        return result;
+        IReadOnlyList<Expression<Func<T, bool>>> built = result.AsReadOnly();
+        _filtersCache.TryAdd(typeof(T), built);
+        return built;
     }
 }
