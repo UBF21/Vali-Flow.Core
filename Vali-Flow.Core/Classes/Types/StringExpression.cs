@@ -325,7 +325,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <c>string.ToLower()</c> is not translatable to SQL by EF Core. Use this method only with
     /// in-memory collections (LINQ-to-Objects).
     /// </remarks>
-    public TBuilder Contains(string value, List<Expression<Func<T, string?>>> selectors,
+    public TBuilder Contains(string value, IEnumerable<Expression<Func<T, string?>>> selectors,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -361,7 +361,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         // Build one combined OR expression across all selectors so the entire
         // multi-selector check is added as a single condition, preserving the
         // And/Or state set by the caller.
-        var param = selectors[0].Parameters[0];
+        var selectorList = selectors.ToList(); // materialize once — IEnumerable may be lazy
+        var param = selectorList[0].Parameters[0];
         Expression? combined = null;
 
         var toLowerMethod = comparison == StringComparison.InvariantCultureIgnoreCase
@@ -371,14 +372,14 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
 
         var deepCloner = new ForceCloneVisitor();
 
-        foreach (var selector in selectors)
+        foreach (var selector in selectorList)
         {
             // GetFreshBody() produces a structurally equal but reference-distinct
             // copy of the selector body on every call, ensuring no single Expression
             // node appears as a child of two different parents in the combined tree.
             Expression GetFreshBody()
             {
-                var normalized = ReferenceEquals(selector, selectors[0])
+                var normalized = ReferenceEquals(selector, selectorList[0])
                     ? selector.Body
                     : new ParameterReplacer(selector.Parameters[0], param).Visit(selector.Body)!;
                 return deepCloner.Visit(normalized)!;

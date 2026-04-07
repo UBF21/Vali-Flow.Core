@@ -10,6 +10,7 @@ namespace Vali_Flow.Core.Classes.Types;
 public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, IComparableExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, INumericExpression<TBuilder, T>, new()
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.MethodInfo> _absMethodCache = new();
     private readonly BaseExpression<TBuilder, T> _builder;
 
     public NumericExpression(BaseExpression<TBuilder, T> builder)
@@ -157,8 +158,9 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
         var p = Expression.Parameter(typeof(TValue), "val");
         var valueConst = Expression.Constant(value, typeof(TValue));
         var toleranceConst = Expression.Constant(tolerance, typeof(TValue));
-        var absMethod = typeof(TValue).GetMethod("Abs", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
-            ?? throw new NotSupportedException($"Type {typeof(TValue).Name} does not expose a static Abs method. Use a floating-point type such as float, double, or decimal.");
+        var absMethod = _absMethodCache.GetOrAdd(typeof(TValue), t =>
+            t.GetMethod("Abs", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?? throw new NotSupportedException($"Type {t.Name} does not expose a static Abs method. Use a floating-point type such as float, double, or decimal."));
         var diff = Expression.Subtract(p, valueConst);
         var absExpr = Expression.Call(absMethod, diff);
         var lte = Expression.LessThanOrEqual(absExpr, toleranceConst);

@@ -26,7 +26,7 @@ public interface IStringContentExpression<out TBuilder, T>
 
     /// <summary>Adds a validation rule to check if any of the specified string properties contain at least one of the given search terms.</summary>
     /// <remarks><b>EF Core:</b> Uses <c>ToLower()</c> and <c>string.Contains(string)</c> internally. <c>ToLower()</c> is not translatable to SQL by EF Core. Use with in-memory collections only.</remarks>
-    TBuilder Contains(string value, List<Expression<Func<T, string?>>> selectors,
+    TBuilder Contains(string value, IEnumerable<Expression<Func<T, string?>>> selectors,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Ensures that the selected string is equal to the given value, ignoring case.</summary>

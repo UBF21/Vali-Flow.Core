@@ -49,6 +49,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     private Func<T, bool>? _cachedFunc;
     private Func<T, bool>? _cachedNegatedFunc;
     private Expression<Func<T, bool>>? _cachedExpression;
+    private Expression<Func<T, bool>>? _cachedNegatedExpression;
     private int _frozen; // 0 = mutable, 1 = frozen
 
     /// <inheritdoc/>
@@ -128,12 +129,16 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <inheritdoc/>
     public Expression<Func<T, bool>> BuildNegated()
     {
+        var cached = Volatile.Read(ref _cachedNegatedExpression);
+        if (cached != null) return cached;
+
         Interlocked.Exchange(ref _frozen, 1);
         Expression<Func<T, bool>> condition = Volatile.Read(ref _cachedExpression) ?? Build();
         Interlocked.CompareExchange(ref _cachedExpression, condition, null);
         var parameter = condition.Parameters[0];
         var negatedBody = Expression.Not(condition.Body);
-        return Expression.Lambda<Func<T, bool>>(negatedBody, parameter);
+        var negated = Expression.Lambda<Func<T, bool>>(negatedBody, parameter);
+        return Interlocked.CompareExchange(ref _cachedNegatedExpression, negated, null) ?? negated;
     }
 
     /// <summary>Compiles and caches the predicate built by <see cref="Build"/>. Subsequent calls return the cached delegate without recompiling.</summary>
@@ -199,6 +204,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
         Volatile.Write(ref _cachedExpression, null);
+        Volatile.Write(ref _cachedNegatedExpression, null);
         return (TBuilder)this;
     }
 
@@ -279,6 +285,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
         Volatile.Write(ref _cachedExpression, null);
+        Volatile.Write(ref _cachedNegatedExpression, null);
         return (TBuilder)this;
     }
 
@@ -294,6 +301,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
         Volatile.Write(ref _cachedExpression, null);
+        Volatile.Write(ref _cachedNegatedExpression, null);
         return (TBuilder)this;
     }
 
