@@ -57,6 +57,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the internal regex cache has reached its 1,000-pattern limit.
+    /// Avoid using this method with unbounded dynamic patterns.</exception>
     public TBuilder RegexMatch(Expression<Func<T, string?>> selector, string pattern)
     {
         ArgumentNullException.ThrowIfNull(selector);

@@ -130,11 +130,11 @@ public partial class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>,
 
     // This override satisfies the abstract contract from BaseExpression.
     // ValiFlowQuery.ValidateNested overrides the full method and never delegates to this factory.
-    // Throwing here makes the contract violation explicit if the base ever routes through this path.
+    // UnreachableException signals an internal bug if the base ever routes through this path.
     protected override ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
-        => throw new NotSupportedException(
-            $"{nameof(ValiFlowQuery<T>)} does not support nested builder creation via the base factory. " +
-            $"Use {nameof(ValiFlowQuery<T>)}.{nameof(ValidateNested)} directly.");
+        => throw new System.Diagnostics.UnreachableException(
+            $"{nameof(ValiFlowQuery<T>)}.{nameof(ValidateNested)} overrides the full path — " +
+            "reaching CreateNestedBuilder() indicates a bug in BaseExpression.");
 
     /// <summary>Combines two builders with a logical AND into a single expression.</summary>
     public static Expression<Func<T, bool>> operator &(ValiFlowQuery<T> left, ValiFlowQuery<T> right)

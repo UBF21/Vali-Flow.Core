@@ -128,7 +128,9 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <inheritdoc/>
     public Expression<Func<T, bool>> BuildNegated()
     {
+        Interlocked.Exchange(ref _frozen, 1);
         Expression<Func<T, bool>> condition = Volatile.Read(ref _cachedExpression) ?? Build();
+        Interlocked.CompareExchange(ref _cachedExpression, condition, null);
         var parameter = condition.Parameters[0];
         var negatedBody = Expression.Not(condition.Body);
         return Expression.Lambda<Func<T, bool>>(negatedBody, parameter);
@@ -471,6 +473,18 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
     /// <summary>Attaches a human-readable <paramref name="message"/> to the most recently added condition, surfaced by <see cref="Validate"/> when that condition fails.</summary>
     /// <param name="message">The validation message. Cannot be null or empty.</param>
+    /// <remarks>
+    /// If the builder is already frozen (e.g., after calling <see cref="IsValid"/>, <see cref="BuildCached"/>,
+    /// or <see cref="Validate"/>), this method returns a new independent fork — the mutation does NOT apply
+    /// to the original builder. Always assign the return value to capture the fork:
+    /// <code>
+    /// // ✅ Correct — assign the return value
+    /// var annotated = validator.GreaterThan(o => o.Total, 0).WithMessage("Total must be positive");
+    ///
+    /// // ⚠️ Silently lost — WithMessage returns a fork that is discarded
+    /// validator.WithMessage("Total must be positive"); // validator is unchanged
+    /// </code>
+    /// </remarks>
     public TBuilder WithMessage(string message)
     {
         var fork = ForkIfFrozen();
@@ -502,6 +516,11 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <summary>Attaches a structured error (<paramref name="errorCode"/> + <paramref name="message"/>) with <see cref="Severity.Error"/> to the most recently added condition.</summary>
     /// <param name="errorCode">A machine-readable error code. Cannot be null or empty.</param>
     /// <param name="message">A human-readable description. Cannot be null or empty.</param>
+    /// <remarks>
+    /// If the builder is already frozen (e.g., after calling <see cref="IsValid"/>, <see cref="BuildCached"/>,
+    /// or <see cref="Validate"/>), this method returns a new independent fork — always assign the return value.
+    /// See <see cref="WithMessage(string)"/> for a full example.
+    /// </remarks>
     public TBuilder WithError(string errorCode, string message)
         => WithError(errorCode, message, Severity.Error);
 
