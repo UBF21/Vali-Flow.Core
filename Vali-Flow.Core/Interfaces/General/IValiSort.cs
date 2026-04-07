@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+#pragma warning disable CS1591 // Missing XML comment — documented on implementation or in API reference
 
 namespace Vali_Flow.Core.Interfaces.General;
 

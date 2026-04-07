@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -259,7 +260,9 @@ public class NumericExpressionTests
     [Fact]
     public void GreaterThan_IComparable_NullValue_ReturnsFalse()
     {
-        var filter = new ValiFlow<Product>().GreaterThan(p => p.Name, "A").Build().Compile();
+        // Cast to IComparableExpression for non-numeric types (string is IComparable, not INumber)
+        var filter = ((IComparableExpression<ValiFlow<Product>, Product>)new ValiFlow<Product>())
+            .GreaterThan(p => p.Name, "A").Build().Compile();
 
         // Name es null → no debe lanzar NullReferenceException, debe retornar false
         filter(new Product(null, 10m, 5, true, DateTime.UtcNow, new List<string>())).Should().BeFalse();
@@ -268,7 +271,8 @@ public class NumericExpressionTests
     [Fact]
     public void LessThan_IComparable_NullValue_ReturnsFalse()
     {
-        var filter = new ValiFlow<Product>().LessThan(p => p.Name, "Z").Build().Compile();
+        var filter = ((IComparableExpression<ValiFlow<Product>, Product>)new ValiFlow<Product>())
+            .LessThan(p => p.Name, "Z").Build().Compile();
 
         filter(new Product(null, 10m, 5, true, DateTime.UtcNow, new List<string>())).Should().BeFalse();
     }
@@ -435,8 +439,8 @@ public class NumericExpressionTests
     [Fact]
     public void NumericExpression_CrossProperty_GreaterThan_DoesNotShareExpressionNodes()
     {
-        // Arrange
-        var validator = new ValiFlow<DecimalRangeEntity>()
+        // Arrange — cross-property comparison uses IComparableExpression (IComparable<T>-based)
+        var validator = ((IComparableExpression<ValiFlow<DecimalRangeEntity>, DecimalRangeEntity>)new ValiFlow<DecimalRangeEntity>())
             .GreaterThan(o => o.Total, o => o.MinTotal);
 
         var entity = new DecimalRangeEntity(Total: 50m, MinTotal: 10m, MaxTotal: 0m);

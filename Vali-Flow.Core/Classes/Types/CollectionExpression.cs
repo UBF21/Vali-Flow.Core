@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using Vali_Flow.Core.Builder;
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.Types;
@@ -84,9 +85,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
 
     /// <summary>Validates that the number of elements in the collection is between <paramref name="min"/> and <paramref name="max"/> (inclusive).</summary>
     /// <remarks>
-    /// <b>IEnumerable note:</b> For non-<c>ICollection</c> sources, <c>Count()</c> is called twice and enumerates the sequence twice.
-    /// If the source is expensive to enumerate (e.g., a streaming generator), prefer materializing it to a list first.
-    /// For <c>List&lt;T&gt;</c>, <c>T[]</c>, and other <c>ICollection</c> types, <c>Count()</c> is O(1) and there is no double enumeration.
+    /// The generated expression uses a single <c>Count()</c> call assigned to a local variable,
+    /// so the sequence is enumerated exactly once regardless of its type.
     /// </remarks>
     public TBuilder CountBetween<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, int min, int max)
     {
@@ -94,8 +94,24 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         if (min < 0) throw new ArgumentOutOfRangeException(nameof(min), "min must be >= 0.");
         if (max < min) throw new ArgumentOutOfRangeException(nameof(max), "max must be >= min.");
 
-        Expression<Func<IEnumerable<TValue>, bool>> predicate =
-            val => val != null && val.Count() >= min && val.Count() <= max;
+        // Build expression manually to enumerate the sequence only once.
+        // val => val != null && (c = val.Count()) >= min && c <= max
+        var valParam = Expression.Parameter(typeof(IEnumerable<TValue>), "val");
+        var countVar = Expression.Variable(typeof(int), "c");
+        var countMethod = typeof(Enumerable)
+            .GetMethods()
+            .First(m => m.Name == "Count" && m.GetParameters().Length == 1)
+            .MakeGenericMethod(typeof(TValue));
+
+        var nullCheck = Expression.NotEqual(valParam, Expression.Constant(null, typeof(IEnumerable<TValue>)));
+        var assignCount = Expression.Assign(countVar, Expression.Call(countMethod, valParam));
+        var rangeCheck = Expression.AndAlso(
+            Expression.GreaterThanOrEqual(countVar, Expression.Constant(min)),
+            Expression.LessThanOrEqual(countVar, Expression.Constant(max)));
+        var countBlock = Expression.Block(new[] { countVar }, assignCount, rangeCheck);
+        var body = Expression.AndAlso(nullCheck, countBlock);
+        var predicate = Expression.Lambda<Func<IEnumerable<TValue>, bool>>(body, valParam);
+
         return _builder.Add(selector, predicate);
     }
 
@@ -111,14 +127,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         ArgumentNullException.ThrowIfNull(predicate);
 
         var method = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
-
-        var selectorBody = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBody)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBody)!;
-        var nullCheck = Expression.NotEqual(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var allCall = Expression.Call(method, clonedForCall, predicate);
-        var body = Expression.AndAlso(nullCheck, allCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, selector.Parameters[0]));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, method, predicate));
     }
 
     /// <summary>Validates that at least one element in the selected collection satisfies the given condition.</summary>
@@ -133,14 +142,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         ArgumentNullException.ThrowIfNull(predicate);
 
         var method = _enumerableAnyMethod.MakeGenericMethod(typeof(TValue));
-
-        var selectorBody = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBody)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBody)!;
-        var nullCheck = Expression.NotEqual(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var anyCall = Expression.Call(method, clonedForCall, predicate);
-        var body = Expression.AndAlso(nullCheck, anyCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, selector.Parameters[0]));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, method, predicate));
     }
 
     /// <summary>Validates that the selected collection contains <paramref name="value"/>.</summary>
@@ -231,6 +233,21 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         return _builder.Add(selector, predicate);
     }
 
+    /// <summary>Validates that every element in the selected collection satisfies the given <paramref name="predicate"/> expression.</summary>
+    /// <remarks>
+    /// Accepts a pre-built expression directly, decoupling this method from the <see cref="ValiFlow{TValue}"/> concrete type.
+    /// In-memory only — not EF Core translatable.
+    /// </remarks>
+    public TBuilder AllMatch<TValue>(
+        Expression<Func<T, IEnumerable<TValue>>> selector,
+        Expression<Func<TValue, bool>> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(predicate);
+        var allMethod = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, allMethod, predicate));
+    }
+
     /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.</summary>
     /// <remarks>
     /// Equivalent to <see cref="EachItem{TValue}(Expression{Func{T,IEnumerable{TValue}}},Action{ValiFlow{TValue}})"/>
@@ -246,14 +263,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         ArgumentNullException.ThrowIfNull(filter);
         var innerExpr = filter.Build();
         var allMethod = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
-        var param = selector.Parameters[0];
-        var selectorBody = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBody)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBody)!;
-        var nullCheck = Expression.NotEqual(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var allCall = Expression.Call(allMethod, clonedForCall, innerExpr);
-        var body = Expression.AndAlso(nullCheck, allCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, allMethod, innerExpr));
     }
 
     /// <summary>Validates that every element in the selected collection satisfies conditions built by <paramref name="configure"/>.</summary>
@@ -269,15 +279,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder EachItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure)
     {
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
-
-        if (configure == null)
-        {
-            throw new ArgumentNullException(nameof(configure));
-        }
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(configure);
 
         var inner = new ValiFlow<TValue>();
         configure(inner);
@@ -286,15 +289,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
             throw new ArgumentException("The configure action must add at least one condition.", nameof(configure));
 
         var allMethod = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
-
-        var param = selector.Parameters[0];
-        var selectorBodyEach = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBodyEach)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBodyEach)!;
-        var nullCheck = Expression.NotEqual(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var allCall = Expression.Call(allMethod, clonedForCall, innerExpr);
-        var body = Expression.AndAlso(nullCheck, allCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, allMethod, innerExpr));
     }
 
     /// <summary>Validates that at least one element in the selected collection satisfies conditions built by <paramref name="configure"/>.</summary>
@@ -310,15 +305,8 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// </remarks>
     public TBuilder AnyItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure)
     {
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
-
-        if (configure == null)
-        {
-            throw new ArgumentNullException(nameof(configure));
-        }
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(configure);
 
         var inner = new ValiFlow<TValue>();
         configure(inner);
@@ -327,15 +315,29 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
             throw new ArgumentException("The configure action must add at least one condition.", nameof(configure));
 
         var anyMethod = _enumerableAnyMethod.MakeGenericMethod(typeof(TValue));
+        return _builder.Add(BuildNullSafeCollectionPredicate(selector, anyMethod, innerExpr));
+    }
 
-        var param = selector.Parameters[0];
-        var selectorBodyAny = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBodyAny)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBodyAny)!;
-        var nullCheck = Expression.NotEqual(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var anyCall = Expression.Call(anyMethod, clonedForCall, innerExpr);
-        var body = Expression.AndAlso(nullCheck, anyCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, param));
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds a null-safe collection predicate: <c>collection != null &amp;&amp; method(collection, predicate)</c>.
+    /// Both the null-check and the method-call get independent clones of the selector body
+    /// so the same expression node never appears twice in the tree.
+    /// </summary>
+    private Expression<Func<T, bool>> BuildNullSafeCollectionPredicate<TValue>(
+        Expression<Func<T, IEnumerable<TValue>>> selector,
+        System.Reflection.MethodInfo method,
+        LambdaExpression predicate)
+    {
+        var cloner = new ForceCloneVisitor();
+        var nullCheck = Expression.NotEqual(
+            cloner.Visit(selector.Body)!,
+            Expression.Constant(null, typeof(IEnumerable<TValue>)));
+        var call = Expression.Call(method, cloner.Visit(selector.Body)!, predicate);
+        return Expression.Lambda<Func<T, bool>>(
+            Expression.AndAlso(nullCheck, call),
+            selector.Parameters[0]);
     }
 
 }

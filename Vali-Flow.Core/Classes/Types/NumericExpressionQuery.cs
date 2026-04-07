@@ -1,10 +1,12 @@
 using System.Linq.Expressions;
+#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using Vali_Flow.Core.Classes.Base;
+using Vali_Flow.Core.Interfaces.Types;
 using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Classes.Types;
 
-public class NumericExpressionQuery<TBuilder, T>
+public class NumericExpressionQuery<TBuilder, T> : INumericExpressionQuery<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
     private readonly BaseExpression<TBuilder, T> _builder;

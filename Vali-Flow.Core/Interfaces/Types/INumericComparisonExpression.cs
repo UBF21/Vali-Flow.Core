@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Numerics;
 
 namespace Vali_Flow.Core.Interfaces.Types;
 
@@ -9,291 +10,39 @@ namespace Vali_Flow.Core.Interfaces.Types;
 /// <typeparam name="T">The type of the entity being evaluated.</typeparam>
 public interface INumericComparisonExpression<out TBuilder, T>
 {
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is greater than <paramref name="value"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, int>> selector, int value);
+    TBuilder GreaterThan<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected long property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is greater than or equal to <paramref name="value"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, long>> selector, long value);
+    TBuilder GreaterThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected float property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is less than <paramref name="value"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, float>> selector, float value);
+    TBuilder LessThan<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected double property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is less than or equal to <paramref name="value"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, double>> selector, double value);
+    TBuilder LessThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, decimal>> selector, decimal value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is greater than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThan(Expression<Func<T, short>> selector, short value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, int>> selector, int value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, long>> selector, long value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, float>> selector, float value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, double>> selector, double value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, decimal>> selector, decimal value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is greater than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder GreaterThanOrEqualTo(Expression<Func<T, short>> selector, short value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, int>> selector, int value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, long>> selector, long value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, float>> selector, float value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, double>> selector, double value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, decimal>> selector, decimal value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is less than the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThan(Expression<Func<T, short>> selector, short value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, int>> selector, int value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, long>> selector, long value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, float>> selector, float value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, double>> selector, double value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, decimal>> selector, decimal value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is less than or equal to the specified value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="value">The value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder LessThanOrEqualTo(Expression<Func<T, short>> selector, short value);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is greater than or equal to <paramref name="minValue"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, int>> selector, int minValue);
+    TBuilder MinValue<TValue>(Expression<Func<T, TValue>> selector, TValue minValue) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected long property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, long>> selector, long minValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, float>> selector, float minValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, double>> selector, double minValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, decimal>> selector, decimal minValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is greater than or equal to the specified minimum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="minValue">The minimum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MinValue(Expression<Func<T, short>> selector, short minValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is less than or equal to <paramref name="maxValue"/>.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, int>> selector, int maxValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, long>> selector, long maxValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, float>> selector, float maxValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, double>> selector, double maxValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, decimal>> selector, decimal maxValue);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is less than or equal to the specified maximum value.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="maxValue">The maximum value to compare against.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder MaxValue(Expression<Func<T, short>> selector, short maxValue);
+    TBuilder MaxValue<TValue>(Expression<Func<T, TValue>> selector, TValue maxValue) where TValue : INumber<TValue>;
 }

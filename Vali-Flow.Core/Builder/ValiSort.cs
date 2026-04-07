@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using Vali_Flow.Core.Interfaces.General;
 
 namespace Vali_Flow.Core.Builder;
@@ -13,6 +14,17 @@ namespace Vali_Flow.Core.Builder;
 /// </remarks>
 public sealed class ValiSort<T> : IValiSort<T>
 {
+    // Cached open-generic MethodInfo for Queryable sort methods — avoids string-based method lookup at call time.
+    private static readonly MethodInfo _orderByMethod     = FindQueryableMethod("OrderBy");
+    private static readonly MethodInfo _orderByDescMethod = FindQueryableMethod("OrderByDescending");
+    private static readonly MethodInfo _thenByMethod      = FindQueryableMethod("ThenBy");
+    private static readonly MethodInfo _thenByDescMethod  = FindQueryableMethod("ThenByDescending");
+
+    private static MethodInfo FindQueryableMethod(string name) =>
+        typeof(Queryable)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .First(m => m.Name == name && m.GetParameters().Length == 2);
+
     private readonly List<SortEntry> _sorts = new();
 
     /// <summary>
@@ -156,26 +168,19 @@ public sealed class ValiSort<T> : IValiSort<T>
     }
 
     private static IOrderedQueryable<T> ApplyOrderBy(IQueryable<T> query, LambdaExpression selector, bool desc)
-    {
-        string method = desc ? "OrderByDescending" : "OrderBy";
-        return (IOrderedQueryable<T>)query.Provider.CreateQuery<T>(
-            Expression.Call(
-                typeof(Queryable),
-                method,
-                new[] { typeof(T), selector.ReturnType },
-                query.Expression,
-                Expression.Quote(selector)));
-    }
+        => ApplyQuerySort(query, selector, desc ? _orderByDescMethod : _orderByMethod);
 
     private static IOrderedQueryable<T> ApplyThenBy(IOrderedQueryable<T> query, LambdaExpression selector, bool desc)
+        => ApplyQuerySort(query, selector, desc ? _thenByDescMethod : _thenByMethod);
+
+    private static IOrderedQueryable<T> ApplyQuerySort(IQueryable<T> source, LambdaExpression selector, MethodInfo genericMethod)
     {
-        string method = desc ? "ThenByDescending" : "ThenBy";
-        return (IOrderedQueryable<T>)query.Provider.CreateQuery<T>(
-            Expression.Call(
-                typeof(Queryable),
-                method,
-                new[] { typeof(T), selector.ReturnType },
-                query.Expression,
-                Expression.Quote(selector)));
+        var method = genericMethod.MakeGenericMethod(typeof(T), selector.ReturnType);
+        var callExpr = Expression.Call(null, method, source.Expression, Expression.Quote(selector));
+        var result = source.Provider.CreateQuery<T>(callExpr);
+        return result as IOrderedQueryable<T>
+            ?? throw new InvalidOperationException(
+                $"The IQueryable provider '{source.Provider.GetType().Name}' did not return an IOrderedQueryable<T>. " +
+                "ValiSort requires a provider that supports ordered queries (e.g., EF Core, LINQ to SQL).");
     }
 }

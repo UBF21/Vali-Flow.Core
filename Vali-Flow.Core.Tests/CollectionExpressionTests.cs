@@ -367,7 +367,7 @@ public class AllMatchAndCountTests
     [Fact]
     public void AllMatch_NullFilter_ThrowsArgumentNullException()
     {
-        Action act = () => new ValiFlow<TagEntity>().AllMatch<string>(e => e.Tags!, null!);
+        Action act = () => new ValiFlow<TagEntity>().AllMatch<string>(e => e.Tags!, (ValiFlow<string>)null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("filter");
     }
 

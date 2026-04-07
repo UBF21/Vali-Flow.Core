@@ -161,6 +161,37 @@ Expression<Func<Product, bool>> filter = validator.Build();
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
+## Performance Tips ⚡
+
+Choose the right method for your use case:
+
+| Method | Best for | Compilation |
+|--------|----------|-------------|
+| `IsValid(item)` | Ad-hoc single checks | Compiles full predicate on first call, caches it |
+| `BuildCached()` | Batch filtering of large collections | Compiles once — reuse the returned `Func<T, bool>` |
+| `Validate(item)` | Error collection (field-level details) | Each condition compiled independently (lazy per entry) |
+| `ValidateAll(items)` | Per-item error details on a list | Calls `Validate()` per item — prefer when you need error context |
+
+**For filtering large collections, always prefer `BuildCached()` over `Validate()`:**
+
+```csharp
+// ✅ Fast — expression compiled once, cached delegate reused
+var isValid = validator.BuildCached();
+var validItems = records.Where(isValid).ToList();
+
+// ⚠️ Slower — Validate() compiles lazily per condition on each call
+var validItems = records.Where(r => validator.Validate(r).IsValid).ToList();
+```
+
+**When you need structured error output for a batch:**
+
+```csharp
+// Use ValidateAll() — freezes the builder once, iterates Validate() per item
+var results = validator.ValidateAll(records)
+    .Where(r => !r.Result.IsValid)
+    .ToList();
+```
+
 ## Donations 💖
 If you find **Vali-Flow.Core** useful and would like to support its development, consider making a donation:
 

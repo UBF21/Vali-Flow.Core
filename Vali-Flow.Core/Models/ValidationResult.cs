@@ -1,4 +1,5 @@
 namespace Vali_Flow.Core.Models;
+#pragma warning disable CS1591 // Missing XML comment — documented on implementation or in API reference
 
 public sealed class ValidationResult
 {

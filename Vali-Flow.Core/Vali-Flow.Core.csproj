@@ -14,171 +14,33 @@
         <Copyright>Copyright © 2026 FM. All rights reserved.</Copyright>
         <RepositoryUrl>https://github.com/UBF21/Vali-Flow.Core</RepositoryUrl>
         <PackageReleaseNotes>
-## 2.7.0
-### New API
-- `ComparisonExpression` / `ValiFlow&lt;T&gt;`: added `GreaterThan`, `GreaterThanOrEqualTo`, `LessThan`, `LessThanOrEqualTo` with two selectors — cross-field comparisons using `IComparable&lt;TValue&gt;` (e.g. `GreaterThan(x =&gt; x.EndDate, x =&gt; x.StartDate)`)
-- `ComparisonExpression` / `ValiFlow&lt;T&gt;`: added `IsNull&lt;TValue&gt;` and `IsNotNull&lt;TValue&gt;` as discoverable aliases for the existing `Null` / `NotNull` methods
-- `StringExpression` / `ValiFlow&lt;T&gt;`: added `MatchesWildcard(pattern)` — wildcard-to-regex conversion (`*` = any chars, `?` = one char); in-memory only
-- `StringExpression` / `ValiFlow&lt;T&gt;`: added `IsOneOf(values, comparison)` — exact match against an allowed-values list; in-memory only
-- `NumericExpression` / `ValiFlow&lt;T&gt;`: added `IsBetweenExclusive` (6 overloads: int/long/float/double/decimal/short) — strict range check (exclusive on both ends)
-- `NumericExpression` / `ValiFlow&lt;T&gt;`: added `IsCloseTo(value, tolerance)` (float + double) — validates |val - value| ≤ tolerance
-- `CollectionExpression` / `ValiFlow&lt;T&gt;`: added `AllMatch&lt;TValue&gt;(selector, ValiFlow&lt;TValue&gt;)` — composable variant of `EachItem` that accepts a pre-built filter
-- `CollectionExpression` / `ValiFlow&lt;T&gt;`: added `CountEquals&lt;TValue&gt;(selector, count)` — alias for `Count` with clearer intent
-
-## 2.6.0
-### New API
-- `ComparisonExpression` / `ValiFlow&lt;T&gt;`: added `IsInEnum&lt;TEnum&gt;` — validates that an enum value is defined in the enum type via `Enum.IsDefined`; in-memory only
-- `ComparisonExpression` / `ValiFlow&lt;T&gt;`: added `IsDefault&lt;TValue&gt;` and `IsNotDefault&lt;TValue&gt;` — validates that a value equals/differs from `default(TValue)` using `EqualityComparer&lt;TValue&gt;.Default.Equals`; in-memory only
-- `StringExpression` / `ValiFlow&lt;T&gt;`: added `IsCreditCard`, `IsIPv4`, `IsIPv6`, `IsHexColor`, `IsSlug` — compiled-regex validators for common string formats
-- `BaseExpression`: added `WithMessage(Func&lt;string&gt; messageFactory)` overload — enables lazy/localized messages evaluated at `Validate()` call time; compatible with `IStringLocalizer`, `ResourceManager`, and any `Func&lt;string&gt;` source
-
-## 2.5.0
-### New API
-- `ValiFlowQuery&lt;T&gt;.IsLastDayOfMonth(DateOnly)`: EF Core-safe implementation using `AddDays(1).Month != Month` — avoids non-translatable `DateTime.DaysInMonth`; translates to `MONTH(DATEADD(day,1,col)) &lt;&gt; MONTH(col)` on SQL Server and equivalent on PostgreSQL, MySQL, SQLite
-
-### Architecture decision
-- `IsWeekend`/`IsWeekday`/`IsDayOfWeek` remain excluded from `ValiFlowQuery` — `DayOfWeek` is not EF Core-translatable on SQL Server or MySQL (Pomelo); no universal SQL equivalent exists. These methods remain available in `ValiFlow&lt;T&gt;` for in-memory use.
-
-## 2.4.0
-### Bug Fixes
-- `BaseExpression._cachedExpression`: added shared expression cache — `BuildCached()` and `IsNotValid()` now both derive their compiled delegates from the same `Build()` result, eliminating the TOCTOU divergence where positive and negated delegates could be compiled from different expression tree snapshots under concurrent access
-- `ForceCloneVisitor`: added `VisitUnary`, `VisitBinary`, `VisitMethodCall` overrides — previously only `VisitMember` was handled, leaving `MethodCallExpression`, `UnaryExpression`, and `BinaryExpression` nodes uncloned (shared references in two expression tree positions); now produces fully reference-distinct node graphs for all node types
-- `CollectionExpression.MaxCount` / `ValiFlowQuery.MaxCount`: null collection now returns `false` (consistent with `MinCount`); previously null passed vacuously — updated XML docs accordingly
-
-### Documentation
-- `INumericExpression`: corrected type names in `&lt;summary&gt;` tags for all non-`int` overloads of `Zero`, `NotZero`, `InRange`, `GreaterThan`, `GreaterThanOrEqualTo`, `LessThan`, `LessThanOrEqualTo`, `Positive`, `Negative`, `MinValue`, `MaxValue` — all incorrectly said "integer property" regardless of actual type (long/float/double/decimal/short)
-
-### New API
-- `DateTimeOffsetExpression` / `ValiFlow&lt;T&gt;`: added `ExactDate`, `BeforeDate`, `AfterDate`, `SameMonthAs`, `SameYearAs` — completes parity with `DateTimeExpression`
-- `DateOnlyExpression` / `ValiFlow&lt;T&gt;`: added `ExactDate`, `BeforeDate`, `AfterDate`, `IsYesterday`, `IsTomorrow`, `InLastDays`, `InNextDays`, `SameMonthAs`, `SameYearAs` — completes parity with `DateTimeExpression`
-
-## 2.3.0
-### Critical Bug Fixes
-- `NumericExpression` cross-property `InRange` (all 6 overloads: int/long/float/double/decimal/short): deleted `CloneSelectorBody` helper (was a shallow no-op for non-Member/Unary nodes) and replaced with `ExpressionDeepCloner` — eliminates DAG aliasing in expression tree `AndAlso` nodes
-- `NumericExpression` cross-property IComparable comparisons (4 overloads: `GreaterThan`/`GreaterThanOrEqualTo`/`LessThan`/`LessThanOrEqualTo`): same `ExpressionDeepCloner` fix; removed duplicate nested `NumericParameterReplacer` class (was identical to `ExpressionHelpers.ParameterReplacer`)
-- `BaseExpression._conditions`: declared `volatile` — eliminates stale reference reads on ARM64 multi-core (consistent with `_frozen`, `_nextIsAnd`, `_cachedFunc` which already used Volatile pattern)
-- `BaseExpression.Validate()` TOCTOU: inside `lock (_validateLock)`, replaced pre-lock snapshot `entry` with fresh read `current = _conditions[i]` — eliminates race where condition stored at index `i` could have been updated between snapshot and compilation
-- `StringExpression.EqualsIgnoreCase`: replaced culture-sensitive `ToLower()` with `string.Equals(val, value, StringComparison.OrdinalIgnoreCase)` — fixes incorrect results in Turkish and Azerbaijani locales (dotless-i issue)
-- `ValiFlow.Combine()` / `ValiFlowQuery.Combine()`: added `!` null-forgiving operator to `ParameterReplacer.Visit(r.Body)` result — eliminates potential NRE when `Visit` returns null (e.g. when expression body has unexpected node type)
-- `ValiFlowQuery.ValidateNested()`: same `!` fix on `nestedBody`
-
-### High-Priority Bug Fixes
-- `ValiFlowQuery.IsInYear(DateTimeOffset)`: removed unreachable duplicate `return Add(selector, p)` statement
-- `StringExpression.Contains(value, selectors)` with `InvariantCultureIgnoreCase`: now uses `ToLowerInvariant()` instead of culture-sensitive `ToLower()` — consistent with `StringComparison.InvariantCultureIgnoreCase` semantics
-- `BaseExpression.ValidateAll()`: now calls `Interlocked.Exchange(ref _frozen, 1)` before iteration begins — builder is frozen when enumeration starts, preventing silent mutation between call and iteration
-- `BaseExpression`: removed duplicate private nested `ParameterReplacer` class — `using static ExpressionHelpers` already imports the canonical version; all call sites continue to resolve correctly
-- `ValiFlowGlobal.HasFilters&lt;T&gt;()`: now also checks interface-based filters (consistent with `GetFilters&lt;T&gt;()` which already returned interface filters); previously only checked exact type match
-
-### Medium-Priority Fixes
-- `ComparisonExpression.EqualTo`/`NotEqualTo`: moved `selector == null` guard before `value == null` — consistent with all other methods in the library
-- `CollectionExpression.None`: null collection now returns `true` (vacuously true: no elements can violate the predicate) instead of `false` — consistent with mathematical set semantics
-- `Validation.IsValidJson`: changed from `public` to `internal` — class is already `internal`; dead `public` modifier removed
-
-### Documentation
-- `BaseExpression`: added `&lt;summary&gt;` XML docs to 10 previously undocumented public members: `BuildCached`, `Add&lt;TValue&gt;`, `When`, `Unless`, `WithMessage`, `WithError` (×4), `Explain`
-- `ValiFlowGlobal`: added `&lt;summary&gt;` XML docs to `Clear&lt;T&gt;()`, `ClearAll()`, `HasFilters&lt;T&gt;()`, `GetFilters&lt;T&gt;()`
-- `DateTimeOffsetExpression.IsBefore`/`IsAfter`: added `&lt;summary&gt;` XML docs (offset-aware timestamp comparison)
-- `ValiFlowQuery.IsInMonth(DateTimeOffset)`/`IsInYear(DateTimeOffset)`: added missing `&lt;summary&gt;` tags (only had `&lt;remarks&gt;`)
-- `StringExpression.GetOrCreateRegex`: clarified that the cache cap is a soft limit — not atomically enforced under high concurrency
-
-### Infrastructure
-- `GenerateDocumentationFile`: added to csproj — XML IntelliSense docs now embedded in NuGet package; previously all XML comments were invisible to consumers
-
-### New API
-- `ValiFlowQuery&lt;T&gt;.FutureDate(Expression&lt;Func&lt;T, DateTime&gt;&gt;)`: validates that the selected `DateTime` is in the future (EF Core translatable via `GETUTCDATE()`/`UTC_TIMESTAMP()`)
-- `ValiFlowQuery&lt;T&gt;.PastDate(Expression&lt;Func&lt;T, DateTime&gt;&gt;)`: validates that the selected `DateTime` is in the past — completes API parity with `ValiFlow&lt;T&gt;`
-
-### Test Coverage
-- `NumericExpressionTests`: 2 new tests — cross-property `InRange` and `GreaterThan` do not throw or produce wrong results (DAG aliasing regression)
-- `StringExpressionTests`: 2 new tests — `EqualsIgnoreCase` ordinal semantics (different case returns true, null returns false)
-- `BaseExpressionTests`: 2 new tests — `ValidateAll` freeze-before-iteration contract; concurrent `Validate` calls on frozen builder
-- `ValiFlowQueryTests`: 2 new tests — `FutureDate(DateTime)` future date returns true; `PastDate(DateTime)` past date returns true
-- `ValiFlowGlobalTests`: 1 new test — `HasFilters&lt;T&gt;()` returns true when filter registered on interface implemented by `T`
-- `ComparisonExpressionTests`: 1 new test — `EqualTo` null-selector throws `ArgumentNullException` before value check
-- `CollectionExpressionTests`: 1 new test — `None` with null collection returns true (vacuously true)
-
-## 2.2.0
-### Bug Fixes
-- `ComparisonExpression.NotNull`/`Null`: added missing `ArgumentNullException` null guard on `selector` — consistent with all other methods in the library
-- `DateTimeExpression.InNextDays`: corrected range from `[Today, Today+N]` (N+1 days) to `(Today, Today+N]` (exactly N days) — today excluded
-- `DateTimeExpression.InLastDays`: corrected range from `[Today-N, Today]` (N+1 days) to `[Today-N, Today)` (exactly N days) — today excluded
-- `DateTimeOffsetExpression.InNextDays`: same off-by-one fix as `DateTimeExpression` — today excluded
-- `DateTimeOffsetExpression.InLastDays`: same off-by-one fix — today excluded
-- `DateOnlyExpression.BetweenDates` (cross-property): replaced fragile manual `Expression.Convert` fallback with `ExpressionDeepCloner` — eliminates malformed cast node for non-MemberExpression selectors
-- `BaseExpression.Clone()`: added explicit `Interlocked.Exchange(ref clone._frozen, 0)` — enforces "starts unfrozen" contract even if default field initialization is changed in future
-
-### Documentation
-- `BaseExpression`: added `/// &lt;inheritdoc/&gt;` to 8 undocumented public interface implementations (`Build`, `BuildNegated`, `And`, `Or`, `IsValid`, `IsNotValid`, `AddIf` × 2)
-- `ComparisonExpression`: added `&lt;summary&gt;` XML docs to `NotNull`, `Null`, `EqualTo`, `NotEqualTo`
-- `CLAUDE.md`: corrected `net7.0` reference (dropped since v2.0.0)
-
-### Infrastructure
-- Added `.snupkg` symbol package generation (`&lt;IncludeSymbols&gt;true&lt;/IncludeSymbols&gt;`, `&lt;SymbolPackageFormat&gt;snupkg&lt;/SymbolPackageFormat&gt;`) — enables step-into debugging for NuGet consumers
-
-### Test Coverage
-- `ComparisonExpressionNegativeTests`: `NotNull_NullSelector_ThrowsArgumentNullException`, `Null_NullSelector_ThrowsArgumentNullException`
-- `CloneTests.Clone_AfterOr_PendingOrStateIsTransferred`: asserts OR-state is preserved across Clone
-- `CloneTests.Clone_IsFrozenSource_CloneStartsUnfrozen`: explicit _frozen=0 contract
-- `Validate_OrGroupedAnnotatedCondition_ReportsErrorEvenWhenIsValidIsTrue`: documents Validate vs IsValid divergence with Or-groups
-- Total: 829 tests
-
-## 2.1.0
-### Refactoring
-- `ForceCloneVisitor` moved to shared `Utils/ExpressionHelpers.cs`; duplicate removed from `BaseExpression` and `ValiFlowQuery`
-
-### Documentation
-- `IExpression.Build()`: fixed stale `&lt;example&gt;` referencing non-existent `ConditionBuilder` type — now uses `ValiFlow&lt;T&gt;`
-- `IExpression.Validate()`: added Or-grouping blind-spot caveat to `&lt;remarks&gt;` — consistent with implementation docs
-- `CollectionExpression.EachItem`/`AnyItem`: added `&lt;remarks&gt;` explaining inner `ValiFlow&lt;TValue&gt;` builder design intent
-- Copyright updated: year 2025 → 2026, English-only text
-
-### Test Coverage
-- `ValidateNested_NullNestedProperty_ReturnsFalse`: asserts null-guard fires correctly
-- `FrozenBuilder_SimultaneousFork_BothForksAreIndependentAndCorrect`: concurrent fork correctness test
-- Test project now targets `net8.0;net9.0`
-- Total: 822 tests
-
 ## 2.0.0
+### Architecture
+- Source generator (Vali-Flow.Core.Generator): eliminates ~468 manually-maintained delegation methods. ValiFlow and ValiFlowQuery reduced to ~110 lines each — thin partial facades.
+- 9 query-specific interfaces added (IBooleanExpressionQuery, IStringExpressionQuery, ICollectionExpressionQuery, INumericExpressionQuery, IDateTimeExpressionQuery, IDateTimeOffsetExpressionQuery, IDateOnlyExpressionQuery, ITimeOnlyExpressionQuery).
+- BaseExpression.ValidateNested: extracted protected virtual CreateNestedBuilder factory method — decouples base class from ValiFlow concrete type.
+
+### Infrastructure
+- Vali-Flow.Core.Analyzers: Roslyn analyzer VFCORE001 — warns when non-EF Core methods are used on ValiFlowQuery inside IQueryable contexts.
+
 ### Breaking Changes
-- Dropped `net7.0` target (EOL since May 2024). Supported frameworks: `net8.0`, `net9.0`.
+- Removed deprecated methods: BeforeDate, AfterDate (use IsBefore/IsAfter), CountEquals (use Count).
+- IStringExpression now inherits from 4 focused sub-interfaces: IStringLengthExpression, IStringContentExpression, IStringStateExpression, IStringFormatExpression. If you implemented IStringExpression directly, implement the 4 sub-interfaces instead.
 
-### Bug Fixes
-- `WithMessage(string)`: now throws `ArgumentException` for null/empty strings — consistent with `WithError` contract
-- `_nextIsAnd` field changed from `bool` to `int` for `Interlocked`-consistent memory semantics (same pattern as `_frozen`)
+### Performance
+- ConditionEntry compiles predicates lazily via Lazy — thread-safe without explicit locking. Validate() no longer acquires a lock per condition.
 
-### Refactoring
-- `ExpressionDeepCloner` and `ParameterReplacer` extracted to shared `Utils/ExpressionHelpers.cs`; duplicate nested classes removed from `CollectionExpression`, `DateTimeExpression`, `StringExpression`, `DateOnlyExpression`, `ValiFlowQuery`, `ValiFlow` — eliminates historical bug-propagation risk
+## 1.7.0
+### Architecture
+- ValiFlowQuery God Class eliminated: reduced from 2329 lines to ~530 lines by extracting all method bodies into 9 domain-specific composition classes (BooleanExpressionQuery, StringExpressionQuery, CollectionExpressionQuery, NumericExpressionQuery, DateTimeExpressionQuery, DateTimeOffsetExpressionQuery, DateOnlyExpressionQuery, TimeOnlyExpressionQuery). Public API unchanged.
 
-### Documentation
-- `NumericExpression`: 104 previously undocumented public methods now have `&lt;summary&gt;` tags
-- `DateTimeExpression`: 8 undocumented methods (`IsWeekend`, `IsWeekday`, `IsDayOfWeek`, `IsInMonth`, `IsInYear`, `IsBefore`, `IsAfter`, `SameYearAs`) documented
-- `BooleanExpression`: `IsTrue` and `IsFalse` documented
-- `StringExpression`: 10 methods (`MinLength`, `MaxLength`, `ExactLength`, `LengthBetween`, `IsNullOrEmpty`, `IsNotNullOrEmpty`, `IsNullOrWhiteSpace`, `IsNotNullOrWhiteSpace`, `StartsWith`, `EndsWith`) documented
-
-### Test Coverage
-- `ExplainTests`: 3 new tests — empty builder, single condition, multi-condition
-- `When`/`Unless` null argument guards: 2 new regression tests
-- Total: 820 tests
-
-## 1.9.0
-### Bug Fixes
-- `BaseExpression._nextIsAnd`: added `Volatile.Write`/`Volatile.Read` at all read/write sites — eliminates stale reads on ARM runtimes when multiple threads fork concurrently
-
-### API / Documentation
-- `ValidateNested&lt;TProperty&gt;`: added `&lt;remarks&gt;` explaining the `where TProperty : class` constraint and why struct types are excluded; added `&lt;typeparam&gt;` tag (both interface and implementation)
-- `CollectionExpression`: added `&lt;summary&gt;` to all previously undocumented public methods (NotEmpty, Count, Empty, MinCount, MaxCount, EachItem, AnyItem)
-- `TimeOnlyExpression`: added `&lt;summary&gt;` to all previously undocumented public methods (IsBefore, IsAfter, IsAM, IsPM, IsExactTime, IsInHour)
-- `DateOnlyExpression`: added `&lt;summary&gt;` to all previously undocumented public methods (IsWeekend, IsWeekday, IsDayOfWeek, IsInMonth, IsInYear, IsBefore, IsAfter, BetweenDates)
+### New Features — ValiFlowQuery (EF Core-safe)
+- String: IsTrimmed, IsLowerCase, IsUpperCase, EqualToIgnoreCase, StartsWithIgnoreCase, EndsWithIgnoreCase, ContainsIgnoreCase, NotContains, NotStartsWith, NotEndsWith
+- Numeric: IsEven, IsOdd, IsMultipleOf(n) (int and long)
+- DateTime/DateTimeOffset/DateOnly: IsWeekend, IsWeekday, IsDayOfWeek, IsToday, IsYesterday, IsTomorrow, InLastDays, InNextDays, IsFirstDayOfMonth, IsLastDayOfMonth, IsInQuarter
 
 ### Test Coverage
-- `ConcurrencyTests`: 3 new tests — concurrent IsValid on frozen builder, concurrent fork independence, concurrent Validate no-throw
-- Total: 815 tests
-
-## 1.8.0
-### Bug Fixes
-- IExpression.cs: fixed malformed double summary tag — Clone() and Build() docs were merged into one block; IntelliSense now renders each method correctly
-- `BaseExpression.And()`: added `Volatile.Write(ref _cachedFunc, null)` and `Volatile.Write(ref _cachedNegatedFunc, null)` — symmetric with `Or()`, eliminates cache asymmetry
-- `DateTimeExpression.CloneExpression`: replaced shallow ad-hoc clone helper with proper `ExpressionDeepCloner : ExpressionVisitor` — consistent with all other expression-building helpers in the codebase
+- 961 tests (net9.0) — full coverage of ValiFlow, ValiFlowQuery, BaseExpression, all type-specific classes, ValiFlowGlobal, ValiSort
 - `ValiFlowQuery.FutureDate/PastDate` (DateTimeOffset): corrected EF Core provider remarks — `DateTimeOffset.UtcNow` is not guaranteed to translate on MySQL (Pomelo) or SQLite
 
 ### Documentation
@@ -463,7 +325,7 @@
         <Version>2.0.0</Version>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <PackageIcon>logo_vali_flow_core_.png</PackageIcon>
+        <PackageIcon>VF_logo.png</PackageIcon>
         <PackageId>Vali-Flow.Core</PackageId>
         <Product>Vali-Flow.Core</Product>
         <Description>Vali-Flow.Core is a dependency-free .NET library providing a fluent API for building LINQ expression trees (Expression&lt;Func&lt;T, bool&gt;&gt;) for validation and filtering. Compatible with EF Core, LINQ-to-Objects, and any IQueryable provider.</Description>
@@ -471,11 +333,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="logo_vali_flow_core_.png">
+        <None Include="VF_logo.png">
             <Pack>True</Pack>
             <PackagePath></PackagePath>
         </None>
         <None Include="..\README.md" Pack="True" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Vali-Flow.Core.Generator\Vali-Flow.Core.Generator.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -21,6 +22,10 @@ public record Item(
 public class ComparableNullableTests
 {
     private static readonly DateTime BaseDate = new DateTime(2025, 1, 15);
+
+    // Helper: ValiFlow<Item> cast to IComparableExpression for non-numeric IComparable<TValue> types
+    // (DateTime, TimeSpan, string) which are not INumber<TValue>.
+    private static IComparableExpression<ValiFlow<Item>, Item> Comparable() => new ValiFlow<Item>();
 
     private static Item Make(
         int count = 5,
@@ -99,7 +104,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_DateTime_GreaterValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.CreatedAt, BaseDate.AddDays(-1))
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeTrue();
@@ -108,7 +113,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_DateTime_EqualValue_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.CreatedAt, BaseDate)
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeFalse();
@@ -117,7 +122,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_TimeSpan_GreaterValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.Duration, TimeSpan.FromMinutes(30))
             .Build();
         filter.Compile()(Make(duration: TimeSpan.FromHours(1))).Should().BeTrue();
@@ -126,7 +131,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_TimeSpan_LessValue_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.Duration, TimeSpan.FromHours(2))
             .Build();
         filter.Compile()(Make(duration: TimeSpan.FromHours(1))).Should().BeFalse();
@@ -135,7 +140,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_String_AlphabeticallyGreater_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.Name, "Banana")
             .Build();
         filter.Compile()(Make(name: "Cherry")).Should().BeTrue();
@@ -144,7 +149,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_Generic_String_AlphabeticallyLess_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan(i => i.Name, "Banana")
             .Build();
         filter.Compile()(Make(name: "Apple")).Should().BeFalse();
@@ -191,7 +196,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThanOrEqualTo_Generic_DateTime_EqualValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThanOrEqualTo(i => i.CreatedAt, BaseDate)
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeTrue();
@@ -238,7 +243,7 @@ public class ComparableNullableTests
     [Fact]
     public void LessThan_Generic_DateTime_LessValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .LessThan(i => i.CreatedAt, BaseDate.AddDays(1))
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeTrue();
@@ -350,7 +355,7 @@ public class ComparableNullableTests
     [Fact]
     public void InRange_Generic_DateTime_WithinRange_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .InRange(i => i.CreatedAt, BaseDate.AddDays(-1), BaseDate.AddDays(1))
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeTrue();
@@ -359,7 +364,7 @@ public class ComparableNullableTests
     [Fact]
     public void InRange_Generic_DateTime_OutOfRange_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .InRange(i => i.CreatedAt, BaseDate.AddDays(1), BaseDate.AddDays(5))
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeFalse();
@@ -408,15 +413,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_CrossProperty_Int_EndGreaterThanStart_ReturnsTrue()
     {
-        // ExpiresAt > CreatedAt: Count (End) > Stock is tested via int cross-property
-        // Use Count vs Discount — but Discount is nullable, so use Count and a different record
-        // Actually we test int cross-property: ExpiresAt.Day doesn't work directly.
-        // We use a helper record in-line. Let's use Count > 0 via cross-property with another field.
-        // Item has int Count and int? Discount — but cross-property needs same type.
-        // We'll test using the item where Count is the "End" and we compare to a constant via selector trick.
-        // Cross-property: Count (10) > Count (5) — we need two int properties, so we can use Count vs itself but that's trivial.
-        // The Item record has Count (int) only. Let's create an item where ExpiresAt > CreatedAt.
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan<DateTime>(i => i.ExpiresAt, i => i.CreatedAt)
             .Build();
         var item = Make(createdAt: BaseDate, expiresAt: BaseDate.AddDays(30));
@@ -426,7 +423,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_CrossProperty_Int_StartGreaterThanEnd_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan<DateTime>(i => i.ExpiresAt, i => i.CreatedAt)
             .Build();
         var item = Make(createdAt: BaseDate.AddDays(30), expiresAt: BaseDate);
@@ -436,14 +433,8 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_CrossProperty_Decimal_GreaterValue_ReturnsTrue()
     {
-        // Price > Tax.Value — but Tax is nullable. Use Price vs Price (same ref) is trivial.
-        // ExpiresAt > CreatedAt as Decimal doesn't make sense. Let's use Count (int) and stock doesn't share type.
-        // The best cross-property decimal test: Price (10m) > Price (10m) — same → false. Let's ensure it handles correctly.
-        // Actually we want a record with two decimal properties. Item has Price (decimal) and Tax (decimal?).
-        // We need decimal vs decimal non-nullable. We can test ExpiresAt.Ticks not helpful.
-        // Just test with GreaterThan<decimal> on Price vs a hardcoded via selector returning constant.
-        // The simplest approach: compare Price to itself should be false (not strictly greater).
-        var filter = new ValiFlow<Item>()
+        // Compare Price to itself — not strictly greater, so false.
+        var filter = Comparable()
             .GreaterThan<decimal>(i => i.Price, i => i.Price)
             .Build();
         filter.Compile()(Make(price: 10m)).Should().BeFalse();
@@ -452,7 +443,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThan_CrossProperty_DateTime_ExpiresAfterCreated_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan<DateTime>(i => i.ExpiresAt, i => i.CreatedAt)
             .Build();
         var item = Make(createdAt: BaseDate, expiresAt: BaseDate.AddYears(1));
@@ -462,7 +453,7 @@ public class ComparableNullableTests
     [Fact]
     public void LessThan_CrossProperty_DateTime_CreatedBeforeExpires_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .LessThan<DateTime>(i => i.CreatedAt, i => i.ExpiresAt)
             .Build();
         var item = Make(createdAt: BaseDate, expiresAt: BaseDate.AddDays(30));
@@ -472,7 +463,7 @@ public class ComparableNullableTests
     [Fact]
     public void GreaterThanOrEqualTo_CrossProperty_DateTime_SameValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThanOrEqualTo<DateTime>(i => i.CreatedAt, i => i.CreatedAt)
             .Build();
         filter.Compile()(Make(createdAt: BaseDate)).Should().BeTrue();
@@ -481,7 +472,7 @@ public class ComparableNullableTests
     [Fact]
     public void LessThanOrEqualTo_CrossProperty_DateTime_SameValue_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .LessThanOrEqualTo<DateTime>(i => i.ExpiresAt, i => i.ExpiresAt)
             .Build();
         filter.Compile()(Make()).Should().BeTrue();
@@ -490,7 +481,7 @@ public class ComparableNullableTests
     [Fact]
     public void CrossProperty_WithAnd_BothConditions_ReturnsTrue()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan<DateTime>(i => i.ExpiresAt, i => i.CreatedAt)
             .And()
             .GreaterThan(i => i.Count, 0)
@@ -502,7 +493,7 @@ public class ComparableNullableTests
     [Fact]
     public void CrossProperty_WithAnd_OneConditionFails_ReturnsFalse()
     {
-        var filter = new ValiFlow<Item>()
+        var filter = Comparable()
             .GreaterThan<DateTime>(i => i.ExpiresAt, i => i.CreatedAt)
             .And()
             .GreaterThan(i => i.Count, 10)

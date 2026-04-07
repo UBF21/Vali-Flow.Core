@@ -3,9 +3,19 @@
 All notable changes to Vali-Flow.Core are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
-
 ## [2.0.0] - 2026-04-05
+
+### Architecture
+
+- **Source generator** (`Vali-Flow.Core.Generator`): Roslyn `IIncrementalGenerator` that reads `[ForwardInterface]`-marked fields in `partial` classes and emits a sibling `.g.cs` file with one forwarding method per interface member. Traverses the full interface inheritance hierarchy and generates explicit interface implementations when two interfaces declare conflicting signatures (e.g. `EqualTo<TValue>` on both `IComparisonExpression` and `IComparableExpression` with different type constraints). Eliminates ~468 manually-maintained delegation methods from `ValiFlow<T>` and `ValiFlowQuery<T>`.
+- **`ValiFlow<T>` and `ValiFlowQuery<T>`** reduced from ~893 / ~808 lines to ~110 lines each — now thin `partial` facades; all method bodies live in their respective `*Expression` / `*ExpressionQuery` classes.
+- **9 query-specific interfaces** added (`IBooleanExpressionQuery`, `IStringExpressionQuery`, `ICollectionExpressionQuery`, `INumericExpressionQuery`, `IDateTimeExpressionQuery`, `IDateTimeOffsetExpressionQuery`, `IDateOnlyExpressionQuery`, `ITimeOnlyExpressionQuery`) — complete the interface hierarchy for the EF Core-safe variant and are required for the generator to process `ValiFlowQuery<T>`.
+- **`BaseExpression.ValidateNested` DIP fix**: extracted `protected virtual CreateNestedBuilder<TProperty>()` factory method — decouples `BaseExpression` from the concrete `ValiFlow<T>` type so `ValiFlowQuery<T>` (and any future subclass) can override which builder is instantiated for nested validation.
+
+### Infrastructure
+
+- **`Vali-Flow.Core.Analyzers`**: Roslyn diagnostic analyzer (`ValiFlowNonEfMethodAnalyzer`) that reports `VFCORE001` when a method not supported by EF Core providers is called on a `ValiFlowQuery<T>` instance inside an `IQueryable<T>` expression context.
+- **Bilingual technical documentation** added under `docs/` (Spanish + English): architecture overview, builder lifecycle, expression tree internals, EF Core compatibility guide, source generator guide, and full API reference for all expression types.
 
 ### Breaking Changes
 

@@ -188,6 +188,10 @@ public interface ICollectionExpression<out TBuilder, T>
     /// </remarks>
     TBuilder AnyItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure);
 
+    /// <summary>Validates that every element in the selected collection satisfies the given <paramref name="predicate"/> expression.</summary>
+    /// <remarks>Accepts a pre-built expression directly. In-memory only — not EF Core translatable.</remarks>
+    TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
+
     /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.
     /// Equivalent to <see cref="EachItem{TValue}"/> but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse.</summary>
     /// <remarks><b>EF Core:</b> Uses <c>Enumerable.All</c> internally. Not translatable to SQL. Use with in-memory collections only.</remarks>

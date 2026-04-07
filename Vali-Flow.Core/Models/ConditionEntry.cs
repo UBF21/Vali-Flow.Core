@@ -33,4 +33,14 @@ internal sealed record ConditionEntry<T>
         Severity = severity;
         CompiledFunc = new Lazy<Func<T, bool>>(() => condition.Compile());
     }
+
+    /// <summary>
+    /// Factory for the common case: a bare condition with no error metadata.
+    /// Avoids passing four explicit <see langword="null"/> arguments at every call site.
+    /// </summary>
+    internal static ConditionEntry<T> Create(
+        Expression<Func<T, bool>> condition,
+        bool isAnd,
+        Severity severity = Severity.Error)
+        => new(condition, isAnd, null, null, null, null, severity);
 }

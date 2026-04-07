@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -218,18 +219,21 @@ public class CrossFieldAndNullAliasTests
 {
     private record CrossEntity(int Value, int Min, int Max, DateTime Start, DateTime End, decimal Price, decimal Cap, string? Name);
 
+    private static IComparableExpression<ValiFlow<CrossEntity>, CrossEntity> AsComparable()
+        => new ValiFlow<CrossEntity>();
+
     // Cross-field: GreaterThan
     [Fact]
     public void GreaterThan_CrossField_Int_ValueGtMin_ReturnsTrue()
     {
-        var f = new ValiFlow<CrossEntity>().GreaterThan(x => x.Value, x => x.Min);
+        var f = AsComparable().GreaterThan(x => x.Value, x => x.Min);
         f.IsValid(new CrossEntity(10, 5, 20, default, default, 0, 0, null)).Should().BeTrue();
     }
 
     [Fact]
     public void GreaterThan_CrossField_Int_ValueEqMin_ReturnsFalse()
     {
-        var f = new ValiFlow<CrossEntity>().GreaterThan(x => x.Value, x => x.Min);
+        var f = AsComparable().GreaterThan(x => x.Value, x => x.Min);
         f.IsValid(new CrossEntity(5, 5, 20, default, default, 0, 0, null)).Should().BeFalse();
     }
 
@@ -238,7 +242,7 @@ public class CrossFieldAndNullAliasTests
     {
         var start = new DateTime(2025, 1, 1);
         var end = new DateTime(2025, 6, 1);
-        var f = new ValiFlow<CrossEntity>().GreaterThan(x => x.End, x => x.Start);
+        var f = AsComparable().GreaterThan(x => x.End, x => x.Start);
         f.IsValid(new CrossEntity(0, 0, 0, start, end, 0, 0, null)).Should().BeTrue();
     }
 
@@ -246,7 +250,7 @@ public class CrossFieldAndNullAliasTests
     public void GreaterThan_CrossField_DateTime_EndEqualsStart_ReturnsFalse()
     {
         var dt = new DateTime(2025, 1, 1);
-        var f = new ValiFlow<CrossEntity>().GreaterThan(x => x.End, x => x.Start);
+        var f = AsComparable().GreaterThan(x => x.End, x => x.Start);
         f.IsValid(new CrossEntity(0, 0, 0, dt, dt, 0, 0, null)).Should().BeFalse();
     }
 
@@ -254,14 +258,14 @@ public class CrossFieldAndNullAliasTests
     [Fact]
     public void GreaterThanOrEqualTo_CrossField_Int_Equal_ReturnsTrue()
     {
-        var f = new ValiFlow<CrossEntity>().GreaterThanOrEqualTo(x => x.Value, x => x.Min);
+        var f = AsComparable().GreaterThanOrEqualTo(x => x.Value, x => x.Min);
         f.IsValid(new CrossEntity(5, 5, 20, default, default, 0, 0, null)).Should().BeTrue();
     }
 
     [Fact]
     public void GreaterThanOrEqualTo_CrossField_Int_Less_ReturnsFalse()
     {
-        var f = new ValiFlow<CrossEntity>().GreaterThanOrEqualTo(x => x.Value, x => x.Min);
+        var f = AsComparable().GreaterThanOrEqualTo(x => x.Value, x => x.Min);
         f.IsValid(new CrossEntity(4, 5, 20, default, default, 0, 0, null)).Should().BeFalse();
     }
 
@@ -269,14 +273,14 @@ public class CrossFieldAndNullAliasTests
     [Fact]
     public void LessThan_CrossField_Decimal_PriceBelowCap_ReturnsTrue()
     {
-        var f = new ValiFlow<CrossEntity>().LessThan(x => x.Price, x => x.Cap);
+        var f = AsComparable().LessThan(x => x.Price, x => x.Cap);
         f.IsValid(new CrossEntity(0, 0, 0, default, default, 9m, 10m, null)).Should().BeTrue();
     }
 
     [Fact]
     public void LessThan_CrossField_Decimal_PriceEqCap_ReturnsFalse()
     {
-        var f = new ValiFlow<CrossEntity>().LessThan(x => x.Price, x => x.Cap);
+        var f = AsComparable().LessThan(x => x.Price, x => x.Cap);
         f.IsValid(new CrossEntity(0, 0, 0, default, default, 10m, 10m, null)).Should().BeFalse();
     }
 
@@ -284,14 +288,14 @@ public class CrossFieldAndNullAliasTests
     [Fact]
     public void LessThanOrEqualTo_CrossField_Int_Equal_ReturnsTrue()
     {
-        var f = new ValiFlow<CrossEntity>().LessThanOrEqualTo(x => x.Value, x => x.Max);
+        var f = AsComparable().LessThanOrEqualTo(x => x.Value, x => x.Max);
         f.IsValid(new CrossEntity(5, 0, 5, default, default, 0, 0, null)).Should().BeTrue();
     }
 
     [Fact]
     public void LessThanOrEqualTo_CrossField_Int_Greater_ReturnsFalse()
     {
-        var f = new ValiFlow<CrossEntity>().LessThanOrEqualTo(x => x.Value, x => x.Max);
+        var f = AsComparable().LessThanOrEqualTo(x => x.Value, x => x.Max);
         f.IsValid(new CrossEntity(6, 0, 5, default, default, 0, 0, null)).Should().BeFalse();
     }
 
@@ -316,14 +320,14 @@ public class CrossFieldAndNullAliasTests
     [Fact]
     public void GreaterThan_CrossField_NullLeftSelector_ThrowsArgumentNullException()
     {
-        Action act = () => new ValiFlow<CrossEntity>().GreaterThan<int>(null!, x => x.Min);
+        Action act = () => AsComparable().GreaterThan<int>(null!, x => x.Min);
         act.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
     public void GreaterThan_CrossField_NullRightSelector_ThrowsArgumentNullException()
     {
-        Action act = () => new ValiFlow<CrossEntity>().GreaterThan<int>(x => x.Value, null!);
+        Action act = () => AsComparable().GreaterThan<int>(x => x.Value, null!);
         act.Should().Throw<ArgumentNullException>();
     }
 }

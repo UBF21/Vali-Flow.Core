@@ -1,179 +1,34 @@
 using System.Linq.Expressions;
+using System.Numerics;
 
 namespace Vali_Flow.Core.Interfaces.Types;
 
 /// <summary>
 /// Defines fluent builder methods for checking the sign of numeric properties (zero, not-zero, positive, negative).
+/// Accepts any numeric type that implements <see cref="INumber{TSelf}"/> (e.g., <c>int</c>, <c>long</c>,
+/// <c>double</c>, <c>decimal</c>, <c>float</c>, <c>short</c>).
 /// </summary>
 /// <typeparam name="TBuilder">The type of the builder to enable method chaining.</typeparam>
 /// <typeparam name="T">The type of the entity being evaluated.</typeparam>
 public interface INumericSignExpression<out TBuilder, T>
 {
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, int>> selector);
+    /// <summary>Validates that the selected numeric value equals zero.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    TBuilder Zero<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected long property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, long>> selector);
+    /// <summary>Validates that the selected numeric value is not zero.</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    TBuilder NotZero<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected float property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, float>> selector);
+    /// <summary>Validates that the selected numeric value is positive (&gt; 0).</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    TBuilder Positive<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected double property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, double>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, decimal>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Zero(Expression<Func<T, short>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, int>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, long>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, float>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, double>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, decimal>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is not zero.
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder NotZero(Expression<Func<T, short>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, int>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, long>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, float>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, double>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, decimal>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is positive (greater than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Positive(Expression<Func<T, short>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, int>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, long>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, float>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, double>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, decimal>> selector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is negative (less than zero).
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder Negative(Expression<Func<T, short>> selector);
+    /// <summary>Validates that the selected numeric value is negative (&lt; 0).</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    TBuilder Negative<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>;
 }

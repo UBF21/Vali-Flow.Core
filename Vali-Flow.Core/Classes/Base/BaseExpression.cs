@@ -32,6 +32,14 @@ namespace Vali_Flow.Core.Classes.Base;
 /// <see cref="IsNotValid"/>, <see cref="Validate"/>, and <see cref="ValidateAll"/> are safe to
 /// call concurrently from multiple threads on the same instance.
 /// </remarks>
+/// <remarks>
+/// <b>Subclassing constraint:</b> The <c>new()</c> constraint on <typeparamref name="TBuilder"/> is required
+/// internally for <see cref="Clone"/>, <see cref="ForkIfFrozen"/>, and sub-group builders.
+/// This means that any subclass of <c>BaseExpression</c> must expose a public parameterless constructor.
+/// Constructor injection of services into a subclass is therefore not supported — if a fork is created
+/// from a frozen builder, the new instance is created via <c>new TBuilder()</c> without the injected services.
+/// For service-aware validation, pass services as method parameters or use a factory pattern instead.
+/// </remarks>
 public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
@@ -120,7 +128,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <inheritdoc/>
     public Expression<Func<T, bool>> BuildNegated()
     {
-        Expression<Func<T, bool>> condition = Build();
+        Expression<Func<T, bool>> condition = Volatile.Read(ref _cachedExpression) ?? Build();
         var parameter = condition.Parameters[0];
         var negatedBody = Expression.Not(condition.Body);
         return Expression.Lambda<Func<T, bool>>(negatedBody, parameter);
@@ -184,7 +192,7 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             throw new ArgumentNullException(nameof(expression));
         }
         EnsureValidCondition(expression);
-        _conditions = _conditions.Add(new ConditionEntry<T>(expression, Volatile.Read(ref _nextIsAnd) != 0, null, null, null, null, Severity.Error));
+        _conditions = _conditions.Add(ConditionEntry<T>.Create(expression, Volatile.Read(ref _nextIsAnd) != 0));
         Volatile.Write(ref _nextIsAnd, 1);
         Volatile.Write(ref _cachedFunc, null);
         Volatile.Write(ref _cachedNegatedFunc, null);
@@ -443,17 +451,10 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             return fork.ValidateNested(selector, configure);
         }
 
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(configure);
 
-        if (configure == null)
-        {
-            throw new ArgumentNullException(nameof(configure));
-        }
-
-        var nestedBuilder = new Builder.ValiFlow<TProperty>();
+        var nestedBuilder = CreateNestedBuilder<TProperty>();
         configure(nestedBuilder);
         Expression<Func<TProperty, bool>> nestedExpr = nestedBuilder.Build();
         if (nestedExpr.Body is ConstantExpression { Value: true })
@@ -570,36 +571,82 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Evaluates each annotated condition individually and collects <see cref="Models.ValidationError"/> entries
-    /// for every condition that fails.
+    /// Evaluates conditions respecting <see cref="Or()"/> grouping semantics and collects
+    /// <see cref="Models.ValidationError"/> entries for every annotated condition that fails.
     /// </summary>
     /// <remarks>
-    /// <b>Important:</b> <see cref="Validate"/> evaluates each condition with a
-    /// <see cref="WithMessage(string)"/> or <see cref="WithError(string,string)"/> annotation independently.
-    /// It does <b>not</b> respect <see cref="Or()"/> grouping semantics.
-    /// A condition that belongs to an OR-group will still be reported as an error if it
-    /// individually fails, even if another condition in the same OR-group passes and the
-    /// overall <see cref="IsValid"/> result is <see langword="true"/>.
-    /// Use <see cref="IsValid"/> when you need the full Or/And boolean logic evaluated;
-    /// use <see cref="Validate"/> when you want per-field error messages collected independently.
+    /// <para>
+    /// Conditions are grouped the same way <see cref="Build"/> groups them — a new OR-group starts
+    /// at each <see cref="Or()"/> call. A group passes when <b>all</b> its conditions pass (AND within group).
+    /// The overall validation passes when <b>any</b> group passes (OR across groups).
+    /// </para>
+    /// <para>
+    /// If the overall validation passes (at least one OR-group passes), <see cref="Validate"/> returns
+    /// an empty <see cref="ValidationResult"/> — no errors are emitted even for failing conditions in other groups.
+    /// This keeps <see cref="IsValid"/> and <see cref="Validate"/> consistent: both return "valid" for the same instance.
+    /// </para>
+    /// <para>
+    /// If the overall validation fails (every OR-group fails), errors are collected from every annotated
+    /// condition that failed across all groups.
+    /// </para>
     /// </remarks>
     public ValidationResult Validate(T instance)
     {
         Interlocked.Exchange(ref _frozen, 1);
-        var errors = new List<ValidationError>();
         var snapshot = _conditions;
-        for (int i = 0; i < snapshot.Count; i++)
-        {
-            var entry = snapshot[i];
-            if (entry.Message == null && entry.ErrorCode == null && entry.MessageFactory == null)
-                continue;
 
-            if (!entry.CompiledFunc.Value(instance))  // Lazy<T> is thread-safe (ExecutionAndPublication)
+        if (snapshot.Count == 0)
+            return ValidationResult.Ok();
+
+        // Group conditions the same way Build() does:
+        // A new group starts when entry.IsAnd == false.
+        var groups = new List<List<ConditionEntry<T>>>();
+        List<ConditionEntry<T>>? currentGroup = null;
+
+        foreach (var entry in snapshot)
+        {
+            if (!entry.IsAnd || currentGroup == null)
             {
+                currentGroup = new List<ConditionEntry<T>>();
+                groups.Add(currentGroup);
+            }
+            currentGroup.Add(entry);
+        }
+
+        // Evaluate each condition once per group
+        var groupEvals = new List<(bool Passes, List<(ConditionEntry<T> Entry, bool Passed)> Results)>(groups.Count);
+        foreach (var group in groups)
+        {
+            var results = new List<(ConditionEntry<T>, bool)>(group.Count);
+            bool groupPasses = true;
+            foreach (var entry in group)
+            {
+                bool passed = entry.CompiledFunc.Value(instance);  // Lazy<T> is thread-safe (ExecutionAndPublication)
+                if (!passed) groupPasses = false;
+                results.Add((entry, passed));
+            }
+            groupEvals.Add((groupPasses, results));
+        }
+
+        // If any OR-group passed → overall valid → no errors
+        foreach (var (passes, _) in groupEvals)
+        {
+            if (passes) return ValidationResult.Ok();
+        }
+
+        // All groups failed → collect annotated errors from every failing condition
+        var errors = new List<ValidationError>();
+        foreach (var (_, results) in groupEvals)
+        {
+            foreach (var (entry, passed) in results)
+            {
+                if (passed) continue;
+                if (entry.Message == null && entry.ErrorCode == null && entry.MessageFactory == null) continue;
                 var resolvedMessage = entry.MessageFactory?.Invoke() ?? entry.Message;
                 errors.Add(new ValidationError(resolvedMessage ?? entry.ErrorCode!, entry.ErrorCode, entry.PropertyPath, entry.Severity));
             }
         }
+
         return new ValidationResult(errors);
     }
 
@@ -608,30 +655,24 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// yields <c>(item, result)</c> pairs for every element in the sequence.
     /// </summary>
     /// <remarks>
-    /// <b>Or-grouping blind spot:</b> Because this method calls <see cref="Validate"/> for each
-    /// item, it inherits the same limitation described on <see cref="Validate"/>: each annotated
-    /// condition is evaluated individually and independently of <see cref="Or()"/> grouping.
-    /// A condition that belongs to an Or-group may still appear in the returned
-    /// <see cref="Models.ValidationResult"/> as an error even when the overall
-    /// <see cref="IsValid"/> result for that item is <see langword="true"/>.
-    /// Use <see cref="IsValid"/> alongside a separate per-item query when you need
-    /// full Or/And boolean correctness together with per-field error messages.
+    /// Delegates to <see cref="Validate(T)"/> for each element, inheriting its full Or-group semantics.
+    /// If the overall validation passes for an item (at least one OR-group passes), no errors are emitted
+    /// for that item regardless of which individual conditions failed in other groups.
     /// </remarks>
     /// <param name="instances">The sequence of instances to validate. Must not be <see langword="null"/>.</param>
     /// <returns>A lazily-evaluated sequence of <c>(T Item, ValidationResult Result)</c> tuples.</returns>
     public IEnumerable<(T Item, ValidationResult Result)> ValidateAll(IEnumerable<T> instances)
     {
-        if (instances == null)
-        {
-            throw new ArgumentNullException(nameof(instances));
-        }
-
+        ArgumentNullException.ThrowIfNull(instances);
+        // Freeze eagerly here — before the iterator is returned — so that any mutation
+        // attempt between calling ValidateAll() and iterating the result correctly forks
+        // instead of silently including new conditions in the validation.
+        Interlocked.Exchange(ref _frozen, 1);
         return ValidateAllCore(instances);
     }
 
     private IEnumerable<(T Item, ValidationResult Result)> ValidateAllCore(IEnumerable<T> instances)
     {
-        Interlocked.Exchange(ref _frozen, 1);
         foreach (var item in instances)
         {
             yield return (item, Validate(item));
@@ -659,18 +700,27 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
     /// <summary>
     /// Builds an <see cref="Expression{TDelegate}"/> that combines the current builder's conditions
-    /// with any global filters registered for <typeparamref name="T"/> via <see cref="Builder.ValiFlowGlobal"/>.
+    /// with any global filters from <see cref="Builder.ValiFlowGlobal.Default"/> (the process-wide registry).
     /// </summary>
     /// <returns>A combined <see cref="Expression{TDelegate}"/> of type <c>Func&lt;T, bool&gt;</c>.</returns>
     /// <remarks>
-    /// <b>EF Core safety:</b> Global filters registered via <c>ValiFlowGlobal.Register&lt;T&gt;</c> may contain
-    /// predicates that are not EF Core-translatable (e.g., regex, string formatting, or in-memory-only checks).
-    /// When using <c>BuildWithGlobal()</c> from a <c>ValiFlowQuery&lt;T&gt;</c> instance, verify that all
-    /// registered global filters for type <c>T</c> use only EF Core-safe expressions.
+    /// <b>EF Core safety:</b> Global filters may contain predicates that are not EF Core-translatable.
+    /// When using this from a <c>ValiFlowQuery&lt;T&gt;</c>, verify all registered global filters use only EF Core-safe expressions.
     /// </remarks>
     public Expression<Func<T, bool>> BuildWithGlobal()
+        => BuildWithGlobal(Builder.ValiFlowGlobal.Default);
+
+    /// <summary>
+    /// Builds an <see cref="Expression{TDelegate}"/> that combines the current builder's conditions
+    /// with any global filters registered in the provided <paramref name="registry"/>.
+    /// Use this overload when you need per-tenant or per-scope filter isolation via dependency injection.
+    /// </summary>
+    /// <param name="registry">The <see cref="Builder.ValiFlowGlobalRegistry"/> instance to read filters from.</param>
+    /// <returns>A combined <see cref="Expression{TDelegate}"/> of type <c>Func&lt;T, bool&gt;</c>.</returns>
+    public Expression<Func<T, bool>> BuildWithGlobal(Builder.ValiFlowGlobalRegistry registry)
     {
-        var globals = Builder.ValiFlowGlobal.GetFilters<T>();
+        ArgumentNullException.ThrowIfNull(registry);
+        var globals = registry.GetFilters<T>();
 
         // If no local conditions, build from globals only to avoid a leading `true AND ...` constant.
         if (_conditions.Count == 0 && globals.Count > 0)
@@ -758,6 +808,15 @@ public class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     {
         ValidateExpressionBody(condition.Body);
     }
+
+    /// <summary>
+    /// Factory used by <see cref="ValidateNested{TProperty}"/> to create the inner builder.
+    /// Override in subclasses (e.g. <c>ValiFlowQuery&lt;T&gt;</c>) to return the correct
+    /// concrete builder type so that nested validation stays EF-safe.
+    /// </summary>
+    protected virtual Builder.ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
+        where TProperty : class
+        => new Builder.ValiFlow<TProperty>();
 
     /// <summary>
     /// Shared helper for ValidateNested implementations. Given a selector and an already-built

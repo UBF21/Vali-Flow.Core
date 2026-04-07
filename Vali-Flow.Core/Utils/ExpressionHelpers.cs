@@ -6,7 +6,7 @@ namespace Vali_Flow.Core.Utils;
 internal static class ExpressionHelpers
 {
     /// <summary>
-    /// Replaces all occurrences of <paramref name="old"/> with <paramref name="new"/>
+    /// Replaces all occurrences of a source parameter with a replacement expression
     /// in an expression tree.
     /// </summary>
     internal sealed class ParameterReplacer : ExpressionVisitor
@@ -28,7 +28,7 @@ internal static class ExpressionHelpers
     /// Produces a structurally independent (reference-distinct) copy of any expression subtree
     /// so that the same expression body can appear in two positions in a compound expression tree
     /// without sharing nodes (e.g., null-check AND predicate call on the same selector body).
-    /// Handles MemberExpression, UnaryExpression, BinaryExpression, and MethodCallExpression.
+    /// Handles all common node types: Member, Unary, Binary, MethodCall, Index, Conditional, and New.
     /// </summary>
     internal sealed class ForceCloneVisitor : ExpressionVisitor
     {
@@ -59,6 +59,31 @@ internal static class ExpressionHelpers
             var obj = node.Object != null ? Visit(node.Object) : null;
             var args = node.Arguments.Select(a => Visit(a)!);
             return Expression.Call(obj, node.Method, args);
+        }
+
+        protected override Expression VisitIndex(IndexExpression node)
+        {
+            var obj = Visit(node.Object)!;
+            var args = node.Arguments.Select(a => Visit(a)!);
+            return node.Indexer != null
+                ? Expression.Property(obj, node.Indexer, args)
+                : Expression.ArrayAccess(obj, args);
+        }
+
+        protected override Expression VisitConditional(ConditionalExpression node)
+        {
+            var test = Visit(node.Test)!;
+            var ifTrue = Visit(node.IfTrue)!;
+            var ifFalse = Visit(node.IfFalse)!;
+            return Expression.Condition(test, ifTrue, ifFalse, node.Type);
+        }
+
+        protected override Expression VisitNew(NewExpression node)
+        {
+            var args = node.Arguments.Select(a => Visit(a)!);
+            return node.Members != null
+                ? Expression.New(node.Constructor!, args, node.Members)
+                : Expression.New(node.Constructor!, args);
         }
     }
 }

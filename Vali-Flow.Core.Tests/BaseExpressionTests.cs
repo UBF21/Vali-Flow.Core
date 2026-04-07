@@ -1073,10 +1073,10 @@ public class ValidateVsIsValidTests
 {
     private record VVEntity(int Age, bool IsActive);
 
-    // Validate() evaluates each annotated condition independently — Or-grouping semantics are NOT respected.
-    // A condition in an Or-group may be reported as failed even when IsValid() returns true.
+    // Validate() respects Or-grouping semantics — consistent with IsValid().
+    // If any OR-group passes, no errors are emitted (overall is valid).
     [Fact]
-    public void Validate_OrGroupedAnnotatedCondition_ReportsErrorEvenWhenIsValidIsTrue()
+    public void Validate_OrGroupedCondition_WhenOneGroupPasses_ReturnsNoErrors()
     {
         var builder = new ValiFlow<VVEntity>()
             .GreaterThan(x => x.Age, 100).WithMessage("Age > 100")
@@ -1085,13 +1085,32 @@ public class ValidateVsIsValidTests
 
         var entity = new VVEntity(Age: 5, IsActive: true);
 
-        // IsValid evaluates the full boolean expression (OR logic) → true
+        // IsValid uses OR logic → true (second group passes)
         builder.IsValid(entity).Should().BeTrue();
 
-        // Validate evaluates each annotated condition independently → the first condition fails
+        // Validate is now consistent: if IsValid is true, Validate returns no errors
         var result = builder.Validate(entity);
-        result.Errors.Should().NotBeEmpty();
+        result.IsValid.Should().BeTrue();
+        result.Errors.Should().BeEmpty();
+    }
+
+    // When ALL OR-groups fail, Validate() reports errors from every failing annotated condition.
+    [Fact]
+    public void Validate_OrGroupedCondition_WhenAllGroupsFail_ReportsAllErrors()
+    {
+        var builder = new ValiFlow<VVEntity>()
+            .GreaterThan(x => x.Age, 100).WithMessage("Age > 100")
+            .Or()
+            .IsTrue(x => x.IsActive).WithMessage("Must be active");
+
+        var entity = new VVEntity(Age: 5, IsActive: false); // both groups fail
+
+        builder.IsValid(entity).Should().BeFalse();
+
+        var result = builder.Validate(entity);
+        result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.Message == "Age > 100");
+        result.Errors.Should().Contain(e => e.Message == "Must be active");
     }
 }
 

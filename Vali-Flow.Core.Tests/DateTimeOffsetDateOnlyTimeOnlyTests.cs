@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -1109,7 +1110,9 @@ public class DateTimeOffsetDateOnlyTimeOnlyTests
     [Fact]
     public void Explain_SingleGreaterThanCondition_ContainsGreaterThanSymbol()
     {
-        var builder = new ValiFlow<Event>().GreaterThan(e => e.StartTime, new TimeOnly(9, 0));
+        // TimeOnly is IComparable<TimeOnly> but not INumber<TimeOnly> — use IComparableExpression
+        var builder = ((IComparableExpression<ValiFlow<Event>, Event>)new ValiFlow<Event>())
+            .GreaterThan(e => e.StartTime, new TimeOnly(9, 0));
         var explanation = builder.Explain();
 
         explanation.Should().Contain(">");

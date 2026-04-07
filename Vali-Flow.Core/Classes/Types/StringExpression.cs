@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using System.Text.RegularExpressions;
 using System.Threading;
 using Vali_Flow.Core.Classes.Base;
@@ -52,7 +53,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// For high-cardinality pattern sets, pre-compile a <see cref="Regex"/> and supply a raw predicate via
     /// <c>Add(selector, predicate)</c> instead.
     /// <para>
-    /// <b>Thread safety:</b> The cap is enforced via <see cref="System.Threading.Interlocked.Increment"/>
+    /// <b>Thread safety:</b> The cap is enforced via <see cref="System.Threading.Interlocked.Increment(ref int)"/>
     /// which is called only when a new entry is successfully added via <c>TryAdd</c>, ensuring the counter
     /// never overcounts under concurrent access.
     /// The cache cap is a soft limit and is not atomically enforced under high concurrency — the cache may temporarily exceed the cap by a small number of entries.
@@ -261,7 +262,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// <remarks>
     /// <b>EF Core:</b> JSON validation via <c>JsonDocument.Parse</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
-    /// Uses <see cref="System.Text.Json.JsonDocument.Parse"/> which accepts any valid JSON value,
+    /// Uses <see cref="System.Text.Json.JsonDocument.Parse(string, System.Text.Json.JsonDocumentOptions)"/> which accepts any valid JSON value,
     /// including bare primitives such as <c>42</c>, <c>true</c>, and <c>null</c>.
     /// If only JSON objects (<c>{...}</c>) or arrays (<c>[...]</c>) should be accepted,
     /// add an additional <c>IsTrue(p =&gt; p.Name.TrimStart()[0] == '{' || p.Name.TrimStart()[0] == '[')</c> condition.

@@ -12,6 +12,11 @@ public interface IExpressionAnnotator<out TBuilder>
     /// <summary>Attaches a human-readable message to the most recently added condition.</summary>
     TBuilder WithMessage(string message);
 
+    /// <summary>Attaches a lazily-evaluated message factory to the most recently added condition.
+    /// The factory is called only when the error message is actually retrieved, enabling deferred
+    /// localization (e.g., <c>() =&gt; localizer["Validation.NameRequired"]</c>).</summary>
+    TBuilder WithMessage(Func<string> messageFactory);
+
     /// <summary>Attaches an error code and message to the most recently added condition.</summary>
     TBuilder WithError(string errorCode, string message);
 

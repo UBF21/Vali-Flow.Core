@@ -151,20 +151,20 @@ public class OrStateMachineTests
             .Or()
             .Add(p => p.Name != null).WithError("E02", "Name required");
 
-        // Age=10, Name=null → both conditions fail individually → both errors
+        // Age=10, Name=null → both OR-groups fail → both errors reported
         var result1 = builder.Validate(P(age: 10, name: null));
         result1.Errors.Should().Contain(e => e.ErrorCode == "E01");
         result1.Errors.Should().Contain(e => e.ErrorCode == "E02");
 
-        // Age=20, Name=null → Age condition passes, Name fails → only E02
+        // Age=20, Name=null → Group 1 (Age > 18) passes → overall valid → no errors
         var result2 = builder.Validate(P(age: 20, name: null));
-        result2.Errors.Should().NotContain(e => e.ErrorCode == "E01");
-        result2.Errors.Should().Contain(e => e.ErrorCode == "E02");
+        result2.IsValid.Should().BeTrue();
+        result2.Errors.Should().BeEmpty();
 
-        // Age=10, Name="X" → Age fails, Name passes → only E01
+        // Age=10, Name="X" → Group 2 (Name != null) passes → overall valid → no errors
         var result3 = builder.Validate(P(age: 10, name: "X"));
-        result3.Errors.Should().Contain(e => e.ErrorCode == "E01");
-        result3.Errors.Should().NotContain(e => e.ErrorCode == "E02");
+        result3.IsValid.Should().BeTrue();
+        result3.Errors.Should().BeEmpty();
     }
 
     // ── Test 9 ───────────────────────────────────────────────────────────────

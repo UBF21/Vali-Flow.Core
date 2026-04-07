@@ -1,12 +1,19 @@
 namespace Vali_Flow.Core.Models;
+#pragma warning disable CS1591 // Missing XML comment — documented on implementation or in API reference
 
+/// <summary>Represents a single validation failure with an optional error code, property path, and severity.</summary>
 public sealed class ValidationError
 {
+    /// <summary>An optional machine-readable error code (e.g. <c>"ERR_REQUIRED"</c>).</summary>
     public string? ErrorCode { get; }
+    /// <summary>The human-readable validation message.</summary>
     public string Message { get; }
+    /// <summary>The property path that triggered this error, if provided.</summary>
     public string? PropertyPath { get; }
+    /// <summary>The severity level of this error.</summary>
     public Severity Severity { get; }
 
+    /// <summary>Initializes a new <see cref="ValidationError"/>.</summary>
     public ValidationError(
         string message,
         string? errorCode = null,

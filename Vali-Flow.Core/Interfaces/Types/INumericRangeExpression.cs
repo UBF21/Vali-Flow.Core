@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Numerics;
 
 namespace Vali_Flow.Core.Interfaces.Types;
 
@@ -9,141 +10,33 @@ namespace Vali_Flow.Core.Interfaces.Types;
 /// <typeparam name="T">The type of the entity being evaluated.</typeparam>
 public interface INumericRangeExpression<out TBuilder, T>
 {
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
+    /// <summary>Validates that the selected numeric value is within [<paramref name="min"/>, <paramref name="max"/>] (inclusive).</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
     /// <param name="min">The minimum value of the range (inclusive).</param>
     /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, int>> selector, int min, int max);
+    TBuilder InRange<TValue>(Expression<Func<T, TValue>> selector, TValue min, TValue max) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected long property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="min">The minimum value of the range (inclusive).</param>
-    /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, long>> selector, long min, long max);
+    /// <summary>Validates that the selected numeric value is within the range defined by <paramref name="minSelector"/> and <paramref name="maxSelector"/> (inclusive).</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    /// <param name="minSelector">An expression selecting the property providing the minimum value.</param>
+    /// <param name="maxSelector">An expression selecting the property providing the maximum value.</param>
+    TBuilder InRange<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> minSelector,
+        Expression<Func<T, TValue>> maxSelector) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected float property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="min">The minimum value of the range (inclusive).</param>
-    /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, float>> selector, float min, float max);
+    /// <summary>Validates that the selected numeric value is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
+    /// <typeparam name="TValue">Any numeric type implementing <see cref="INumber{TSelf}"/>.</typeparam>
+    /// <param name="selector">An expression selecting the numeric property to evaluate.</param>
+    /// <param name="min">The exclusive lower bound.</param>
+    /// <param name="max">The exclusive upper bound.</param>
+    TBuilder IsBetweenExclusive<TValue>(Expression<Func<T, TValue>> selector, TValue min, TValue max) where TValue : INumber<TValue>;
 
-    /// <summary>
-    /// Adds a condition to check if the selected double property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="min">The minimum value of the range (inclusive).</param>
-    /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, double>> selector, double min, double max);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="min">The minimum value of the range (inclusive).</param>
-    /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, decimal>> selector, decimal min, decimal max);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is within the specified range (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="min">The minimum value of the range (inclusive).</param>
-    /// <param name="max">The maximum value of the range (inclusive).</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, short>> selector, short min, short max);
-
-    /// <summary>
-    /// Adds a condition to check if the selected integer property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the integer property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, int>> selector, Expression<Func<T, int>> minSelector,
-        Expression<Func<T, int>> maxSelector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected long property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the long property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, long>> selector, Expression<Func<T, long>> minSelector,
-        Expression<Func<T, long>> maxSelector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected float property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the float property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, float>> selector, Expression<Func<T, float>> minSelector,
-        Expression<Func<T, float>> maxSelector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected double property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the double property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, double>> selector, Expression<Func<T, double>> minSelector,
-        Expression<Func<T, double>> maxSelector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected decimal property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the decimal property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, decimal>> selector, Expression<Func<T, decimal>> minSelector,
-        Expression<Func<T, decimal>> maxSelector);
-
-    /// <summary>
-    /// Adds a condition to check if the selected short property is within the range defined by the minimum and maximum values of other properties (inclusive).
-    /// </summary>
-    /// <param name="selector">An expression to select the short property to evaluate.</param>
-    /// <param name="minSelector">An expression to select the property providing the minimum value of the range.</param>
-    /// <param name="maxSelector">An expression to select the property providing the maximum value of the range.</param>
-    /// <returns>The builder instance to enable method chaining.</returns>
-    TBuilder InRange(Expression<Func<T, short>> selector, Expression<Func<T, short>> minSelector,
-        Expression<Func<T, short>> maxSelector);
-
-    /// <summary>Validates that the selected integer is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, int>> selector, int min, int max);
-
-    /// <summary>Validates that the selected long is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, long>> selector, long min, long max);
-
-    /// <summary>Validates that the selected float is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, float>> selector, float min, float max);
-
-    /// <summary>Validates that the selected double is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, double>> selector, double min, double max);
-
-    /// <summary>Validates that the selected decimal is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, decimal>> selector, decimal min, decimal max);
-
-    /// <summary>Validates that the selected short is strictly between <paramref name="min"/> and <paramref name="max"/> (both exclusive).</summary>
-    TBuilder IsBetweenExclusive(Expression<Func<T, short>> selector, short min, short max);
-
-    /// <summary>Validates that the selected double value is within <paramref name="tolerance"/> of <paramref name="value"/> (i.e. |val - value| ≤ tolerance).</summary>
-    TBuilder IsCloseTo(Expression<Func<T, double>> selector, double value, double tolerance);
-
-    /// <summary>Validates that the selected float value is within <paramref name="tolerance"/> of <paramref name="value"/> (i.e. |val - value| ≤ tolerance).</summary>
-    TBuilder IsCloseTo(Expression<Func<T, float>> selector, float value, float tolerance);
+    /// <summary>Validates that the selected floating-point value is within <paramref name="tolerance"/> of <paramref name="value"/> (i.e. |val - value| ≤ tolerance).</summary>
+    /// <remarks>Not EF Core translatable — uses <c>IFloatingPointIeee754&lt;TValue&gt;.Abs</c> which cannot be translated to SQL.</remarks>
+    /// <typeparam name="TValue">Any IEEE 754 floating-point type (e.g. <c>double</c>, <c>float</c>).</typeparam>
+    /// <param name="selector">An expression selecting the floating-point property to evaluate.</param>
+    /// <param name="value">The target value.</param>
+    /// <param name="tolerance">The maximum allowed deviation from <paramref name="value"/>.</param>
+    TBuilder IsCloseTo<TValue>(Expression<Func<T, TValue>> selector, TValue value, TValue tolerance) where TValue : IFloatingPointIeee754<TValue>;
 }
