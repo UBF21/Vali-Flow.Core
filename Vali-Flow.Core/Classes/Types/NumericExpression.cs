@@ -53,64 +53,54 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
 
     // ── Scalar comparisons (INumber<TValue>) ───────────────────────────────────
 
+    private static Expression<Func<TValue, bool>> BuildScalarComparison<TValue>(TValue value, ExpressionType type)
+        where TValue : INumber<TValue>
+    {
+        var p = Expression.Parameter(typeof(TValue), "val");
+        return Expression.Lambda<Func<TValue, bool>>(
+            Expression.MakeBinary(type, p, Expression.Constant(value, typeof(TValue))), p);
+    }
+
     public TBuilder GreaterThan<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(value, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.GreaterThan(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(value, ExpressionType.GreaterThan));
     }
 
     public TBuilder GreaterThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(value, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.GreaterThanOrEqual(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(value, ExpressionType.GreaterThanOrEqual));
     }
 
     public TBuilder LessThan<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(value, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.LessThan(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(value, ExpressionType.LessThan));
     }
 
     public TBuilder LessThanOrEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(value, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.LessThanOrEqual(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(value, ExpressionType.LessThanOrEqual));
     }
 
     public TBuilder MinValue<TValue>(Expression<Func<T, TValue>> selector, TValue minValue)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(minValue, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.GreaterThanOrEqual(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(minValue, ExpressionType.GreaterThanOrEqual));
     }
 
     public TBuilder MaxValue<TValue>(Expression<Func<T, TValue>> selector, TValue maxValue)
         where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var constant = Expression.Constant(maxValue, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.LessThanOrEqual(p, constant), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildScalarComparison(maxValue, ExpressionType.LessThanOrEqual));
     }
 
     // ── Range (INumber<TValue>) ────────────────────────────────────────────────

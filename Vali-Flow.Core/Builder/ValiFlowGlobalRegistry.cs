@@ -146,10 +146,7 @@ public sealed class ValiFlowGlobalRegistry
         }
 
         IReadOnlyList<Expression<Func<T, bool>>> built = result.AsReadOnly();
-        lock (_lock)
-        {
-            _filtersCache.TryAdd(typeof(T), built);
-        }
+        _filtersCache.TryAdd(typeof(T), built);
         return built;
     }
 }
