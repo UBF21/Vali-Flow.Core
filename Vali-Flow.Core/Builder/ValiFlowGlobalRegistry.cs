@@ -109,10 +109,10 @@ public sealed class ValiFlowGlobalRegistry
     /// before <see cref="GetFilters{T}"/> is called concurrently from multiple threads.
     /// </remarks>
     public IReadOnlyList<Expression<Func<T, bool>>> GetFilters<T>()
-    {
-        if (_filtersCache.TryGetValue(typeof(T), out var cached))
-            return (IReadOnlyList<Expression<Func<T, bool>>>)cached;
+        => (IReadOnlyList<Expression<Func<T, bool>>>)_filtersCache.GetOrAdd(typeof(T), _ => BuildFilters<T>());
 
+    private IReadOnlyList<Expression<Func<T, bool>>> BuildFilters<T>()
+    {
         List<LambdaExpression>? exactSnapshot = null;
         List<(Type Iface, List<LambdaExpression> Filters)>? ifaceSnapshot = null;
 
@@ -148,8 +148,6 @@ public sealed class ValiFlowGlobalRegistry
             }
         }
 
-        IReadOnlyList<Expression<Func<T, bool>>> built = result.AsReadOnly();
-        _filtersCache.TryAdd(typeof(T), built);
-        return built;
+        return result.AsReadOnly();
     }
 }

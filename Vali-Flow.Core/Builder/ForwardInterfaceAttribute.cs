@@ -2,13 +2,14 @@ namespace Vali_Flow.Core.Builder;
 
 /// <summary>
 /// Marker attribute indicating that the decorated field participates in interface forwarding.
-/// Used by the Vali-Flow.Core.Generator Roslyn source generator to emit one-line delegation
-/// wrappers in <see cref="ValiFlow{T}"/> and <see cref="ValiFlowQuery{T}"/>.
+/// The <c>Vali-Flow.Core.Generator</c> Roslyn incremental source generator reads this attribute
+/// and emits a sibling <c>*.Forwarding.g.cs</c> partial file with one public delegation method
+/// per interface member (traversing the full interface inheritance hierarchy).
 /// </summary>
 /// <remarks>
-/// Until the source generator is shipped as part of the package, forwarding is implemented
-/// manually in the builder classes. This attribute serves as documentation of intent and
-/// will activate the generator in a future release.
+/// The generator is active: it is referenced via <c>OutputItemType="Analyzer"</c> in the
+/// library's <c>.csproj</c>. Any field decorated with this attribute in a <c>partial</c> class
+/// will have its forwarding methods generated at build time — no manual wrappers needed.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Field)]
 internal sealed class ForwardInterfaceAttribute : Attribute { }
