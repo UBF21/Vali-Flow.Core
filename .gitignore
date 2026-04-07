@@ -401,3 +401,21 @@ FodyWeavers.xsd
 CLAUDE.md
 .claudeignore
 .claude/
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.nupkg
+*.snupkg
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+.dotnet/
+
+# Rider / JetBrains
+.idea/
+*.DotSettings.user
+
+# Visual Studio
+.vs/
