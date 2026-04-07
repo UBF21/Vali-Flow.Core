@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 #pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using System.Text.RegularExpressions;
-using System.Threading;
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.Types;
 using Vali_Flow.Core.RegularExpressions;
@@ -14,7 +13,6 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, IStringExpression<TBuilder, T>, new()
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _regexCache = new();
-    private static int _regexCacheCount = 0;
     private const int RegexCacheMaxEntries = 1000;
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(10);
 
@@ -53,10 +51,8 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     /// For high-cardinality pattern sets, pre-compile a <see cref="Regex"/> and supply a raw predicate via
     /// <c>Add(selector, predicate)</c> instead.
     /// <para>
-    /// <b>Thread safety:</b> The cap is enforced via <see cref="System.Threading.Interlocked.Increment(ref int)"/>
-    /// which is called only when a new entry is successfully added via <c>TryAdd</c>, ensuring the counter
-    /// never overcounts under concurrent access.
-    /// The cache cap is a soft limit and is not atomically enforced under high concurrency — the cache may temporarily exceed the cap by a small number of entries.
+    /// <b>Thread safety:</b> The cap check uses <c>ConcurrentDictionary.Count</c> and is a soft limit —
+    /// under high concurrency the cache may temporarily exceed the cap by a small number of entries.
     /// </para>
     /// <b>EF Core:</b> <c>Regex.IsMatch</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
@@ -77,14 +73,13 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         if (_regexCache.TryGetValue(pattern, out var existing))
             return existing;
 
-        if (Volatile.Read(ref _regexCacheCount) >= RegexCacheMaxEntries)
+        if (_regexCache.Count >= RegexCacheMaxEntries)
             throw new InvalidOperationException(
                 $"RegexMatch cache is full ({RegexCacheMaxEntries} patterns). " +
                 "Avoid using RegexMatch with unbounded dynamic patterns.");
 
         var newRegex = new Regex(pattern, RegexOptions.Compiled, RegexTimeout);
-        if (_regexCache.TryAdd(pattern, newRegex))
-            Interlocked.Increment(ref _regexCacheCount);
+        _regexCache.TryAdd(pattern, newRegex);
 
         // If TryAdd failed, another thread beat us — return what's now in the cache
         return _regexCache.TryGetValue(pattern, out var added) ? added : newRegex;

@@ -173,6 +173,13 @@ public interface ICollectionExpression<out TBuilder, T>
     /// <c>IQueryable</c>, the collection will be evaluated client-side (in memory) rather than
     /// translated to SQL. Use this method only with in-memory collections or when the collection
     /// is already loaded as a navigation property.
+    /// <para>
+    /// The <paramref name="configure"/> parameter intentionally accepts the concrete
+    /// <see cref="ValiFlow{TValue}"/> type rather than an interface. This is a deliberate
+    /// v2.0 design decision: nested predicates are not EF Core–translatable, so this method
+    /// is only available on <see cref="ValiFlow{T}"/>, not on <see cref="ValiFlowQuery{T}"/>.
+    /// A fully abstract nested-builder API is planned for v3.0.
+    /// </para>
     /// </remarks>
     TBuilder EachItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure);
 
@@ -185,16 +192,28 @@ public interface ICollectionExpression<out TBuilder, T>
     /// <c>IQueryable</c>, the collection will be evaluated client-side (in memory) rather than
     /// translated to SQL. Use this method only with in-memory collections or when the collection
     /// is already loaded as a navigation property.
+    /// <para>
+    /// The <paramref name="configure"/> parameter intentionally accepts the concrete
+    /// <see cref="ValiFlow{TValue}"/> type rather than an interface. This is a deliberate
+    /// v2.0 design decision: nested predicates are not EF Core–translatable, so this method
+    /// is only available on <see cref="ValiFlow{T}"/>, not on <see cref="ValiFlowQuery{T}"/>.
+    /// A fully abstract nested-builder API is planned for v3.0.
+    /// </para>
     /// </remarks>
     TBuilder AnyItem<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Action<ValiFlow<TValue>> configure);
 
-    /// <summary>Validates that every element in the selected collection satisfies the given <paramref name="predicate"/> expression.</summary>
-    /// <remarks>Accepts a pre-built expression directly. In-memory only — not EF Core translatable.</remarks>
-    TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, Expression<Func<TValue, bool>> predicate);
-
     /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.
     /// Equivalent to <see cref="EachItem{TValue}"/> but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse.</summary>
-    /// <remarks><b>EF Core:</b> Uses <c>Enumerable.All</c> internally. Not translatable to SQL. Use with in-memory collections only.</remarks>
+    /// <remarks>
+    /// <b>EF Core:</b> Uses <c>Enumerable.All</c> internally. Not translatable to SQL. Use with in-memory collections only.
+    /// <para>
+    /// The <paramref name="filter"/> parameter intentionally accepts the concrete
+    /// <see cref="ValiFlow{TValue}"/> type rather than an interface. This is a deliberate
+    /// v2.0 design decision: nested predicates are not EF Core–translatable, so this method
+    /// is only available on <see cref="ValiFlow{T}"/>, not on <see cref="ValiFlowQuery{T}"/>.
+    /// A fully abstract nested-builder API is planned for v3.0.
+    /// </para>
+    /// </remarks>
     TBuilder AllMatch<TValue>(Expression<Func<T, IEnumerable<TValue>>> selector, ValiFlow<TValue> filter);
 
 }

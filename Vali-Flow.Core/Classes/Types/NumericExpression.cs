@@ -249,14 +249,9 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
     {
         ArgumentNullException.ThrowIfNull(selector);
         var p = Expression.Parameter(typeof(TValue?), "val");
-        var hasValueProp = typeof(TValue?).GetProperty("HasValue")!;
         var valueProp = typeof(TValue?).GetProperty("Value")!;
-        var constant = Expression.Constant(value, typeof(TValue));
-        var hasValue = Expression.Property(p, hasValueProp);
-        var gt = Expression.GreaterThan(Expression.Property(p, valueProp), constant);
-        var body = Expression.AndAlso(hasValue, gt);
-        var predicate = Expression.Lambda<Func<TValue?, bool>>(body, p);
-        return _builder.Add(selector, predicate);
+        var gt = Expression.GreaterThan(Expression.Property(p, valueProp), Expression.Constant(value, typeof(TValue)));
+        return _builder.Add(selector, BuildNullableScalarPredicate<TValue>(gt, p));
     }
 
     public TBuilder LessThan<TValue>(Expression<Func<T, TValue?>> selector, TValue value)
@@ -264,14 +259,9 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
     {
         ArgumentNullException.ThrowIfNull(selector);
         var p = Expression.Parameter(typeof(TValue?), "val");
-        var hasValueProp = typeof(TValue?).GetProperty("HasValue")!;
         var valueProp = typeof(TValue?).GetProperty("Value")!;
-        var constant = Expression.Constant(value, typeof(TValue));
-        var hasValue = Expression.Property(p, hasValueProp);
-        var lt = Expression.LessThan(Expression.Property(p, valueProp), constant);
-        var body = Expression.AndAlso(hasValue, lt);
-        var predicate = Expression.Lambda<Func<TValue?, bool>>(body, p);
-        return _builder.Add(selector, predicate);
+        var lt = Expression.LessThan(Expression.Property(p, valueProp), Expression.Constant(value, typeof(TValue)));
+        return _builder.Add(selector, BuildNullableScalarPredicate<TValue>(lt, p));
     }
 
     public TBuilder InRange<TValue>(Expression<Func<T, TValue?>> selector, TValue min, TValue max)
@@ -281,17 +271,23 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
         if (TValue.CreateChecked(max).CompareTo(TValue.CreateChecked(min)) < 0)
             throw new ArgumentOutOfRangeException(nameof(max), "max must be >= min.");
         var p = Expression.Parameter(typeof(TValue?), "val");
-        var hasValueProp = typeof(TValue?).GetProperty("HasValue")!;
         var valueProp = typeof(TValue?).GetProperty("Value")!;
-        var minConst = Expression.Constant(min, typeof(TValue));
-        var maxConst = Expression.Constant(max, typeof(TValue));
-        var hasValue = Expression.Property(p, hasValueProp);
         var innerVal = Expression.Property(p, valueProp);
-        var gte = Expression.GreaterThanOrEqual(innerVal, minConst);
-        var lte = Expression.LessThanOrEqual(innerVal, maxConst);
-        var body = Expression.AndAlso(hasValue, Expression.AndAlso(gte, lte));
-        var predicate = Expression.Lambda<Func<TValue?, bool>>(body, p);
-        return _builder.Add(selector, predicate);
+        var rangeBody = Expression.AndAlso(
+            Expression.GreaterThanOrEqual(innerVal, Expression.Constant(min, typeof(TValue))),
+            Expression.LessThanOrEqual(innerVal, Expression.Constant(max, typeof(TValue))));
+        return _builder.Add(selector, BuildNullableScalarPredicate<TValue>(rangeBody, p));
+    }
+
+    private static Expression<Func<TValue?, bool>> BuildNullableScalarPredicate<TValue>(
+        BinaryExpression innerBody,
+        ParameterExpression param)
+        where TValue : struct
+    {
+        var hasValueProp = typeof(TValue?).GetProperty("HasValue")!;
+        var hasValue = Expression.Property(param, hasValueProp);
+        return Expression.Lambda<Func<TValue?, bool>>(
+            Expression.AndAlso(hasValue, innerBody), param);
     }
 
     // ── IComparableExpression (generic, IComparable<TValue>) ──────────────────

@@ -233,22 +233,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         return _builder.Add(selector, predicate);
     }
 
-    /// <summary>Validates that every element in the selected collection satisfies the given <paramref name="predicate"/> expression.</summary>
-    /// <remarks>
-    /// Accepts a pre-built expression directly, decoupling this method from the <see cref="ValiFlow{TValue}"/> concrete type.
-    /// In-memory only — not EF Core translatable.
-    /// </remarks>
-    public TBuilder AllMatch<TValue>(
-        Expression<Func<T, IEnumerable<TValue>>> selector,
-        Expression<Func<TValue, bool>> predicate)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        ArgumentNullException.ThrowIfNull(predicate);
-        var allMethod = _enumerableAllMethod.MakeGenericMethod(typeof(TValue));
-        return _builder.Add(BuildNullSafeCollectionPredicate(selector, allMethod, predicate));
-    }
-
-    /// <summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.</summary>
+    ///<summary>Validates that every element in the selected collection satisfies the given pre-built <paramref name="filter"/>.</summary>
     /// <remarks>
     /// Equivalent to <see cref="EachItem{TValue}(Expression{Func{T,IEnumerable{TValue}}},Action{ValiFlow{TValue}})"/>
     /// but accepts a pre-built <see cref="ValiFlow{TValue}"/> for reuse across multiple builders.

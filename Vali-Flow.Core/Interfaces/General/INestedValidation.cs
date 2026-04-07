@@ -19,7 +19,16 @@ public interface INestedValidation<out TBuilder, T>
     /// <param name="selector">Selects the navigation property from <typeparamref name="T"/>.</param>
     /// <param name="configure">Configures the sub-builder for <typeparamref name="TProperty"/>.</param>
     /// <returns>The builder for fluent chaining.</returns>
-    /// <remarks>Not EF Core translatable — use in-memory validation only.</remarks>
+    /// <remarks>
+    /// Not EF Core translatable — use in-memory validation only.
+    /// <para>
+    /// The <paramref name="configure"/> parameter intentionally accepts the concrete
+    /// <see cref="ValiFlow{TProperty}"/> type rather than an interface. This is a deliberate
+    /// v2.0 design decision: nested predicates are not EF Core–translatable, so this method
+    /// is only available on <see cref="ValiFlow{T}"/>, not on <see cref="ValiFlowQuery{T}"/>.
+    /// A fully abstract nested-builder API is planned for v3.0.
+    /// </para>
+    /// </remarks>
     TBuilder ValidateNested<TProperty>(
         Expression<Func<T, TProperty>> selector,
         Action<ValiFlow<TProperty>> configure)

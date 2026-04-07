@@ -85,5 +85,12 @@ internal static class ExpressionHelpers
                 ? Expression.New(node.Constructor!, args, node.Members)
                 : Expression.New(node.Constructor!, args);
         }
+
+        protected override Expression VisitLambda<TDelegate>(Expression<TDelegate> node)
+        {
+            var body = Visit(node.Body)!;
+            var parameters = node.Parameters.Select(p => (ParameterExpression)Visit(p)!).ToArray();
+            return Expression.Lambda<TDelegate>(body, parameters);
+        }
     }
 }
