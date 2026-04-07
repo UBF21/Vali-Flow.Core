@@ -184,14 +184,10 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         ArgumentNullException.ThrowIfNull(predicate);
 
         var anyMethod = _enumerableAnyMethod.MakeGenericMethod(typeof(TValue));
-
-        var selectorBody = selector.Body;
-        var clonedForNull = new ForceCloneVisitor().Visit(selectorBody)!;
-        var clonedForCall = new ForceCloneVisitor().Visit(selectorBody)!;
-        var nullCheck = Expression.Equal(clonedForNull, Expression.Constant(null, typeof(IEnumerable<TValue>)));
-        var noneCall = Expression.Not(Expression.Call(anyMethod, clonedForCall, predicate));
-        var body = Expression.OrElse(nullCheck, noneCall);
-        return _builder.Add(Expression.Lambda<Func<T, bool>>(body, selector.Parameters[0]));
+        var cloner = new ForceCloneVisitor();
+        var nullCheck = Expression.Equal(cloner.Visit(selector.Body)!, Expression.Constant(null, typeof(IEnumerable<TValue>)));
+        var noneCall = Expression.Not(Expression.Call(anyMethod, cloner.Visit(selector.Body)!, predicate));
+        return _builder.Add(Expression.Lambda<Func<T, bool>>(Expression.OrElse(nullCheck, noneCall), selector.Parameters[0]));
     }
 
     /// <summary>Validates that the selected collection is not null and contains no elements.</summary>

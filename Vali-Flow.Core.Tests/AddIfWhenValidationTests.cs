@@ -363,15 +363,13 @@ public class AddIfWhenValidationTests
 
     // Test 24
     [Fact]
-    public void WithMessage_OnEmptyBuilder_NoOp()
+    public void WithMessage_OnEmptyBuilder_ThrowsInvalidOperationException()
     {
-        var builder = new ValiFlow<Person>()
+        var act = () => new ValiFlow<Person>()
             .WithMessage("Orphan message");
 
-        // No conditions, so WithMessage is no-op
-        var result = builder.Validate(MakePerson());
-        result.IsValid.Should().BeTrue();
-        result.Errors.Should().BeEmpty();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*require at least one condition*");
     }
 
     // Test 25
@@ -457,14 +455,13 @@ public class AddIfWhenValidationTests
 
     // Test 31
     [Fact]
-    public void WithError_OnEmptyBuilder_NoOp()
+    public void WithError_OnEmptyBuilder_ThrowsInvalidOperationException()
     {
-        var builder = new ValiFlow<Person>()
+        var act = () => new ValiFlow<Person>()
             .WithError("CODE", "Message");
 
-        var result = builder.Validate(MakePerson());
-        result.IsValid.Should().BeTrue();
-        result.Errors.Should().BeEmpty();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*require at least one condition*");
     }
 
     // Test 32
@@ -954,18 +951,29 @@ public class AddIfWhenValidationTests
 
     // Test 61
     [Fact]
-    public void AddIf_ConditionFalse_NoValidationErrors_EvenIfCalledWithMessage()
+    public void AddIf_ConditionFalse_NoValidationErrors()
     {
-        // AddIf(false) means condition is not added, so WithMessage has no effect
+        // AddIf(false) means the condition is never added — builder stays empty.
         var builder = new ValiFlow<Person>()
             .AddIf(false, p => p.Age >= 18);
-
-        // Since no conditions were added, WithMessage is a no-op
-        builder.WithMessage("Should never appear");
 
         var result = builder.Validate(MakePerson(age: 5));
         result.IsValid.Should().BeTrue();
         result.Errors.Should().BeEmpty();
+    }
+
+    // Test 61b
+    [Fact]
+    public void AddIf_ConditionFalse_WithMessage_ThrowsInvalidOperationException()
+    {
+        // Calling WithMessage when no condition was added (AddIf(false)) throws — the message
+        // has nothing to attach to and would be silently lost under the old no-op contract.
+        var builder = new ValiFlow<Person>()
+            .AddIf(false, p => p.Age >= 18);
+
+        var act = () => builder.WithMessage("Should never appear");
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*require at least one condition*");
     }
 
     // Test 62

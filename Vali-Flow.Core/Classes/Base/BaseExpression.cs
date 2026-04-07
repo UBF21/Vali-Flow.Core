@@ -572,12 +572,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         return MutateLastCondition(last => last with { ErrorCode = errorCode, Message = message, MessageFactory = null, PropertyPath = propertyPath, Severity = severity });
     }
 
-    /// <summary>Sets the severity level on the most recently added condition.</summary>
-    /// <remarks>
-    /// This method only affects the severity stored on the condition; it has no effect unless the condition
-    /// also has a message or error code (set via <see cref="WithMessage(string)"/> or <see cref="WithError(string,string)"/>).
-    /// A condition with severity but no message or error code is silently skipped by <see cref="Validate"/>.
-    /// </remarks>
+    /// <summary>
+    /// Sets the severity level on the most recently added condition.
+    /// <b>Note:</b> severity is only reported by <see cref="Validate"/> when the condition also has a message
+    /// or error code. A condition with severity but no <see cref="WithMessage(string)"/> or
+    /// <see cref="WithError(string,string)"/> is silently omitted from the <see cref="Models.ValidationResult"/>.
+    /// </summary>
     public TBuilder WithSeverity(Severity severity)
     {
         var fork = ForkIfFrozen();
@@ -587,7 +587,10 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
     private TBuilder MutateLastCondition(Func<ConditionEntry<T>, ConditionEntry<T>> mutate)
     {
-        if (_conditions.Count == 0) { return (TBuilder)this; }
+        if (_conditions.Count == 0)
+            throw new InvalidOperationException(
+                "WithMessage, WithError, and WithSeverity require at least one condition to have been added first. " +
+                "Call a validation method (e.g., GreaterThan, NotEmpty) before attaching error metadata.");
         var last = _conditions[_conditions.Count - 1];
         _conditions = _conditions.SetItem(_conditions.Count - 1, mutate(last));
         return (TBuilder)this;
@@ -744,13 +747,22 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// </summary>
     /// <param name="registry">The <see cref="Builder.ValiFlowGlobalRegistry"/> instance to read filters from.</param>
     /// <returns>A combined <see cref="Expression{TDelegate}"/> of type <c>Func&lt;T, bool&gt;</c>.</returns>
+    /// <remarks>
+    /// If neither the builder nor the registry contains any conditions, this method returns
+    /// <c>x => true</c> — an expression that matches every element with no filtering applied.
+    /// Passing this expression directly to <c>IQueryable.Where()</c> will load all records from the data store.
+    /// </remarks>
     public Expression<Func<T, bool>> BuildWithGlobal(Builder.ValiFlowGlobalRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(registry);
         var globals = registry.GetFilters<T>();
 
-        // If no local conditions, build from globals only to avoid a leading `true AND ...` constant.
-        if (_conditions.Count == 0 && globals.Count > 0)
+        // No globals at all — return local expression (may be `_ => true` if builder is empty).
+        if (globals.Count == 0)
+            return Build();
+
+        // No local conditions — build from globals only to avoid a leading `true AND ...` constant.
+        if (_conditions.Count == 0)
         {
             var gParam = Expression.Parameter(typeof(T), "x");
             Expression? gBody = null;
@@ -762,12 +774,8 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             return Expression.Lambda<Func<T, bool>>(gBody!, gParam);
         }
 
+        // Both local and globals present — combine with AND.
         var local = Build();
-        if (globals.Count == 0)
-        {
-            return local;
-        }
-
         var param = local.Parameters[0];
         Expression body = local.Body;
         foreach (var g in globals)
@@ -775,7 +783,6 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             var gBody = new ParameterReplacer(g.Parameters[0], param).Visit(g.Body);
             body = Expression.AndAlso(body, gBody);
         }
-
         return Expression.Lambda<Func<T, bool>>(body, param);
     }
 

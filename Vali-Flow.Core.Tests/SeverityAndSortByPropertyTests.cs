@@ -124,7 +124,7 @@ public class SeverityTests
 
     // Test 11
     [Fact]
-    public void WithSeverity_OnEmptyBuilder_DoesNotThrow()
+    public void WithSeverity_OnEmptyBuilder_ThrowsInvalidOperationException()
     {
         var act = () =>
         {
@@ -132,7 +132,8 @@ public class SeverityTests
                 .WithSeverity(Severity.Warning);
         };
 
-        act.Should().NotThrow();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*WithMessage, WithError, and WithSeverity require at least one condition*");
     }
 
     // Test 12
