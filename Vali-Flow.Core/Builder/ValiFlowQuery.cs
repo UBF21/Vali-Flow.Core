@@ -128,7 +128,10 @@ public partial class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>,
         return CombineExpressions(left.Build(), right.Build(), and);
     }
 
-    /// <inheritdoc/>
+    // This override satisfies the abstract contract from BaseExpression.
+    // It is intentionally unused: ValiFlowQuery.ValidateNested instantiates
+    // ValiFlowQuery<TProperty> directly (not via this factory) because the
+    // abstract return type is constrained to ValiFlow<TProperty>.
     protected override ValiFlow<TProperty> CreateNestedBuilder<TProperty>() => new ValiFlow<TProperty>();
 
     /// <summary>Combines two builders with a logical AND into a single expression.</summary>

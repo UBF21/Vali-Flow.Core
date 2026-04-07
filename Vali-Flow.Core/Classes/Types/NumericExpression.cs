@@ -280,7 +280,7 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
     }
 
     private static Expression<Func<TValue?, bool>> BuildNullableScalarPredicate<TValue>(
-        BinaryExpression innerBody,
+        Expression innerBody,
         ParameterExpression param)
         where TValue : struct
     {

@@ -99,7 +99,12 @@ public sealed class ValiFlowGlobalRegistry
     }
 
     /// <summary>Returns a snapshot of all filters registered for <typeparamref name="T"/> and any interfaces it implements.</summary>
-    /// <remarks>Results are cached per type and invalidated automatically when <see cref="Register{T}"/>, <see cref="Clear{T}"/>, or <see cref="ClearAll"/> is called.</remarks>
+    /// <remarks>
+    /// Results are cached per type and invalidated automatically when <see cref="Register{T}"/>,
+    /// <see cref="Clear{T}"/>, or <see cref="ClearAll"/> is called.
+    /// For consistent results, all <see cref="Register{T}"/> calls should complete
+    /// before <see cref="GetFilters{T}"/> is called concurrently from multiple threads.
+    /// </remarks>
     public IReadOnlyList<Expression<Func<T, bool>>> GetFilters<T>()
     {
         if (_filtersCache.TryGetValue(typeof(T), out var cached))
@@ -141,7 +146,10 @@ public sealed class ValiFlowGlobalRegistry
         }
 
         IReadOnlyList<Expression<Func<T, bool>>> built = result.AsReadOnly();
-        _filtersCache.TryAdd(typeof(T), built);
+        lock (_lock)
+        {
+            _filtersCache.TryAdd(typeof(T), built);
+        }
         return built;
     }
 }

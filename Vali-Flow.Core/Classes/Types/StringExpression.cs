@@ -346,10 +346,12 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
             throw new ArgumentException("Value contains no searchable terms after splitting.", nameof(value));
 
         string[] matchTerms = ignoreCase
-            ? searchTerms.Select(t =>
-                comparison == StringComparison.InvariantCultureIgnoreCase
-                    ? t.ToLowerInvariant()
-                    : t.ToLower()).ToArray()
+            ? searchTerms.Select(t => comparison switch
+            {
+                StringComparison.InvariantCultureIgnoreCase => t.ToLowerInvariant(),
+                StringComparison.CurrentCultureIgnoreCase   => t.ToLower(System.Globalization.CultureInfo.CurrentCulture),
+                _                                           => t.ToLowerInvariant() // OrdinalIgnoreCase — invariant lowercasing is correct for ordinal
+            }).ToArray()
             : searchTerms;
 
         // Build one combined OR expression across all selectors so the entire
