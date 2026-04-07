@@ -331,11 +331,13 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
 
         ArgumentNullException.ThrowIfNull(selectors);
 
-        if (!selectors.Any())
-            throw new ArgumentException("Selectors list cannot be empty.", nameof(selectors));
-
-        if (selectors.Any(s => s == null))
-            throw new ArgumentException("Selectors list must not contain null entries.", nameof(selectors));
+        bool hasEntries = false;
+        foreach (var s in selectors)
+        {
+            hasEntries = true;
+            if (s == null) throw new ArgumentException("Selectors list must not contain null entries.", nameof(selectors));
+        }
+        if (!hasEntries) throw new ArgumentException("Selectors list cannot be empty.", nameof(selectors));
 
         bool ignoreCase = comparison == StringComparison.OrdinalIgnoreCase
                        || comparison == StringComparison.CurrentCultureIgnoreCase

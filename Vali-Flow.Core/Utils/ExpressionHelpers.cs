@@ -28,7 +28,15 @@ internal static class ExpressionHelpers
     /// Produces a structurally independent (reference-distinct) copy of any expression subtree
     /// so that the same expression body can appear in two positions in a compound expression tree
     /// without sharing nodes (e.g., null-check AND predicate call on the same selector body).
-    /// Handles all common node types: Member, Unary, Binary, MethodCall, Index, Conditional, and New.
+    /// Handles all common node types: Member, Unary, Binary, MethodCall, Index, Conditional, New, and Lambda.
+    /// <para>
+    /// <b>VisitParameter is intentionally NOT overridden.</b> ParameterExpression nodes are immutable
+    /// value-like objects — sharing them between the original and cloned tree is correct and expected.
+    /// The caller (e.g. BuildNullSafeCollectionPredicate) uses selector.Parameters[0] as the single
+    /// root parameter for the combined lambda, so all ParameterExpression references inside the cloned
+    /// body must point to that same root instance. Overriding VisitParameter to create new instances
+    /// breaks parameter resolution and fails ~100 tests.
+    /// </para>
     /// </summary>
     internal sealed class ForceCloneVisitor : ExpressionVisitor
     {

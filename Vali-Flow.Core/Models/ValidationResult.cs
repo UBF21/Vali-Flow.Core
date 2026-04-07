@@ -16,9 +16,11 @@ public sealed class ValidationResult
 
     public IReadOnlyList<ValidationError> CriticalErrors => _criticalErrors.Value;
 
+    /// <remarks>Evaluates on every call — avoid calling in a tight loop. Cache the result if needed.</remarks>
     public IReadOnlyList<ValidationError> ErrorsAbove(Severity minSeverity)
         => _errors.Where(e => e.Severity >= minSeverity).ToList();
 
+    /// <remarks>Evaluates on every call — avoid calling in a tight loop.</remarks>
     public bool HasAnySeverity(Severity minSeverity)
         => _errors.Any(e => e.Severity >= minSeverity);
 

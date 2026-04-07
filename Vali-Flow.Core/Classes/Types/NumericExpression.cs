@@ -22,37 +22,33 @@ public class NumericExpression<TBuilder, T> : INumericExpression<TBuilder, T>, I
     public TBuilder Zero<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var zero = Expression.Constant(TValue.Zero, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.Equal(p, zero), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildComparisonToZero<TValue>(ExpressionType.Equal));
     }
 
     public TBuilder NotZero<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var zero = Expression.Constant(TValue.Zero, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.NotEqual(p, zero), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildComparisonToZero<TValue>(ExpressionType.NotEqual));
     }
 
     public TBuilder Positive<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var p = Expression.Parameter(typeof(TValue), "val");
-        var zero = Expression.Constant(TValue.Zero, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.GreaterThan(p, zero), p);
-        return _builder.Add(selector, predicate);
+        return _builder.Add(selector, BuildComparisonToZero<TValue>(ExpressionType.GreaterThan));
     }
 
     public TBuilder Negative<TValue>(Expression<Func<T, TValue>> selector) where TValue : INumber<TValue>
     {
         ArgumentNullException.ThrowIfNull(selector);
+        return _builder.Add(selector, BuildComparisonToZero<TValue>(ExpressionType.LessThan));
+    }
+
+    private static Expression<Func<TValue, bool>> BuildComparisonToZero<TValue>(ExpressionType type)
+        where TValue : INumber<TValue>
+    {
         var p = Expression.Parameter(typeof(TValue), "val");
         var zero = Expression.Constant(TValue.Zero, typeof(TValue));
-        var predicate = Expression.Lambda<Func<TValue, bool>>(Expression.LessThan(p, zero), p);
-        return _builder.Add(selector, predicate);
+        return Expression.Lambda<Func<TValue, bool>>(Expression.MakeBinary(type, p, zero), p);
     }
 
     // ── Scalar comparisons (INumber<TValue>) ───────────────────────────────────
