@@ -67,6 +67,8 @@ The lock in `Register` guarantees that concurrent registrations (if called from 
 
 ### BuildWithGlobal: How Filters Are Combined
 
+**v2.0.0:** `BuildWithGlobal()` now caches the result of `Build()` using the same `Volatile.Read` + `Interlocked.CompareExchange` pattern as `BuildCached()`. Multiple calls to `BuildWithGlobal` on the same frozen builder reuse the cached expression tree without re-traversing the condition list.
+
 `BuildWithGlobal()` in `BaseExpression` follows these steps:
 
 1. Obtains a snapshot of global filters for type `T` under the lock
@@ -146,6 +148,8 @@ public void Dispose()
 - `Register` and `Clear`: thread-safe thanks to the lock. Designed to be used during startup.
 - `GetFilters` (internally in `BuildWithGlobal`): takes a snapshot under lock. Filters registered after `BuildWithGlobal` starts will not be included in that invocation.
 - **Recommendation**: register all global filters before processing any request. Do not register filters dynamically during the lifetime of the application.
+
+**v2.0.0:** `HasFilters<T>()` was simplified to `GetFilters<T>().Count > 0` — it now reuses the cache built by `GetFilters<T>()` instead of acquiring the lock and traversing `_filters` independently. This eliminates duplicated traversal logic and an unnecessary lock acquisition.
 
 ---
 
@@ -274,9 +278,7 @@ The result is a method call expression tree that EF Core can translate to `ORDER
 
 ### Thread Safety of ValiSort
 
-`ValiSort<T>` **is not thread-safe**. If it needs to be used in multiple concurrent threads, each thread must have its own instance.
-
-This contrasts with `ValiFlow<T>` which is thread-safe after freeze. The difference: `ValiSort` does not have the freeze concept because sorting does not have the same "build once, use many times" lifecycle.
+`ValiSort<T>` intentionally does not implement the freeze/fork pattern used by `ValiFlow<T>`. A sort builder defines a single ordering applied once per sequence — there is no "shared base sort extended per-thread" scenario. `By()` already resets all criteria, making each sort configuration self-contained. For concurrent scenarios, create one `ValiSort<T>` instance per thread or per sort contract, configure it once, and call `Apply()` read-only thereafter.
 
 ### Usage Example in a Repository
 

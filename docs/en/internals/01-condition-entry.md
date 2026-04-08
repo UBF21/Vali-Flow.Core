@@ -132,6 +132,8 @@ CompiledFunc = new Lazy<Func<T, bool>>(() => condition.Compile());
 // The function executes only when the ValidationError is built
 ```
 
+**Contract:** The factory must not return `null`. If it does, the resolved message is treated as absent — `Message` will be `null` in the resulting `ValidationError`, which may cause unexpected behavior. Always return a non-null string from the factory.
+
 When `Validate()` builds the `ValidationError`, the message resolution logic is:
 
 ```csharp

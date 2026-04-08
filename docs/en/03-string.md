@@ -207,6 +207,8 @@ var rule = new ValiFlow<User>()
 
 ## Format Validators
 
+> **⚠️ Timeout:** All format validator methods use compiled `Regex` internally and will throw `RegexMatchTimeoutException` if the input causes catastrophic backtracking. Predefined pattern methods (IsEmail, IsUrl, etc.) have a 5-second timeout; `RegexMatch` has a 10-second timeout for user-supplied patterns. Wrap calls in `try/catch` if validating untrusted input.
+
 All format validators use compiled regex patterns defined in `RegularExpressions/RegularExpression.cs`. They are evaluated in-memory.
 
 ### `IsEmail`

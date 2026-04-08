@@ -163,6 +163,8 @@ The `_validateLock` lock does not protect the condition list (which is immutable
 - **NOT thread-safe**: all construction methods (`Add`, `Or`, `WithMessage`, etc.) must be called from a single thread.
 - This is intentional: imposing synchronization during construction would add overhead without real benefit (builders are constructed locally before being shared).
 
+As of v2.0.0, `Add`, `Add<TValue>`, `When`, and `Unless` use `ArgumentNullException.ThrowIfNull` (C# 10+) instead of manual `if`/`throw` patterns — consistent with the rest of the codebase.
+
 ### During Use (After Freeze)
 
 | Method | Thread-safe | Notes |
@@ -232,6 +234,10 @@ var activeRule = baseRule.IsTrue(u => u.IsActive);   // different fork
 ```
 
 If two threads execute `baseRule.IsTrue(u => u.IsAdmin)` simultaneously, each gets its own independent fork. There is no interference because `ImmutableList.Add` creates a new instance without modifying the original.
+
+---
+
+**v2.0.0:** `And()` and `Or()` no longer call `Volatile.Write(null)` on cache fields. Those were dead stores: `And()` and `Or()` can only be called on unfrozen builders, and caches are only populated after freeze. Removing them eliminates 4 unnecessary memory barrier operations per call.
 
 ---
 

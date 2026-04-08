@@ -274,6 +274,8 @@ if (!result.IsValid)
 
 To do this, it needs to run each `ConditionEntry<T>` separately. Each `ConditionEntry` has its own `Lazy<Func<T, bool>>` that compiles the delegate for that specific condition.
 
+**OR-group short-circuit (v2.0.0):** `Validate()` evaluates OR groups one at a time. The moment a group passes — all of its AND conditions are satisfied — `Validate()` returns `ValidationResult.Ok()` without evaluating remaining groups. Error details are collected only for groups that have already failed. This matches the short-circuit semantics of `Build()`.
+
 ### ValidateAll
 
 Same as `Validate`, but evaluates all conditions **without short-circuiting**: even if early conditions fail, it continues evaluating the remaining ones to accumulate all possible errors.
@@ -364,3 +366,5 @@ The constraint `where TBuilder : BaseExpression<TBuilder, T>, new()` has two par
 2. `new()`: guarantees that `TBuilder` has a parameterless constructor, needed to create forks in `Clone()`.
 
 Without `new()`, `Clone()` could not create a new instance of the concrete type without reflection.
+
+`CreateNestedBuilder<TProperty>()` is `virtual` (since v2.0.0) with a default implementation of `new ValiFlow<TProperty>()`. External subclasses of `BaseExpression` do not need to override it unless they require a different nested builder type. `ValiFlowQuery<T>` overrides it to throw `UnreachableException` — its `ValidateNested` override never delegates to this factory.

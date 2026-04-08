@@ -39,6 +39,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 | `AfterDate(selector, date)` | `IsAfter(selector, date)` |
 | `CountEquals(selector, n)` | `Count(selector, n)` |
 
+### Refactoring & Performance
+
+- `Validate()` now short-circuits OR groups: returns `Ok()` as soon as one group passes without evaluating remaining groups
+- `ValidateResult.Warnings` and `CriticalErrors` changed from eager `List<T>` to `Lazy<IReadOnlyList<T>>` — computed only on first access
+- `StringExpression._regexCache` moved to non-generic `StringExpressionCache` — the 1,000-entry cap now applies globally across all closed generic types, not per type
+- `BuildWithGlobal()` caches the result of `Build()` internally — multiple calls on the same frozen builder do not re-execute `Build()`
+- `HasFilters<T>()` simplified to `GetFilters<T>().Count > 0` — removes duplicated lock logic
+- `CollectionExpression._enumerableCountMethod` now `static readonly` — was re-resolved via reflection on each `CountBetween` call
+- `BaseExpression.And()` / `Or()`: removed 4 dead `Volatile.Write(null)` stores (caches cannot be populated on unfrozen builders)
+- `BaseExpression.Add`, `Add<TValue>`, `When`, `Unless`: null guards normalized to `ArgumentNullException.ThrowIfNull`
+- `ExpressionExplainer.VisitMethodCall`: duplicate `else-if`/`else` branches with identical body collapsed into one
+- `RegularExpression.cs`: all `new Regex(...)` initializers standardized to target-typed `new(...)`
+
+### Breaking Changes (v2.0.0)
+
+- `ValidationResult.ErrorsAbove()` renamed to `ErrorsAtOrAbove()` — the method uses `>=` semantics; the old name implied `>`
+- `ValidationResult.ErrorsAtOrAbove()` now returns `.AsReadOnly()` — the result is no longer casteable to a mutable `List<ValidationError>`
+- `BaseExpression.CreateNestedBuilder<TProperty>()` changed from `abstract` to `virtual` with default `new ValiFlow<TProperty>()` — external subclasses no longer required to override
+
+### Documentation & Contracts
+
+- `Severity.Info`: documented that it only appears in `ValidationResult` when the condition fails AND has an attached message via `WithMessage` or `WithError`
+- `WithMessage(Func<string>)`: documented that the factory must not return `null`
+- `ValiSort<T>`: expanded thread-safety remarks to explain why freeze/fork is not implemented
+- `IStringFormatExpression`: added `<exception cref="RegexMatchTimeoutException">` to all regex-based methods (IsEmail, IsUrl, IsPhoneNumber, IsGuid, IsBase64, NotBase64, IsCreditCard, IsIPv4, IsIPv6, IsHexColor, IsSlug, RegexMatch)
+- `RegularExpression` and `StringExpressionCache`: documented why timeouts differ (5s for predefined patterns, 10s for user-supplied patterns in `RegexMatch`)
+
 ## [1.7.0] - 2026-04-04
 
 ### Architecture

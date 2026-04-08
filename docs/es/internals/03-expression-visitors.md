@@ -252,6 +252,8 @@ protected override Expression VisitMethodCall(MethodCallExpression node)
 
 `BaseExpression.Explain()` llama a `ExpressionExplainer`:
 
+> **v2.0.0:** Dos ramas `else-if`/`else` duplicadas en `VisitMethodCall` — con cuerpos idénticos — fueron colapsadas en un único `else`. Sin cambio de comportamiento; fue una eliminación de código muerto.
+
 ```csharp
 public string Explain()
 {

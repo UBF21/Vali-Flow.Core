@@ -136,6 +136,29 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
+## What's New in v2.0.0 🚀
+
+### Breaking Changes
+- `ValidationResult.ErrorsAbove()` → **`ErrorsAtOrAbove()`** — semantics use `>=` (at or above the given severity), not `>`. Update all call sites.
+- `ValidationResult.ErrorsAtOrAbove()` returns an `IReadOnlyList<ValidationError>` backed by `AsReadOnly()` — casting to `List<T>` will fail at runtime.
+
+### Performance
+- `Validate()` short-circuits OR groups — returns `Ok()` as soon as any group passes, without evaluating remaining groups.
+- `ValidationResult.Warnings` and `CriticalErrors` are now lazy — computed only when accessed, not on construction.
+- Regex cache in `RegexMatch` is now global (shared across all types) instead of per-closed-generic-type.
+- `BuildWithGlobal()` caches `Build()` — multiple calls on a frozen builder reuse the same expression tree.
+
+### API Improvements
+- `CreateNestedBuilder<TProperty>()` is now `virtual` — external subclasses of `BaseExpression` no longer required to override it.
+- `Severity.Info` behavior clarified: only appears in `ValidationResult` when the condition fails AND has an attached message.
+- `WithMessage(Func<string>)` factory must not return `null` — documented in IntelliSense.
+- All regex methods (`IsEmail`, `IsUrl`, `RegexMatch`, etc.) now document `RegexMatchTimeoutException` in their XML signatures.
+
+### Migration Guide
+| v1.x | v2.0.0 |
+|------|--------|
+| `result.ErrorsAbove(Severity.Warning)` | `result.ErrorsAtOrAbove(Severity.Warning)` |
+
 ## What's New in v2.0.0
 
 ### Breaking Changes

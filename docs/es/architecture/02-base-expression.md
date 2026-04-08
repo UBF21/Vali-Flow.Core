@@ -261,6 +261,8 @@ Internamente usa el delegate cacheado (`_cachedFunc`) para evitar re-compilar el
 
 ### Validate
 
+> **Short-circuit por grupos OR (v2.0.0):** `Validate()` evalúa los grupos OR de uno en uno. En cuanto un grupo pasa, retorna `ValidationResult.Ok()` inmediatamente sin evaluar los grupos restantes. Los detalles de error solo se recopilan para los grupos que ya fallaron. Esto refleja la semántica de short-circuit de `Build()`.
+
 Evalúa cada condición **individualmente** y retorna un `ValidationResult` con la lista de errores.
 
 ```csharp
@@ -362,5 +364,7 @@ El constraint `where TBuilder : BaseExpression<TBuilder, T>, new()` tiene dos pa
 
 1. `BaseExpression<TBuilder, T>`: garantiza CRTP — `TBuilder` debe heredar de la misma clase base.
 2. `new()`: garantiza que `TBuilder` tiene un constructor sin parámetros, necesario para crear forks en `Clone()`.
+
+`CreateNestedBuilder<TProperty>()` es `virtual` (desde v2.0.0) con implementación por defecto `new ValiFlow<TProperty>()`. Las subclases externas de `BaseExpression` no necesitan sobreescribirlo a menos que requieran un tipo de builder diferente. `ValiFlowQuery<T>` lo sobreescribe para lanzar `UnreachableException` — su `ValidateNested` propio nunca delega a este factory.
 
 Sin `new()`, `Clone()` no podría crear una nueva instancia del tipo concreto sin reflection.

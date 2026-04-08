@@ -260,6 +260,8 @@ public string Explain()
 }
 ```
 
+**v2.0.0:** Two duplicate `else-if`/`else` branches in `VisitMethodCall` — both with identical bodies — were collapsed into a single `else` branch. No behavioral change; this was a dead-code deduplication.
+
 ---
 
 ## Relationship Between the Three Visitors

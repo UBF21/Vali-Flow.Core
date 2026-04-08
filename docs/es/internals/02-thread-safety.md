@@ -235,6 +235,18 @@ Si dos threads ejecutan `baseRule.IsTrue(u => u.IsAdmin)` simultáneamente, cada
 
 ---
 
+## Cambios en v2.0.0
+
+### And() / Or() e invalidación de caché
+
+> **v2.0.0:** `And()` y `Or()` ya no llaman `Volatile.Write(null)` sobre los campos de caché. Esas eran escrituras muertas: `And()` y `Or()` solo pueden llamarse sobre builders no congelados, y las cachés solo se populan después del freeze. Eliminarlas quita 4 operaciones de barrera de memoria innecesarias por llamada.
+
+### Null guards en métodos de mutación
+
+> A partir de v2.0.0, `Add`, `Add<TValue>`, `When` y `Unless` usan `ArgumentNullException.ThrowIfNull` (C# 10+) en lugar de patrones `if`/`throw` manuales, consistente con el resto del código base.
+
+---
+
 ## Por qué Freeze es int y no bool
 
 El campo `_frozen` es `int` (no `bool`) para poder usar `Interlocked.CompareExchange`, que solo opera sobre tipos de 32 bits:

@@ -68,6 +68,8 @@ Console.WriteLine(result.PropertyPath);   // string — adjuntado con WithError(
 Console.WriteLine(result.Severity);       // enum Severity
 ```
 
+> **Short-circuit por grupos OR:** `Validate()` evalúa los grupos OR de uno en uno. En cuanto un grupo pasa (todas sus condiciones AND se cumplen), `Validate()` retorna `Ok()` inmediatamente sin evaluar los grupos restantes. Solo cuando todos los grupos fallan se recopilan y retornan los errores.
+
 ### `ValidateAll`
 
 Devuelve un `IEnumerable<ValidationResult>` para una colección de entidades.
@@ -110,6 +112,8 @@ Adjunta un mensaje evaluado de forma diferida o localizado.
 rule.MinLength(x => x.Name, 3)
     .WithMessage(() => Resources.NameTooShort);
 ```
+
+> **Nota:** La función factory no debe retornar `null`. Si retorna `null`, la condición se trata como si no tuviera mensaje y será excluida silenciosamente del `ValidationResult` aunque la condición haya fallado.
 
 ### `WithError(string)`
 
@@ -264,6 +268,8 @@ bool isPremium = premiumRule.IsValid(order);
 ## Severity
 
 Las condiciones usan `Severity.Error` por defecto. Puedes adjuntar `Severity.Warning` a una condición para indicar un fallo no bloqueante.
+
+`Severity.Info` — Informativo. Una condición con esta severidad solo aparece en `ValidationResult` cuando **falla** y tiene un mensaje adjunto (via `WithMessage` o `WithError`). Una condición `Info` que falla sin mensaje es excluida silenciosamente de todas las colecciones del resultado. Esto es intencional: `Info` representa una sugerencia, no un fallo bloqueante.
 
 ```csharp
 var rule = new ValiFlow<Order>()

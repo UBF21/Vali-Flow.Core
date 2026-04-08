@@ -68,6 +68,8 @@ Console.WriteLine(result.PropertyPath);   // string — attached via WithError()
 Console.WriteLine(result.Severity);       // Severity enum
 ```
 
+> **OR-group short-circuit:** `Validate()` evaluates OR groups one at a time. As soon as one group passes (all its AND conditions are satisfied), `Validate()` returns `Ok()` immediately without evaluating remaining groups. Only when all groups fail are errors collected and returned.
+
 ### `ValidateAll`
 
 Returns an `IEnumerable<ValidationResult>` for a collection of entities.
@@ -110,6 +112,8 @@ Attaches a lazily-evaluated or localized message.
 rule.MinLength(x => x.Name, 3)
     .WithMessage(() => Resources.NameTooShort);
 ```
+
+> **Note:** The factory function must not return `null`. If the factory returns `null`, the condition is treated as having no message and will be silently excluded from `ValidationResult` even if the condition failed.
 
 ### `WithError(string)`
 
@@ -264,6 +268,8 @@ bool isPremium = premiumRule.IsValid(order);
 ## Severity
 
 Conditions default to `Severity.Error`. You can attach `Severity.Warning` to a condition to indicate a non-blocking failure.
+
+`Severity.Info` — Informational. A condition with this severity only appears in `ValidationResult` when it **fails** and has an attached message (via `WithMessage` or `WithError`). A failing `Info` condition without a message is silently excluded from all result collections. This is intentional: `Info` represents a hint, not a blocking failure.
 
 ```csharp
 var rule = new ValiFlow<Order>()

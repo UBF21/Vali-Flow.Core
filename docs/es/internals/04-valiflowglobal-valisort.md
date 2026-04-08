@@ -67,6 +67,8 @@ El lock en `Register` garantiza que registros concurrentes (si se llaman desde m
 
 ### BuildWithGlobal: cómo se combinan los filtros
 
+> **v2.0.0:** `BuildWithGlobal()` ahora cachea el resultado de `Build()` usando el mismo patrón `Volatile.Read` + `Interlocked.CompareExchange` que `BuildCached()`. Múltiples llamadas a `BuildWithGlobal` sobre el mismo builder congelado reutilizan el árbol de expresión cacheado sin re-recorrer la lista de condiciones.
+
 `BuildWithGlobal()` en `BaseExpression` sigue estos pasos:
 
 1. Obtiene una snapshot de los filtros globales para el tipo `T` bajo el lock
@@ -140,6 +142,10 @@ public void Dispose()
     ValiFlowGlobal.Clear<User>();       // limpiar solo los filtros de User
 }
 ```
+
+### HasFilters
+
+> **v2.0.0:** `HasFilters<T>()` fue simplificado a `GetFilters<T>().Count > 0` — reutiliza el caché construido por `GetFilters<T>()` en lugar de adquirir el lock y recorrer `_filters` independientemente. Esto elimina la lógica de recorrido duplicada y una adquisición de lock innecesaria.
 
 ### Thread safety de ValiFlowGlobal
 
@@ -277,6 +283,8 @@ El resultado es una expression tree de llamada a método que EF Core puede tradu
 `ValiSort<T>` **no es thread-safe**. Si se necesita usar en múltiples threads concurrentes, cada thread debe tener su propia instancia.
 
 Esto contrasta con `ValiFlow<T>` que es thread-safe después de freeze. La diferencia: `ValiSort` no tiene el concepto de freeze porque el ordenamiento no tiene el mismo ciclo de vida de "construir una vez, usar muchas veces".
+
+`ValiSort<T>` intencionalmente no implementa el patrón freeze/fork de `ValiFlow<T>`. Un builder de ordenamiento define un único criterio aplicado una vez por secuencia — no existe el escenario de "sort base compartido extendido por hilo". `By()` ya resetea todos los criterios, haciendo cada configuración auto-contenida. Para escenarios concurrentes, crea una instancia de `ValiSort<T>` por hilo o por contrato de ordenamiento, configúrala una vez y llama `Apply()` en modo solo-lectura.
 
 ### Ejemplo de uso en un repositorio
 

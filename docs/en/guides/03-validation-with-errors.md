@@ -90,6 +90,8 @@ var rule = new ValiFlow<User>()
 | `Severity.Error` | Errors that prevent continuation (default) |
 | `Severity.Critical` | Serious system or security errors |
 
+`Severity.Info` only appears in `ValidationResult` when the condition **fails** and has an attached message. A failing `Info` condition without `WithMessage`/`WithError` is silently skipped in all result collections.
+
 ---
 
 ## Using Validate
@@ -211,6 +213,8 @@ var rule = new ValiFlow<User>()
             LocalizationService.Get("validation.name.min_length"));
         // The message is evaluated only when the condition fails
 ```
+
+> The factory must not return `null`.
 
 Internally, `ConditionEntry` stores the factory in `Func<string>? MessageFactory`. The factory evaluation happens when building the `ValidationError`, not when the rule is defined.
 
