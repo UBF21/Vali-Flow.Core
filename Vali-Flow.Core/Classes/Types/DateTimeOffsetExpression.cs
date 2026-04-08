@@ -220,8 +220,9 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
 
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is within the last <paramref name="days"/> days.</summary>
     /// <remarks>
-    /// <c>DateTimeOffset.UtcNow</c> is accessed as a property in the expression tree and is evaluated
-    /// fresh each time the predicate executes. The boundary shifts with the current UTC time.
+    /// The UTC date boundary is captured once when this method is called and embedded in the predicate as a constant.
+    /// This ensures both sides of the range comparison use the same reference date, eliminating any race condition
+    /// if the predicate is evaluated across a midnight UTC boundary.
     /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
@@ -230,17 +231,18 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
         ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
+        var today = DateTimeOffset.UtcNow.UtcDateTime.Date; // captured once — avoids double-read across midnight
         Expression<Func<DateTimeOffset, bool>> predicate =
-            val => val.UtcDateTime.Date >= DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-days)
-                && val.UtcDateTime.Date < DateTimeOffset.UtcNow.UtcDateTime.Date;
+            val => val.UtcDateTime.Date >= today.AddDays(-days) && val.UtcDateTime.Date < today;
         return _builder.Add(selector, predicate);
     }
 
     /// <summary>Validates that the selected <see cref="DateTimeOffset"/> is within the N days following today (today excluded).
-    /// Matches UTC dates in the half-open range (UtcNow.Date, UtcNow.Date+N].</summary>
+    /// Matches UTC dates in the half-open range (today, today+N].</summary>
     /// <remarks>
-    /// <c>DateTimeOffset.UtcNow</c> is accessed as a property in the expression tree and is evaluated
-    /// fresh each time the predicate executes. The boundary shifts with the current UTC time.
+    /// The UTC date boundary is captured once when this method is called and embedded in the predicate as a constant.
+    /// This ensures both sides of the range comparison use the same reference date, eliminating any race condition
+    /// if the predicate is evaluated across a midnight UTC boundary.
     /// <b>EF Core:</b> <c>.UtcDateTime.Date</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
     /// </remarks>
@@ -249,9 +251,9 @@ public class DateTimeOffsetExpression<TBuilder, T> : IDateTimeOffsetExpression<T
         ArgumentNullException.ThrowIfNull(selector);
         if (days <= 0)
             throw new ArgumentOutOfRangeException(nameof(days), "days must be a positive integer.");
+        var today = DateTimeOffset.UtcNow.UtcDateTime.Date; // captured once — avoids double-read across midnight
         Expression<Func<DateTimeOffset, bool>> predicate =
-            val => val.UtcDateTime.Date > DateTimeOffset.UtcNow.UtcDateTime.Date
-                && val.UtcDateTime.Date <= DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(days);
+            val => val.UtcDateTime.Date > today && val.UtcDateTime.Date <= today.AddDays(days);
         return _builder.Add(selector, predicate);
     }
 }

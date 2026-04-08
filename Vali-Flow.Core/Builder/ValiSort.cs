@@ -50,6 +50,10 @@ public sealed class ValiSort<T> : IValiSort<T>
             Func<IEnumerable<T>, IOrderedEnumerable<T>>? orderApply,
             Func<IOrderedEnumerable<T>, IOrderedEnumerable<T>>? thenApply)
         {
+            if (isPrimary && orderApply == null)
+                throw new ArgumentNullException(nameof(orderApply), "Primary sort entries require OrderApply.");
+            if (!isPrimary && thenApply == null)
+                throw new ArgumentNullException(nameof(thenApply), "Secondary sort entries require ThenApply.");
             Selector = selector;
             Descending = descending;
             IsPrimary = isPrimary;
@@ -134,15 +138,15 @@ public sealed class ValiSort<T> : IValiSort<T>
         {
             if (entry.IsPrimary || result == null)
             {
-                result = entry.OrderApply!(source);
+                result = (entry.OrderApply ?? throw new InvalidOperationException("OrderApply is null on a primary sort entry."))(source);
             }
             else
             {
-                result = entry.ThenApply!(result);
+                result = (entry.ThenApply ?? throw new InvalidOperationException("ThenApply is null on a secondary sort entry."))(result);
             }
         }
 
-        return result!;
+        return result ?? throw new InvalidOperationException("Sort produced a null result — _sorts was empty or all entries were skipped.");
     }
 
     /// <summary>Returns a human-readable description of the configured sort order.</summary>
