@@ -11,6 +11,12 @@ namespace Vali_Flow.Core.Builder;
 /// <remarks>
 /// <b>Thread safety:</b> A <c>ValiSort&lt;T&gt;</c> instance is not safe for concurrent use.
 /// For concurrent scenarios, create a separate <c>ValiSort&lt;T&gt;</c> instance per thread.
+/// <para>
+/// Unlike <c>ValiFlow&lt;T&gt;</c>, <c>ValiSort&lt;T&gt;</c> does not implement a freeze/fork model.
+/// It is designed to be configured once and reused for repeated <see cref="Apply"/> calls on
+/// different sequences — but never mutated concurrently. If you need concurrent sort configurations,
+/// keep one <c>ValiSort&lt;T&gt;</c> per logical sort contract and share it read-only after <see cref="By{TKey}"/> is done.
+/// </para>
 /// </remarks>
 public sealed class ValiSort<T> : IValiSort<T>
 {
