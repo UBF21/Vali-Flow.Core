@@ -4,23 +4,21 @@ namespace Vali_Flow.Core.Models;
 public sealed class ValidationResult
 {
     private readonly List<ValidationError> _errors;
-    private IReadOnlyList<ValidationError>? _warnings;
-    private IReadOnlyList<ValidationError>? _criticalErrors;
+    private readonly Lazy<IReadOnlyList<ValidationError>> _warnings;
+    private readonly Lazy<IReadOnlyList<ValidationError>> _criticalErrors;
 
     public bool IsValid => _errors.Count == 0;
     public IReadOnlyList<ValidationError> Errors => _errors.AsReadOnly();
     public string? FirstError => _errors.Count > 0 ? _errors[0].Message : null;
     public string? FirstErrorCode => _errors.Count > 0 ? _errors[0].ErrorCode : null;
 
-    public IReadOnlyList<ValidationError> Warnings
-        => _warnings ??= _errors.Where(e => e.Severity == Severity.Warning).ToList().AsReadOnly();
+    public IReadOnlyList<ValidationError> Warnings => _warnings.Value;
 
-    public IReadOnlyList<ValidationError> CriticalErrors
-        => _criticalErrors ??= _errors.Where(e => e.Severity == Severity.Critical).ToList().AsReadOnly();
+    public IReadOnlyList<ValidationError> CriticalErrors => _criticalErrors.Value;
 
     /// <summary>Returns all errors whose severity is <paramref name="minSeverity"/> or higher (inclusive).</summary>
     public IReadOnlyList<ValidationError> ErrorsAtOrAbove(Severity minSeverity)
-        => _errors.Where(e => e.Severity >= minSeverity).ToList();
+        => _errors.Where(e => e.Severity >= minSeverity).ToList().AsReadOnly();
 
     public bool HasAnySeverity(Severity minSeverity)
         => _errors.Any(e => e.Severity >= minSeverity);
@@ -28,6 +26,10 @@ public sealed class ValidationResult
     internal ValidationResult(List<ValidationError> errors)
     {
         _errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        _warnings      = new Lazy<IReadOnlyList<ValidationError>>(
+            () => _errors.Where(e => e.Severity == Severity.Warning).ToList().AsReadOnly());
+        _criticalErrors = new Lazy<IReadOnlyList<ValidationError>>(
+            () => _errors.Where(e => e.Severity == Severity.Critical).ToList().AsReadOnly());
     }
 
     public static ValidationResult Ok() => new(new List<ValidationError>());

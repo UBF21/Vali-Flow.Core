@@ -348,20 +348,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <param name="then">Action that populates the conditional sub-expression.</param>
     public TBuilder When(Expression<Func<T, bool>> condition, Action<IExpression<TBuilder, T>> then)
     {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(then);
         var fork = ForkIfFrozen();
         if (fork != null)
         {
             return fork.When(condition, then);
-        }
-
-        if (condition == null)
-        {
-            throw new ArgumentNullException(nameof(condition));
-        }
-
-        if (then == null)
-        {
-            throw new ArgumentNullException(nameof(then));
         }
 
         TBuilder thenBuilder = new TBuilder();
@@ -383,20 +375,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <param name="unless">Action that populates the conditional sub-expression.</param>
     public TBuilder Unless(Expression<Func<T, bool>> condition, Action<IExpression<TBuilder, T>> unless)
     {
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(unless);
         var fork = ForkIfFrozen();
         if (fork != null)
         {
             return fork.Unless(condition, unless);
-        }
-
-        if (condition == null)
-        {
-            throw new ArgumentNullException(nameof(condition));
-        }
-
-        if (unless == null)
-        {
-            throw new ArgumentNullException(nameof(unless));
         }
 
         TBuilder unlessBuilder = new TBuilder();
@@ -484,7 +468,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     }
 
     /// <summary>Attaches a lazily-evaluated message factory to the most recently added condition. The factory is invoked each time <see cref="Validate"/> runs, enabling resource-based localization.</summary>
-    /// <param name="messageFactory">A factory that returns the validation message. Evaluated at validation time — use this to integrate with <c>IStringLocalizer</c>, resource files, or any localization provider.</param>
+    /// <param name="messageFactory">A factory that returns the validation message. Evaluated at validation time — use this to integrate with <c>IStringLocalizer</c>, resource files, or any localization provider. Must not return <see langword="null"/>.</param>
     /// <remarks>
     /// <code>
     /// // With .NET resource files:
