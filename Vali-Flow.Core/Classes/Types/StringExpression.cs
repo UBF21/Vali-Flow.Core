@@ -12,10 +12,6 @@ namespace Vali_Flow.Core.Classes.Types;
 public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, IStringExpression<TBuilder, T>, new()
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _regexCache = new();
-    private const int RegexCacheMaxEntries = 1000;
-    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(10);
-
     private readonly BaseExpression<TBuilder, T> _builder;
 
     public StringExpression(BaseExpression<TBuilder, T> builder)
@@ -70,22 +66,7 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         return _builder.Add(selector, predicate);
     }
 
-    private static Regex GetOrCreateRegex(string pattern)
-    {
-        if (_regexCache.TryGetValue(pattern, out var existing))
-            return existing;
-
-        if (_regexCache.Count >= RegexCacheMaxEntries)
-            throw new InvalidOperationException(
-                $"RegexMatch cache is full ({RegexCacheMaxEntries} patterns). " +
-                "Avoid using RegexMatch with unbounded dynamic patterns.");
-
-        var newRegex = new Regex(pattern, RegexOptions.Compiled, RegexTimeout);
-        _regexCache.TryAdd(pattern, newRegex);
-
-        // If TryAdd failed, another thread beat us — return what's now in the cache
-        return _regexCache.TryGetValue(pattern, out var added) ? added : newRegex;
-    }
+    private static Regex GetOrCreateRegex(string pattern) => StringExpressionCache.GetOrCreateRegex(pattern);
 
     /// <summary>Validates that the selected string is null or empty.</summary>
     public TBuilder IsNullOrEmpty(Expression<Func<T, string?>> selector)
@@ -580,4 +561,34 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         return _builder.Add(selector, predicate);
     }
 
+}
+
+/// <summary>
+/// Non-generic static cache shared across all closed generic instantiations of
+/// <see cref="StringExpression{TBuilder,T}"/>. This ensures that the same compiled
+/// <see cref="Regex"/> instance is reused regardless of which builder type or entity
+/// type is in use, and that the 1,000-entry cap applies globally, not per closed type.
+/// </summary>
+internal static class StringExpressionCache
+{
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _regexCache = new();
+    private const int RegexCacheMaxEntries = 1000;
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(10);
+
+    internal static Regex GetOrCreateRegex(string pattern)
+    {
+        if (_regexCache.TryGetValue(pattern, out var existing))
+            return existing;
+
+        if (_regexCache.Count >= RegexCacheMaxEntries)
+            throw new InvalidOperationException(
+                $"RegexMatch cache is full ({RegexCacheMaxEntries} patterns). " +
+                "Avoid using RegexMatch with unbounded dynamic patterns.");
+
+        var newRegex = new Regex(pattern, RegexOptions.Compiled, RegexTimeout);
+        _regexCache.TryAdd(pattern, newRegex);
+
+        // If TryAdd failed, another thread beat us — return what's now in the cache.
+        return _regexCache.TryGetValue(pattern, out var added) ? added : newRegex;
+    }
 }

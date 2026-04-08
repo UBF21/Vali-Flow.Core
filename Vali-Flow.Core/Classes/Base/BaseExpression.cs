@@ -599,11 +599,10 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         if (snapshot.Count == 0)
             return ValidationResult.Ok();
 
-        // Group conditions the same way Build() does:
-        // A new group starts when entry.IsAnd == false.
+        // Partition into OR-separated groups (same logic as Build()).
+        // A new group starts at each condition where IsAnd == false.
         var groups = new List<List<ConditionEntry<T>>>();
         List<ConditionEntry<T>>? currentGroup = null;
-
         foreach (var entry in snapshot)
         {
             if (!entry.IsAnd || currentGroup == null)
@@ -614,30 +613,28 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             currentGroup.Add(entry);
         }
 
-        // Evaluate each condition once per group
-        var groupEvals = new List<(bool Passes, List<(ConditionEntry<T> Entry, bool Passed)> Results)>(groups.Count);
+        // Evaluate groups one at a time.
+        // Return Ok() immediately when any group passes — remaining groups are never evaluated.
+        // Collect error details only for groups that have already failed (no allocation on happy path).
+        List<List<(ConditionEntry<T> Entry, bool Passed)>>? failedGroupResults = null;
         foreach (var group in groups)
         {
             var results = new List<(ConditionEntry<T>, bool)>(group.Count);
             bool groupPasses = true;
             foreach (var entry in group)
             {
-                bool passed = entry.CompiledFunc.Value(instance);  // Lazy<T> is thread-safe (ExecutionAndPublication)
+                bool passed = entry.CompiledFunc.Value(instance); // Lazy<T> thread-safe (ExecutionAndPublication)
                 if (!passed) groupPasses = false;
                 results.Add((entry, passed));
             }
-            groupEvals.Add((groupPasses, results));
+            if (groupPasses)
+                return ValidationResult.Ok(); // short-circuit: skip all remaining groups
+            (failedGroupResults ??= new List<List<(ConditionEntry<T>, bool)>>(groups.Count)).Add(results);
         }
 
-        // If any OR-group passed → overall valid → no errors
-        foreach (var (passes, _) in groupEvals)
-        {
-            if (passes) return ValidationResult.Ok();
-        }
-
-        // All groups failed → collect annotated errors from every failing condition
+        // All groups failed — collect annotated errors
         var errors = new List<ValidationError>();
-        foreach (var (_, results) in groupEvals)
+        foreach (var results in failedGroupResults!)
         {
             foreach (var (entry, passed) in results)
             {
@@ -817,10 +814,17 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
     /// <summary>
     /// Factory used by <see cref="ValidateNested{TProperty}"/> to create the inner builder.
-    /// Must be overridden in each concrete subclass to return the appropriate builder type.
+    /// Returns a new <see cref="Builder.ValiFlow{T}"/> by default.
+    /// Override in concrete subclasses when a different builder type is required.
     /// </summary>
-    protected abstract Builder.ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
-        where TProperty : class;
+    /// <remarks>
+    /// External subclasses of <see cref="BaseExpression{TBuilder,T}"/> do not need to override this
+    /// method unless they require a custom nested builder. The default returns <see cref="Builder.ValiFlow{T}"/>,
+    /// which supports the full validation feature set.
+    /// </remarks>
+    protected virtual Builder.ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
+        where TProperty : class
+        => new Builder.ValiFlow<TProperty>();
 
     /// <summary>
     /// Shared helper for ValidateNested implementations. Given a selector and an already-built

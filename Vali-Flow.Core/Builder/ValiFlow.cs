@@ -160,9 +160,6 @@ public partial class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
         return CombineExpressions(left.Build(), right.Build(), and);
     }
 
-    /// <inheritdoc/>
-    protected override ValiFlow<TProperty> CreateNestedBuilder<TProperty>() => new ValiFlow<TProperty>();
-
     /// <summary>Combines two builders with AND semantics (<c>left &amp;&amp; right</c>).</summary>
     public static Expression<Func<T, bool>> operator &(ValiFlow<T> left, ValiFlow<T> right) => Combine(left, right, and: true);
     /// <summary>Combines two builders with OR semantics (<c>left || right</c>).</summary>
