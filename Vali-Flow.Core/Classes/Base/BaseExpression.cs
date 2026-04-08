@@ -121,7 +121,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     {
         var clone = new TBuilder();
         clone._conditions = _conditions; // O(1) structural sharing via ImmutableList
-        clone._nextIsAnd = Volatile.Read(ref _nextIsAnd);
+        clone._nextIsAnd = Volatile.Read(ref _nextIsAnd); // preserve pending And/Or operator state
         Interlocked.Exchange(ref clone._frozen, 0); // Explicitly enforce "starts unfrozen" contract
         return clone;
     }
@@ -188,15 +188,11 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <inheritdoc/>
     public TBuilder Add(Expression<Func<T, bool>> expression)
     {
+        ArgumentNullException.ThrowIfNull(expression);
         var fork = ForkIfFrozen();
         if (fork != null)
         {
             return fork.Add(expression);
-        }
-
-        if (expression == null)
-        {
-            throw new ArgumentNullException(nameof(expression));
         }
         EnsureValidCondition(expression);
         _conditions = _conditions.Add(ConditionEntry<T>.Create(expression, Volatile.Read(ref _nextIsAnd) != 0));
@@ -214,16 +210,8 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// <param name="predicate">The predicate to apply to the selected value.</param>
     public TBuilder Add<TValue>(Expression<Func<T, TValue>> selector, Expression<Func<TValue, bool>> predicate)
     {
-        if (selector == null)
-        {
-            throw new ArgumentNullException(nameof(selector));
-        }
-
-        if (predicate == null)
-        {
-            throw new ArgumentNullException(nameof(predicate));
-        }
-
+        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(predicate);
         EnsureValidCondition(predicate);
 
         var parameter = selector.Parameters[0];
@@ -282,10 +270,6 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             return fork.And();
         }
         Volatile.Write(ref _nextIsAnd, 1);
-        Volatile.Write(ref _cachedFunc, null);
-        Volatile.Write(ref _cachedNegatedFunc, null);
-        Volatile.Write(ref _cachedExpression, null);
-        Volatile.Write(ref _cachedNegatedExpression, null);
         return (TBuilder)this;
     }
 
@@ -298,10 +282,6 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
             return fork.Or();
         }
         Volatile.Write(ref _nextIsAnd, 0);
-        Volatile.Write(ref _cachedFunc, null);
-        Volatile.Write(ref _cachedNegatedFunc, null);
-        Volatile.Write(ref _cachedExpression, null);
-        Volatile.Write(ref _cachedNegatedExpression, null);
         return (TBuilder)this;
     }
 

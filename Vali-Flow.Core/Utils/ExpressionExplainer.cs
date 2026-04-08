@@ -106,10 +106,6 @@ internal sealed class ExpressionExplainer : ExpressionVisitor
         {
             Visit(node.Arguments[0]);
         }
-        else if (node.Arguments.Count > 0)
-        {
-            _sb.Append(node.Method.DeclaringType?.Name);
-        }
         else
         {
             _sb.Append(node.Method.DeclaringType?.Name);

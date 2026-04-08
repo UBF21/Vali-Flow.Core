@@ -18,6 +18,10 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         typeof(Enumerable).GetMethods()
             .Single(m => m.Name == "Any" && m.GetParameters().Length == 2);
 
+    private static readonly System.Reflection.MethodInfo _enumerableCountMethod =
+        typeof(Enumerable).GetMethods()
+            .Single(m => m.Name == "Count" && m.GetParameters().Length == 1);
+
     private readonly BaseExpression<TBuilder, T> _builder;
 
     public CollectionExpression(BaseExpression<TBuilder, T> builder)
@@ -98,10 +102,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
         // val => val != null && (c = val.Count()) >= min && c <= max
         var valParam = Expression.Parameter(typeof(IEnumerable<TValue>), "val");
         var countVar = Expression.Variable(typeof(int), "c");
-        var countMethod = typeof(Enumerable)
-            .GetMethods()
-            .Single(m => m.Name == "Count" && m.GetParameters().Length == 1)
-            .MakeGenericMethod(typeof(TValue));
+        var countMethod = _enumerableCountMethod.MakeGenericMethod(typeof(TValue));
 
         var nullCheck = Expression.NotEqual(valParam, Expression.Constant(null, typeof(IEnumerable<TValue>)));
         var assignCount = Expression.Assign(countVar, Expression.Call(countMethod, valParam));

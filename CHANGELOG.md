@@ -313,7 +313,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - When/Unless: conditional condition blocks evaluated at runtime
 - AddIf: conditionally add conditions based on a bool flag
 - WithSeverity / Severity enum: mark errors as Info, Warning, Error, or Critical
-- ValidationResult: Warnings, CriticalErrors, ErrorsAbove(), HasAnySeverity()
+- ValidationResult: Warnings, CriticalErrors, ErrorsAtOrAbove(), HasAnySeverity()
 - PropertyPath on ValidationError: identify which property failed
 - ValidateAll: batch validation returning per-item results
 - Explain(): human-readable description of the built expression tree

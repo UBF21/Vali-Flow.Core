@@ -228,7 +228,7 @@ public class SeverityTests
     {
         var result = BuildResultWithMixedSeverities();
 
-        var above = result.ErrorsAbove(Severity.Warning);
+        var above = result.ErrorsAtOrAbove(Severity.Warning);
 
         // Warning(1), Error(2), Critical(3) are all >= Warning
         above.Should().HaveCount(3);
@@ -243,7 +243,7 @@ public class SeverityTests
     {
         var result = BuildResultWithMixedSeverities();
 
-        var above = result.ErrorsAbove(Severity.Critical);
+        var above = result.ErrorsAtOrAbove(Severity.Critical);
 
         above.Should().HaveCount(1);
         above[0].Severity.Should().Be(Severity.Critical);

@@ -43,19 +43,19 @@ public static class RegularExpression
 
     /// <summary>Compiled regex for validating http/https URLs.</summary>
     /// <remarks>Each match call enforces a 5-second timeout and throws <see cref="RegexMatchTimeoutException"/> on timeout.</remarks>
-    public static readonly Regex UrlPattern = new Regex(
+    public static readonly Regex UrlPattern = new(
         @"^https?://[^\s/$.?#][^\s]*$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
 
     /// <summary>Compiled regex for validating GUID strings (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).</summary>
     /// <remarks>Each match call enforces a 5-second timeout and throws <see cref="RegexMatchTimeoutException"/> on timeout.</remarks>
-    public static readonly Regex GuidPattern = new Regex(
+    public static readonly Regex GuidPattern = new(
         @"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
         RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>Compiled regex for validating E.164 phone numbers (7 to 15 digits total, optional leading +).</summary>
     /// <remarks>Each match call enforces a 5-second timeout and throws <see cref="RegexMatchTimeoutException"/> on timeout.</remarks>
-    public static readonly Regex PhonePattern = new Regex(
+    public static readonly Regex PhonePattern = new(
         @"^\+[1-9]\d{6,14}$",
         RegexOptions.Compiled, RegexTimeout);
 

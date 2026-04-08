@@ -86,20 +86,7 @@ public sealed class ValiFlowGlobalRegistry
     }
 
     /// <summary>Returns <c>true</c> if any filters are registered for <typeparamref name="T"/> or any interface it implements.</summary>
-    public bool HasFilters<T>()
-    {
-        lock (_lock)
-        {
-            if (_filters.TryGetValue(typeof(T), out var exact) && exact.Count > 0)
-                return true;
-            foreach (var iface in typeof(T).GetInterfaces())
-            {
-                if (_filters.TryGetValue(iface, out var ifilters) && ifilters.Count > 0)
-                    return true;
-            }
-            return false;
-        }
-    }
+    public bool HasFilters<T>() => GetFilters<T>().Count > 0;
 
     /// <summary>Returns a snapshot of all filters registered for <typeparamref name="T"/> and any interfaces it implements.</summary>
     /// <remarks>
