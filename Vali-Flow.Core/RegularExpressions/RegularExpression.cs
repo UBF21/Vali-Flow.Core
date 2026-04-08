@@ -14,6 +14,8 @@ public static class RegularExpression
     /// Accepts email addresses containing alphanumeric characters, dots, hyphens, and the '@' symbol, 
     /// followed by a valid domain.
     /// </remarks>
+    // 5-second timeout for well-known, bounded predefined patterns.
+    // User-supplied patterns (RegexMatch) use a 10-second timeout in StringExpressionCache — see its remarks.
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(5);
 
     /// <summary>

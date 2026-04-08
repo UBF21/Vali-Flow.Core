@@ -573,6 +573,8 @@ internal static class StringExpressionCache
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _regexCache = new();
     private const int RegexCacheMaxEntries = 1000;
+    // 10-second timeout for arbitrary user-supplied patterns — more generous than the 5-second timeout
+    // used for predefined patterns in RegularExpression.cs, since user patterns are unbounded by design.
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(10);
 
     internal static Regex GetOrCreateRegex(string pattern)

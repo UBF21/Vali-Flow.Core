@@ -728,7 +728,11 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         // No globals at all — return local expression (may be `_ => true` if builder is empty).
         if (globals.Count == 0)
-            return Build();
+        {
+            var localOnly = Volatile.Read(ref _cachedExpression) ?? Build();
+            Interlocked.CompareExchange(ref _cachedExpression, localOnly, null);
+            return localOnly;
+        }
 
         // No local conditions — build from globals only to avoid a leading `true AND ...` constant.
         if (_conditions.Count == 0)
@@ -744,7 +748,9 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         }
 
         // Both local and globals present — combine with AND.
-        var local = Build();
+        // Cache the local expression so repeated calls to BuildWithGlobal never call Build() twice.
+        var local = Volatile.Read(ref _cachedExpression) ?? Build();
+        Interlocked.CompareExchange(ref _cachedExpression, local, null);
         var param = local.Parameters[0];
         Expression body = local.Body;
         foreach (var g in globals)
