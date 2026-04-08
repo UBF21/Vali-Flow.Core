@@ -327,6 +327,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         var parameter = expr.Parameters[0];
         var negatedBody = Expression.Not(expr.Body);
         var negated = Expression.Lambda<Func<T, bool>>(negatedBody, parameter);
+        Interlocked.CompareExchange(ref _cachedNegatedExpression, negated, null);
         var built = negated.Compile();
         var stored = Interlocked.CompareExchange(ref _cachedNegatedFunc, built, null) ?? built;
         return stored(instance);
@@ -619,6 +620,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     /// If the overall validation fails (every OR-group fails), errors are collected from every annotated
     /// condition that failed across all groups.
     /// </para>
+    /// <para>
+    /// <b>Performance note:</b> <see cref="Validate"/> evaluates each condition via its own compiled delegate
+    /// (one per condition) to identify which specific condition failed. <see cref="IsValid"/> compiles the entire
+    /// condition set into a single delegate and is significantly faster for hot paths where only the boolean
+    /// outcome is needed. Use <see cref="IsValid"/> when you do not need per-condition error details.
+    /// </para>
     /// </remarks>
     public ValidationResult Validate(T instance)
     {
@@ -755,6 +762,7 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     public Expression<Func<T, bool>> BuildWithGlobal(Builder.ValiFlowGlobalRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(registry);
+        Interlocked.Exchange(ref _frozen, 1);
         var globals = registry.GetFilters<T>();
 
         // No globals at all — return local expression (may be `_ => true` if builder is empty).
