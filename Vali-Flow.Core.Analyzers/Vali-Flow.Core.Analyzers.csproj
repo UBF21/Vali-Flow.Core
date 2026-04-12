@@ -1,22 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <RootNamespace>Vali_Flow.Core.Analyzers</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);NU5128;RS2008</NoWarn>
     <!-- Required for Roslyn analyzers -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <!-- NuGet packaging metadata -->
     <IsRoslynComponent>true</IsRoslynComponent>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
     <PackageId>Vali-Flow.Core.Analyzers</PackageId>
+    <Version>1.0.0</Version>
+    <Product>Vali-Flow.Core</Product>
+    <Authors>Felipe Rafael Montenegro Morriberon</Authors>
+    <Copyright>Copyright © 2026 FM. All rights reserved.</Copyright>
     <Description>Roslyn analyzer for Vali-Flow.Core: warns when EF Core-incompatible ValiFlowQuery methods are used in an IQueryable context.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://vali-flow-docs.netlify.app/docs/core/architecture/overview</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/UBF21/Vali-Flow.Core</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>VF_logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="VF_logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\README.md" Pack="True" PackagePath="" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Vali-Flow.Core" Version="2.0.0" />
   </ItemGroup>
 
 </Project>

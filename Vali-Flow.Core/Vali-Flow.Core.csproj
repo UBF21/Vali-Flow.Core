@@ -6,14 +6,23 @@
         <Nullable>enable</Nullable>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <RootNamespace>Vali_Flow.Core</RootNamespace>
-        <PackageProjectUrl>https://github.com/UBF21/Vali-Flow.Core</PackageProjectUrl>
+        <NoWarn>$(NoWarn);CS0419;CS1574</NoWarn>
+        <PackageProjectUrl>https://vali-flow-docs.netlify.app/docs/core/getting-started</PackageProjectUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <Authors>Felipe Rafael Montenegro Morriberon</Authors>
         <Copyright>Copyright © 2026 FM. All rights reserved.</Copyright>
         <RepositoryUrl>https://github.com/UBF21/Vali-Flow.Core</RepositoryUrl>
         <PackageReleaseNotes>
+## 2.0.1
+### Documentation &amp; Metadata
+- README.md: removed inline logo, improved License and Contributions sections
+- PackageProjectUrl: now points to https://vali-flow-docs.netlify.app/docs/core/getting-started (was GitHub URL)
+- PackageRequireLicenseAcceptance: set to true (aligns with license visibility)
+- New companion packages: Vali-Flow.Core.Analyzers 1.0.0 and Vali-Flow.Core.Generator 1.0.0 now require Vali-Flow.Core &gt;= 2.0.0
+- TargetFrameworks: Analyzers &amp; Generator now target net8.0;net9.0 (was netstandard2.0) for Vali-Flow.Core compatibility
+
 ## 2.0.0
 ### Architecture
 - Source generator (Vali-Flow.Core.Generator): eliminates ~468 manually-maintained delegation methods. ValiFlow and ValiFlowQuery reduced to ~110 lines each — thin partial facades.
@@ -322,7 +331,7 @@
 - Fixed InRange: min &lt;= max validation
 - Fixed ValiSort enumerable reflection: MethodInfo cached per key type (plain Dictionary, non-thread-safe by design)
         </PackageReleaseNotes>
-        <Version>2.0.0</Version>
+        <Version>2.0.1</Version>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PackageIcon>VF_logo.png</PackageIcon>

@@ -1,5 +1,8 @@
-# <img src="https://github.com/UBF21/Vali-Flow.Core/blob/main/Vali-Flow.Core/logo_vali_flow_core_.png?raw=true" alt="Logo de Vali Mediator" style="width: 46px; height: 46px; max-width: 300px;">  Vali-Flow.Core - Fluent Expression Builder for .NET Validation
+# Vali-Flow.Core - Fluent Expression Builder for .NET Validation
 
+[![NuGet](https://img.shields.io/nuget/v/Vali-Flow.Core.svg)](https://www.nuget.org/packages/Vali-Flow.Core)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8%20%7C%209-purple.svg)](https://dotnet.microsoft.com)
 
 ## Introduction 🚀
 Welcome to Vali-Flow.Core, the foundational library for the Vali-Flow ecosystem, providing a fluent API to build logical expressions for validation in .NET applications. Designed for seamless integration with LINQ and Entity Framework (EF), Vali-Flow.Core allows developers to construct complex validation conditions in a readable and type-safe manner. It supports a variety of data types and provides methods to build expressions for filtering entities, making it ideal for use in domain logic, repositories, or query pipelines.
@@ -228,7 +231,15 @@ Your contributions help keep this project alive and improve its development! �
 See [CHANGELOG.md](CHANGELOG.md) for a detailed history of all changes.
 
 ## License 📜
-This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+MIT © 2026 Felipe Rafael Montenegro Morriberon
 
 ## Contributions 🤝
-Feel free to open issues and submit pull requests to improve this library!
+
+Contributions are welcome! Feel free to open issues and submit pull requests to improve this library.
+
+- **Bug reports** — open an issue with a minimal reproducible example
+- **Feature requests** — open an issue describing the use case
+- **Pull requests** — fork the repo, create a branch, and submit a PR against `main`
+
+See the [GitHub repository](https://github.com/UBF21/Vali-Flow.Core) to get started.
