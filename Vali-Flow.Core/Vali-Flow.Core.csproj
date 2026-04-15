@@ -331,7 +331,7 @@
 - Fixed InRange: min &lt;= max validation
 - Fixed ValiSort enumerable reflection: MethodInfo cached per key type (plain Dictionary, non-thread-safe by design)
         </PackageReleaseNotes>
-        <Version>2.0.1</Version>
+        <Version>2.0.2</Version>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PackageIcon>VF_logo.png</PackageIcon>

@@ -1,16 +1,25 @@
 using System.Linq.Expressions;
-#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.General;
 using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Classes.General;
 
+/// <summary>
+/// Implements <see cref="IComparisonExpression{TBuilder,T}"/> — null checks, equality, enum membership,
+/// and default-value guards — by composing condition lambdas into the owning <typeparamref name="TBuilder"/>.
+/// </summary>
+/// <typeparam name="TBuilder">The concrete fluent builder type that owns this expression component.</typeparam>
+/// <typeparam name="T">The entity type being validated or filtered.</typeparam>
 public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
+    /// <summary>The owning builder to which condition lambdas are delegated via <c>Add</c>.</summary>
     private readonly BaseExpression<TBuilder, T> _builder;
 
+    /// <summary>Initializes the component with the owning builder instance.</summary>
+    /// <param name="builder">The fluent builder that receives the generated condition lambdas.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <c>null</c>.</exception>
     public ComparisonExpression(BaseExpression<TBuilder, T> builder)
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));
@@ -21,7 +30,9 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     public TBuilder NotNull<TValue>(Expression<Func<T, TValue?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<TValue?, bool>> predicate = value => value != null;
+        var param = Expression.Parameter(typeof(TValue?), "value");
+        var body = Expression.NotEqual(param, Expression.Constant(null, typeof(TValue?)));
+        Expression<Func<TValue?, bool>> predicate = Expression.Lambda<Func<TValue?, bool>>(body, param);
         return _builder.Add(selector, predicate);
     }
 
@@ -30,7 +41,9 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     public TBuilder Null<TValue>(Expression<Func<T, TValue?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<TValue?, bool>> predicate = value => value == null;
+        var param = Expression.Parameter(typeof(TValue?), "value");
+        var body = Expression.Equal(param, Expression.Constant(null, typeof(TValue?)));
+        Expression<Func<TValue?, bool>> predicate = Expression.Lambda<Func<TValue?, bool>>(body, param);
         return _builder.Add(selector, predicate);
     }
 
