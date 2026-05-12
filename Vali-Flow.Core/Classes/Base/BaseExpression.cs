@@ -43,13 +43,36 @@ namespace Vali_Flow.Core.Classes.Base;
 public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, new()
 {
+    /// <summary>
+    /// The immutable, thread-safe list of all conditions added to this builder.
+    /// Structural sharing via <see cref="ImmutableList{T}"/> keeps <see cref="Clone"/> O(1).
+    /// Declared <see langword="volatile"/> so reads across threads always observe the latest snapshot.
+    /// </summary>
     private volatile ImmutableList<ConditionEntry<T>> _conditions = ImmutableList<ConditionEntry<T>>.Empty;
 
+    /// <summary>
+    /// Tracks the combinatory operator for the <em>next</em> condition to be added.
+    /// <c>1</c> = AND (default); <c>0</c> = OR. Stored as <see cref="int"/> for
+    /// <see cref="Volatile"/> / <see cref="Interlocked"/> compatibility with <see cref="_frozen"/>.
+    /// </summary>
     private int _nextIsAnd = 1; // 1 = AND (default), 0 = OR — int for Volatile/Interlocked consistency with _frozen
+
+    /// <summary>Cached compiled delegate for the positive predicate. <see langword="null"/> until first <see cref="BuildCached"/> call.</summary>
     private Func<T, bool>? _cachedFunc;
+
+    /// <summary>Cached compiled delegate for the negated predicate. <see langword="null"/> until first <see cref="IsNotValid"/> call.</summary>
     private Func<T, bool>? _cachedNegatedFunc;
+
+    /// <summary>Cached built expression tree. <see langword="null"/> until first <see cref="Build"/> or <see cref="BuildCached"/> call.</summary>
     private Expression<Func<T, bool>>? _cachedExpression;
+
+    /// <summary>Cached negated expression tree. <see langword="null"/> until first <see cref="BuildNegated"/> or <see cref="IsNotValid"/> call.</summary>
     private Expression<Func<T, bool>>? _cachedNegatedExpression;
+
+    /// <summary>
+    /// Freeze flag. <c>0</c> = mutable; <c>1</c> = frozen.
+    /// Modified only via <see cref="Interlocked.Exchange(ref int, int)"/> to guarantee visibility across threads.
+    /// </summary>
     private int _frozen; // 0 = mutable, 1 = frozen
 
     /// <inheritdoc/>
@@ -550,6 +573,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         return MutateLastCondition(last => last with { Severity = severity });
     }
 
+    /// <summary>
+    /// Applies <paramref name="mutate"/> to the last condition in <see cref="_conditions"/> and replaces it in-place.
+    /// Throws <see cref="InvalidOperationException"/> when no condition has been added yet.
+    /// </summary>
+    /// <param name="mutate">A function that takes the last <see cref="ConditionEntry{T}"/> and returns a modified copy.</param>
+    /// <returns>This builder instance cast to <typeparamref name="TBuilder"/> for fluent chaining.</returns>
     private TBuilder MutateLastCondition(Func<ConditionEntry<T>, ConditionEntry<T>> mutate)
     {
         if (_conditions.Count == 0)
@@ -669,6 +698,12 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         return ValidateAllCore(instances);
     }
 
+    /// <summary>
+    /// Iterator implementation for <see cref="ValidateAll"/>.
+    /// Separated from the public method so that the freeze logic in <see cref="ValidateAll"/>
+    /// runs eagerly before any element is consumed, even though the sequence is lazy.
+    /// </summary>
+    /// <param name="instances">The sequence of instances to validate, guaranteed non-null by the caller.</param>
     private IEnumerable<(T Item, ValidationResult Result)> ValidateAllCore(IEnumerable<T> instances)
     {
         foreach (var item in instances)
@@ -773,6 +808,15 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
     private TBuilder? ForkIfFrozen()
         => Volatile.Read(ref _frozen) != 0 ? Clone() : null;
 
+    /// <summary>
+    /// Validates that <paramref name="body"/> is not a compile-time constant (always-true, always-false, or null),
+    /// which would make the condition useless. Throws <see cref="ArgumentException"/> for any such body.
+    /// </summary>
+    /// <param name="body">The expression body to inspect.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="body"/> is a constant <see langword="true"/>, <see langword="false"/>,
+    /// <see langword="null"/>, or a <c>Not(bool constant)</c> expression.
+    /// </exception>
     private static void ValidateExpressionBody(Expression body)
     {
         switch (body)
@@ -808,11 +852,16 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
         return Expression.Lambda<Func<T, bool>>(body, param);
     }
 
+    /// <summary>Ensures <paramref name="condition"/> is not a constant-valued expression. Delegates to <see cref="ValidateExpressionBody"/>.</summary>
+    /// <param name="condition">The <c>T → bool</c> predicate to validate.</param>
     private static void EnsureValidCondition(Expression<Func<T, bool>> condition)
     {
         ValidateExpressionBody(condition.Body);
     }
 
+    /// <summary>Ensures <paramref name="condition"/> is not a constant-valued expression. Delegates to <see cref="ValidateExpressionBody"/>.</summary>
+    /// <typeparam name="TValue">The input type of the predicate.</typeparam>
+    /// <param name="condition">The <c>TValue → bool</c> predicate to validate.</param>
     private static void EnsureValidCondition<TValue>(Expression<Func<TValue, bool>> condition)
     {
         ValidateExpressionBody(condition.Body);

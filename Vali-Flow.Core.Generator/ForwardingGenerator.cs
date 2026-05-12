@@ -18,8 +18,13 @@ namespace Vali_Flow.Core.Generator;
 [Generator]
 public sealed class ForwardingGenerator : IIncrementalGenerator
 {
+    /// <summary>Fully-qualified name of the attribute that marks fields for forwarding.</summary>
     private const string AttributeFullName = "Vali_Flow.Core.Builder.ForwardInterfaceAttribute";
 
+    /// <summary>
+    /// <see cref="SymbolDisplayFormat"/> based on <see cref="SymbolDisplayFormat.FullyQualifiedFormat"/>
+    /// with nullable reference type modifiers included (e.g. <c>string?</c>).
+    /// </summary>
     private static readonly SymbolDisplayFormat FullyQualifiedNullable =
         SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
@@ -27,10 +32,18 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Pure-data models ──────────────────────────────────────────────────────
 
-    /// <param name="SignatureKey">Name|TypeArity|param-types — used to detect conflicts.</param>
+    /// <summary>Immutable data model representing a single interface method to be forwarded.</summary>
+    /// <param name="ReturnType">Fully-qualified return type string, including nullable annotations.</param>
+    /// <param name="MethodName">Simple name of the method.</param>
+    /// <param name="TypeParams">Generic type-parameter list (e.g. <c>&lt;TKey&gt;</c>) or empty string.</param>
+    /// <param name="Parameters">Rendered parameter list (types + names + defaults) ready for source emission.</param>
+    /// <param name="Constraints">Rendered <c>where</c> constraints for generic type parameters, or empty string.</param>
+    /// <param name="CallTypeArgs">Type arguments to use at the call site (e.g. <c>&lt;TKey&gt;</c>) or empty string.</param>
+    /// <param name="CallArgs">Comma-separated argument names to pass at the call site.</param>
+    /// <param name="SignatureKey">Conflict-detection key in the form <c>Name|TypeArity|param-types</c>.</param>
     /// <param name="SourceIfaceFqn">
-    ///   Fully-qualified instantiated interface name (e.g. IComparableExpression&lt;ValiFlow&lt;T&gt;,T&gt;).
-    ///   Used as explicit-implementation prefix when a conflict is detected.
+    ///   Fully-qualified instantiated interface name (e.g. <c>IComparableExpression&lt;ValiFlow&lt;T&gt;,T&gt;</c>).
+    ///   Used as the explicit-implementation prefix when a signature conflict is detected.
     /// </param>
     private sealed record MethodEntry(
         string ReturnType,
@@ -43,6 +56,12 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
         string SignatureKey,
         string SourceIfaceFqn);
 
+    /// <summary>Immutable data model representing a single <c>[ForwardInterface]</c>-annotated field.</summary>
+    /// <param name="ClassName">Simple name of the containing partial class.</param>
+    /// <param name="Namespace">Namespace of the containing partial class.</param>
+    /// <param name="TypeParamList">Generic type-parameter list of the containing class (e.g. <c>&lt;T&gt;</c>) or empty string.</param>
+    /// <param name="FieldName">Name of the field whose interface members are to be forwarded.</param>
+    /// <param name="Methods">All <see cref="MethodEntry"/> records collected from the field's interface hierarchy.</param>
     private sealed record FieldEntry(
         string ClassName,
         string Namespace,
@@ -50,6 +69,14 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
         string FieldName,
         ImmutableArray<MethodEntry> Methods);
 
+    /// <summary>
+    /// Aggregated model for a single partial class, grouping all its <see cref="FieldEntry"/> records
+    /// so that one source file is emitted per class.
+    /// </summary>
+    /// <param name="ClassName">Simple name of the partial class.</param>
+    /// <param name="Namespace">Namespace of the partial class.</param>
+    /// <param name="TypeParamList">Generic type-parameter list (e.g. <c>&lt;T&gt;</c>) or empty string.</param>
+    /// <param name="Fields">All fields that belong to this class.</param>
     private sealed record ClassModel(
         string ClassName,
         string Namespace,
@@ -58,6 +85,11 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Pipeline ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Registers the incremental generator pipeline: attribute discovery → extraction →
+    /// grouping by class → source emission.
+    /// </summary>
+    /// <param name="context">The incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var pipeline = context.SyntaxProvider
@@ -78,6 +110,14 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Extraction ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Transforms a single <c>[ForwardInterface]</c>-decorated variable declarator into a
+    /// <see cref="FieldEntry"/>, or returns <see langword="null"/> if the symbol is invalid
+    /// (not a field, not typed as an interface, or produces no method entries).
+    /// </summary>
+    /// <param name="ctx">Roslyn generator attribute context for the decorated node.</param>
+    /// <param name="ct">Cancellation token forwarded from the compilation pipeline.</param>
+    /// <returns>A populated <see cref="FieldEntry"/>, or <see langword="null"/>.</returns>
     private static FieldEntry? ExtractEntry(
         GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
     {
@@ -131,6 +171,16 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
         return result.ToImmutable();
     }
 
+    /// <summary>
+    /// Builds a <see cref="MethodEntry"/> from a Roslyn <see cref="IMethodSymbol"/>,
+    /// rendering all strings needed for source emission (return type, parameters, constraints,
+    /// call arguments, and the conflict-detection key).
+    /// </summary>
+    /// <param name="method">The interface method symbol to model.</param>
+    /// <param name="sourceIfaceFqn">
+    /// Fully-qualified name of the interface that declared <paramref name="method"/>,
+    /// used as the explicit-implementation prefix in case of a signature conflict.
+    /// </param>
     private static MethodEntry BuildMethodEntry(IMethodSymbol method, string sourceIfaceFqn)
     {
         var returnType = method.ReturnType.ToDisplayString(FullyQualifiedNullable);
@@ -163,6 +213,12 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Parameter rendering ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Renders a single parameter as a <c>Type name</c> or <c>Type name = default</c> string
+    /// suitable for use in a method signature.
+    /// </summary>
+    /// <param name="p">The parameter symbol to render.</param>
+    /// <returns>A source-ready parameter string.</returns>
     private static string RenderParameter(IParameterSymbol p)
     {
         var typeStr = p.Type.ToDisplayString(FullyQualifiedNullable);
@@ -171,6 +227,12 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
             : $"{typeStr} {p.Name}";
     }
 
+    /// <summary>
+    /// Returns the <c>= value</c> fragment for a parameter's default value, correctly formatted
+    /// for enums, strings, booleans, chars, and numeric literals.
+    /// </summary>
+    /// <param name="p">The parameter symbol whose explicit default value is rendered.</param>
+    /// <returns>A source-ready default-value fragment such as <c> = true</c> or <c> = MyEnum.Value</c>.</returns>
     private static string RenderDefault(IParameterSymbol p)
     {
         var value = p.ExplicitDefaultValue;
@@ -202,6 +264,12 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Constraint rendering ──────────────────────────────────────────────────
 
+    /// <summary>
+    /// Renders a <c>where TParam : ...</c> constraint clause for the given type parameter,
+    /// or returns an empty string if the parameter has no constraints.
+    /// </summary>
+    /// <param name="tp">The type-parameter symbol to render.</param>
+    /// <returns>A <c>where TParam : ...</c> string, or <see cref="string.Empty"/>.</returns>
     private static string RenderConstraint(ITypeParameterSymbol tp)
     {
         var parts = new List<string>();
@@ -217,6 +285,13 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Grouping ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Groups a flat list of <see cref="FieldEntry"/> records by their containing class
+    /// (namespace + class name + type-parameter list) into <see cref="ClassModel"/> instances,
+    /// one per unique class.
+    /// </summary>
+    /// <param name="entries">All field entries collected across the compilation.</param>
+    /// <returns>An immutable array of <see cref="ClassModel"/> records ready for emission.</returns>
     private static ImmutableArray<ClassModel> GroupByClass(
         ImmutableArray<FieldEntry> entries)
     {
@@ -237,6 +312,14 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
 
     // ── Emission ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Generates the complete source text for a <c>.Forwarding.g.cs</c> file from a
+    /// <see cref="ClassModel"/>. Public forwarding methods are emitted for the first
+    /// occurrence of each signature; subsequent occurrences from different interfaces
+    /// are emitted as explicit interface implementations to resolve ambiguity.
+    /// </summary>
+    /// <param name="model">The aggregated class model containing all fields and their methods.</param>
+    /// <returns>A source-ready C# file as a string.</returns>
     private static string Emit(ClassModel model)
     {
         // Build a global signature map across all fields to detect conflicts.

@@ -7,23 +7,35 @@ using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Classes.Types;
 
+/// <summary>
+/// Provides collection-specific validation conditions for a fluent expression builder.
+/// </summary>
+/// <typeparam name="TBuilder">The concrete builder type returned by each fluent method.</typeparam>
+/// <typeparam name="T">The entity type being validated.</typeparam>
 public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, ICollectionExpression<TBuilder, T>, new()
 {
+    /// <summary>Open-generic <see cref="Enumerable.All{TSource}(IEnumerable{TSource}, Func{TSource, bool})"/> method, resolved once at class initialization.</summary>
     private static readonly System.Reflection.MethodInfo _enumerableAllMethod =
         typeof(Enumerable).GetMethods()
             .Single(m => m.Name == "All" && m.GetParameters().Length == 2);
 
+    /// <summary>Open-generic <see cref="Enumerable.Any{TSource}(IEnumerable{TSource}, Func{TSource, bool})"/> method, resolved once at class initialization.</summary>
     private static readonly System.Reflection.MethodInfo _enumerableAnyMethod =
         typeof(Enumerable).GetMethods()
             .Single(m => m.Name == "Any" && m.GetParameters().Length == 2);
 
+    /// <summary>Open-generic <see cref="Enumerable.Count{TSource}(IEnumerable{TSource})"/> method (no predicate overload), resolved once at class initialization.</summary>
     private static readonly System.Reflection.MethodInfo _enumerableCountMethod =
         typeof(Enumerable).GetMethods()
             .Single(m => m.Name == "Count" && m.GetParameters().Length == 1);
 
+    /// <summary>The parent builder to which each condition is delegated.</summary>
     private readonly BaseExpression<TBuilder, T> _builder;
 
+    /// <summary>Initializes a new instance of <see cref="CollectionExpression{TBuilder,T}"/> with the given parent builder.</summary>
+    /// <param name="builder">The parent builder that owns the condition list.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <see langword="null"/>.</exception>
     public CollectionExpression(BaseExpression<TBuilder, T> builder)
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));

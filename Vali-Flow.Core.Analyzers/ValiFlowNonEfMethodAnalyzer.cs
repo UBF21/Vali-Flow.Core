@@ -21,8 +21,10 @@ namespace Vali_Flow.Core.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
 {
+    /// <summary>Diagnostic identifier emitted by this analyzer.</summary>
     public const string DiagnosticId = "VF001";
 
+    /// <summary>The <see cref="DiagnosticDescriptor"/> that describes the VF001 warning.</summary>
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
         title: "ValiFlowQuery method is not translatable by EF Core",
@@ -37,11 +39,14 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
                      "cause client-side evaluation or a runtime exception.",
         helpLinkUri: "https://github.com/UBF21/Vali-Flow.Core#ef-core-compatibility");
 
+    /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(Rule);
 
-    // Methods on ValiFlowQuery<T> that are NOT EF Core translatable.
-    // This list mirrors the methods documented with "not EF Core translatable" in the library.
+    /// <summary>
+    /// Set of method names on <c>ValiFlowQuery&lt;T&gt;</c> that are not translatable by EF Core.
+    /// Mirrors the methods documented with <c>"not EF Core translatable"</c> in the library.
+    /// </summary>
     private static readonly ImmutableHashSet<string> NonEfMethods = ImmutableHashSet.Create(
         StringComparer.Ordinal,
         // IStringFormatExpression — all regex-based
@@ -82,10 +87,16 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
         "AllMatch"
     );
 
-    // Fully-qualified type names of ValiFlowQuery (both generic and open-generic form).
+    /// <summary>Short (unqualified) name of the <c>ValiFlowQuery</c> type.</summary>
     private const string ValiFlowQueryTypeName = "ValiFlowQuery";
+
+    /// <summary>Fully-qualified namespace-prefixed name used as a fallback match.</summary>
     private const string ValiFlowQueryFullName = "Vali_Flow.Core.Builder.ValiFlowQuery";
 
+    /// <summary>
+    /// Registers the syntax-node action that fires on every invocation expression.
+    /// </summary>
+    /// <param name="context">Roslyn initialization context provided by the host.</param>
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
@@ -93,6 +104,11 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
     }
 
+    /// <summary>
+    /// Examines a single invocation expression and reports <see cref="DiagnosticId"/> if the
+    /// called method is a non-EF-translatable member of <c>ValiFlowQuery&lt;T&gt;</c>.
+    /// </summary>
+    /// <param name="context">The syntax-node analysis context supplied by Roslyn.</param>
     private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
@@ -147,6 +163,11 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
         context.ReportDiagnostic(diagnostic);
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="type"/> or any type in its base-type
+    /// chain represents <c>ValiFlowQuery&lt;T&gt;</c>.
+    /// </summary>
+    /// <param name="type">The receiver type to inspect.</param>
     private static bool IsValiFlowQueryType(ITypeSymbol type)
     {
         // Check the type itself and every type in its inheritance chain
@@ -164,6 +185,11 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="type"/> matches
+    /// <c>ValiFlowQuery</c> by short name or by fully-qualified display string.
+    /// </summary>
+    /// <param name="type">A single type symbol to test.</param>
     private static bool MatchesValiFlowQuery(ITypeSymbol type)
     {
         // Match by short name OR full metadata name (covers generic and non-generic)

@@ -36,22 +36,39 @@ public partial class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     ITimeOnlyExpression<ValiFlow<T>, T>,
     INestedValidation<ValiFlow<T>, T>
 {
+    /// <summary>Boolean condition component (<c>IsTrue</c>, <c>IsFalse</c>, and in-memory predicates).</summary>
     [ForwardInterface]
     private readonly IBooleanExpression<ValiFlow<T>, T> _booleanExpression;
+
+    /// <summary>Collection condition component (IsEmpty, Any, All, DistinctCount, etc.).</summary>
     [ForwardInterface]
     private readonly ICollectionExpression<ValiFlow<T>, T> _collectionExpression;
+
+    /// <summary>Comparison condition component (null checks, equality, enum membership).</summary>
     [ForwardInterface]
     private readonly IComparisonExpression<ValiFlow<T>, T> _comparisonExpression;
+
+    /// <summary>String condition component (length, regex, casing, Contains with <see cref="StringComparison"/>, etc.).</summary>
     [ForwardInterface]
     private readonly IStringExpression<ValiFlow<T>, T> _stringExpression;
+
+    /// <summary>Numeric condition component (GreaterThan, InRange, IsEven, IsPositive, etc.).</summary>
     [ForwardInterface]
     private readonly INumericExpression<ValiFlow<T>, T> _numericExpression;
+
+    /// <summary><see cref="DateTime"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateTimeExpression<ValiFlow<T>, T> _dateTimeExpression;
+
+    /// <summary><see cref="DateTimeOffset"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateTimeOffsetExpression<ValiFlow<T>, T> _dateTimeOffsetExpression;
+
+    /// <summary><see cref="DateOnly"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateOnlyExpression<ValiFlow<T>, T> _dateOnlyExpression;
+
+    /// <summary><see cref="TimeOnly"/> condition component.</summary>
     [ForwardInterface]
     private readonly ITimeOnlyExpression<ValiFlow<T>, T> _timeOnlyExpression;
 
@@ -75,45 +92,59 @@ public partial class ValiFlow<T> : BaseExpression<ValiFlow<T>, T>,
     // C# does not allow two public methods with the same signature and different constraints,
     // so IComparableExpression methods are implemented explicitly and delegate to _numericExpression.
 
+    /// <summary>
+    /// Casts <see cref="_numericExpression"/> to <see cref="IComparableExpression{TBuilder,T}"/> to satisfy explicit
+    /// interface implementations without duplicating logic.
+    /// </summary>
     private IComparableExpression<ValiFlow<T>, T> Comparable
         => (IComparableExpression<ValiFlow<T>, T>)_numericExpression;
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.GreaterThan{TValue}(Expression{Func{T,TValue}},TValue)"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.GreaterThan<TValue>(
         Expression<Func<T, TValue>> selector, TValue value)
         => Comparable.GreaterThan(selector, value);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.GreaterThanOrEqualTo{TValue}(Expression{Func{T,TValue}},TValue)"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.GreaterThanOrEqualTo<TValue>(
         Expression<Func<T, TValue>> selector, TValue value)
         => Comparable.GreaterThanOrEqualTo(selector, value);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.LessThan{TValue}(Expression{Func{T,TValue}},TValue)"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.LessThan<TValue>(
         Expression<Func<T, TValue>> selector, TValue value)
         => Comparable.LessThan(selector, value);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.LessThanOrEqualTo{TValue}(Expression{Func{T,TValue}},TValue)"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.LessThanOrEqualTo<TValue>(
         Expression<Func<T, TValue>> selector, TValue value)
         => Comparable.LessThanOrEqualTo(selector, value);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.InRange{TValue}"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.InRange<TValue>(
         Expression<Func<T, TValue>> selector, TValue min, TValue max)
         => Comparable.InRange(selector, min, max);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.EqualTo{TValue}"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.EqualTo<TValue>(
         Expression<Func<T, TValue>> selector, TValue value)
         => Comparable.EqualTo(selector, value);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.GreaterThan{TValue}(Expression{Func{T,TValue}},Expression{Func{T,TValue}})"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.GreaterThan<TValue>(
         Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
         => Comparable.GreaterThan(selector, otherSelector);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.GreaterThanOrEqualTo{TValue}(Expression{Func{T,TValue}},Expression{Func{T,TValue}})"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.GreaterThanOrEqualTo<TValue>(
         Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
         => Comparable.GreaterThanOrEqualTo(selector, otherSelector);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.LessThan{TValue}(Expression{Func{T,TValue}},Expression{Func{T,TValue}})"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.LessThan<TValue>(
         Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
         => Comparable.LessThan(selector, otherSelector);
 
+    /// <inheritdoc cref="IComparableExpression{TBuilder,T}.LessThanOrEqualTo{TValue}(Expression{Func{T,TValue}},Expression{Func{T,TValue}})"/>
     ValiFlow<T> IComparableExpression<ValiFlow<T>, T>.LessThanOrEqualTo<TValue>(
         Expression<Func<T, TValue>> selector, Expression<Func<T, TValue>> otherSelector)
         => Comparable.LessThanOrEqualTo(selector, otherSelector);

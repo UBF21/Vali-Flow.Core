@@ -9,17 +9,13 @@ namespace Vali_Flow.Core.Interfaces.Types;
 /// <typeparam name="T">The type of the object being validated.</typeparam>
 public interface IBooleanExpression<out TBuilder,T>
 {
-    /// <summary>
-    /// Validates that the specified condition evaluates to true.
-    /// </summary>
-    /// <param name="selector">A function that selects a boolean value from the object.</param>
+    /// <summary>Validates that the selected boolean property evaluates to <see langword="true"/>.</summary>
+    /// <param name="selector">Expression selecting the boolean property.</param>
     /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsTrue(Expression<Func<T, bool>> selector);
-    
-    /// <summary>
-    /// Validates that the specified condition evaluates to false.
-    /// </summary>
-    /// <param name="selector">A function that selects a boolean value from the object.</param>
+
+    /// <summary>Validates that the selected boolean property evaluates to <see langword="false"/>.</summary>
+    /// <param name="selector">Expression selecting the boolean property.</param>
     /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsFalse(Expression<Func<T, bool>> selector);
 }

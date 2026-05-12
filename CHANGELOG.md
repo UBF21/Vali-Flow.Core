@@ -3,6 +3,18 @@
 All notable changes to Vali-Flow.Core are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [2.0.2] - 2026-04-15
+
+### Fixed
+
+- **ComparisonExpression.Null() and NotNull()**: Fixed WHERE 0=1 bug when used with EF Core `GlobalQueryFilter`. Now uses `Expression.Equal()` / `Expression.NotEqual()` instead of C# operators to ensure consistent expression tree structure for SQL translation.
+
+### Added
+
+- **EfCoreIsNullIntegrationTests**: 6 integration tests verifying IsNull() and NotNull() work correctly with EF Core GlobalQueryFilter using InMemory database.
+
+---
+
 ## [2.0.0] - 2026-04-05
 
 ### Architecture

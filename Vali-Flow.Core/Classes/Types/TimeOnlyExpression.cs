@@ -1,21 +1,37 @@
 using System.Linq.Expressions;
-#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Classes.Types;
 
+/// <summary>
+/// Provides fluent <see cref="TimeOnly"/> condition methods for the expression builder pipeline.
+/// </summary>
+/// <typeparam name="TBuilder">
+/// The concrete builder type returned by each method to enable fluent chaining.
+/// Must inherit <see cref="BaseExpression{TBuilder,T}"/> and implement <see cref="ITimeOnlyExpression{TBuilder,T}"/>.
+/// </typeparam>
+/// <typeparam name="T">The entity type whose properties are being evaluated.</typeparam>
 public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, ITimeOnlyExpression<TBuilder, T>, new()
 {
+    /// <summary>The underlying builder used to accumulate conditions.</summary>
     private readonly BaseExpression<TBuilder, T> _builder;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="TimeOnlyExpression{TBuilder,T}"/> with the given builder.
+    /// </summary>
+    /// <param name="builder">The parent expression builder that owns the condition list.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <see langword="null"/>.</exception>
     public TimeOnlyExpression(BaseExpression<TBuilder, T> builder)
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> is strictly before <paramref name="time"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <param name="time">The exclusive upper bound.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsBefore(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -24,6 +40,9 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> is strictly after <paramref name="time"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <param name="time">The exclusive lower bound.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsAfter(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -32,6 +51,11 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls within the range [<paramref name="from"/>, <paramref name="to"/>] (inclusive).</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <param name="from">The inclusive lower bound. Must be &lt;= <paramref name="to"/>.</param>
+    /// <param name="to">The inclusive upper bound. Must be &gt;= <paramref name="from"/>.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="to"/> is earlier than <paramref name="from"/>.</exception>
     /// <remarks>
     /// <b>Midnight-crossing ranges are not supported.</b> This method only handles forward ranges where
     /// <paramref name="from"/> &lt;= <paramref name="to"/>. For overnight ranges such as 22:00–02:00,
@@ -56,6 +80,8 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls in the AM half of the day (hour &lt; 12).</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsAM(Expression<Func<T, TimeOnly>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -64,6 +90,8 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls in the PM half of the day (hour &gt;= 12).</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsPM(Expression<Func<T, TimeOnly>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -72,6 +100,9 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> equals exactly <paramref name="time"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <param name="time">The exact time value to match.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsExactTime(Expression<Func<T, TimeOnly>> selector, TimeOnly time)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -80,6 +111,10 @@ public class TimeOnlyExpression<TBuilder, T> : ITimeOnlyExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="TimeOnly"/> falls within the specified <paramref name="hour"/> (0–23).</summary>
+    /// <param name="selector">Expression selecting the <see cref="TimeOnly"/> property to evaluate.</param>
+    /// <param name="hour">The hour of the day to match (0–23).</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="hour"/> is outside [0, 23].</exception>
     public TBuilder IsInHour(Expression<Func<T, TimeOnly>> selector, int hour)
     {
         ArgumentNullException.ThrowIfNull(selector);

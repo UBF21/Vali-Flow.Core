@@ -9,11 +9,20 @@ using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Classes.Types;
 
+/// <summary>
+/// Provides string-specific validation conditions for a fluent expression builder.
+/// </summary>
+/// <typeparam name="TBuilder">The concrete builder type returned by each fluent method.</typeparam>
+/// <typeparam name="T">The entity type being validated.</typeparam>
 public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, IStringExpression<TBuilder, T>, new()
 {
+    /// <summary>The parent builder to which each condition is delegated.</summary>
     private readonly BaseExpression<TBuilder, T> _builder;
 
+    /// <summary>Initializes a new instance of <see cref="StringExpression{TBuilder,T}"/> with the given parent builder.</summary>
+    /// <param name="builder">The parent builder that owns the condition list.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <see langword="null"/>.</exception>
     public StringExpression(BaseExpression<TBuilder, T> builder)
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));
@@ -66,6 +75,9 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
         return _builder.Add(selector, predicate);
     }
 
+    /// <summary>Returns a compiled <see cref="Regex"/> for <paramref name="pattern"/>, creating and caching it on first use.</summary>
+    /// <param name="pattern">The regular expression pattern to compile.</param>
+    /// <returns>A cached, compiled <see cref="Regex"/> instance for the given pattern.</returns>
     private static Regex GetOrCreateRegex(string pattern) => StringExpressionCache.GetOrCreateRegex(pattern);
 
     /// <summary>Validates that the selected string is null or empty.</summary>
@@ -569,14 +581,36 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
 /// <see cref="Regex"/> instance is reused regardless of which builder type or entity
 /// type is in use, and that the 1,000-entry cap applies globally, not per closed type.
 /// </summary>
+/// <summary>
+/// Non-generic static cache shared across all closed generic instantiations of
+/// <see cref="StringExpression{TBuilder,T}"/>. This ensures that the same compiled
+/// <see cref="Regex"/> instance is reused regardless of which builder type or entity
+/// type is in use, and that the 1,000-entry cap applies globally, not per closed type.
+/// </summary>
 internal static class StringExpressionCache
 {
+    /// <summary>Thread-safe map from pattern string to compiled <see cref="Regex"/> instance.</summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _regexCache = new();
+
+    /// <summary>Maximum number of distinct patterns allowed in the cache before new entries are rejected.</summary>
     private const int RegexCacheMaxEntries = 1000;
-    // 10-second timeout for arbitrary user-supplied patterns — more generous than the 5-second timeout
-    // used for predefined patterns in RegularExpression.cs, since user patterns are unbounded by design.
+
+    /// <summary>
+    /// Evaluation timeout applied to every compiled regex.
+    /// Set to 10 seconds for user-supplied patterns — more generous than the 5-second timeout
+    /// used for predefined patterns in <see cref="RegularExpression"/>, since user patterns are
+    /// unbounded by design.
+    /// </summary>
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>
+    /// Returns a compiled <see cref="Regex"/> for <paramref name="pattern"/>, creating and caching it on first use.
+    /// </summary>
+    /// <param name="pattern">The regular expression pattern to compile.</param>
+    /// <returns>A cached, compiled <see cref="Regex"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the cache has reached <see cref="RegexCacheMaxEntries"/> distinct patterns.
+    /// </exception>
     internal static Regex GetOrCreateRegex(string pattern)
     {
         if (_regexCache.TryGetValue(pattern, out var existing))

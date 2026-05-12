@@ -26,6 +26,10 @@ public sealed class ValidationError
         Severity = severity;
     }
 
+    /// <summary>
+    /// Returns a formatted string representation of this error.
+    /// Includes severity tag (when not <see cref="Severity.Error"/>), property path, and error code as bracketed prefixes.
+    /// </summary>
     public override string ToString()
     {
         // Only prepend severity tag when it differs from the default (Error),

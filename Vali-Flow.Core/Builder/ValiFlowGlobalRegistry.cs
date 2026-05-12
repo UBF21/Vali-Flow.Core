@@ -40,8 +40,16 @@ namespace Vali_Flow.Core.Builder;
 /// </remarks>
 public sealed class ValiFlowGlobalRegistry
 {
+    /// <summary>Primary filter store: maps each registered type or interface to its list of lambda expressions.</summary>
     private readonly Dictionary<Type, List<LambdaExpression>> _filters = new();
+
+    /// <summary>Synchronization root protecting <see cref="_filters"/> mutations and cache invalidation.</summary>
     private readonly object _lock = new();
+
+    /// <summary>
+    /// Per-type cache of materialized <c>IReadOnlyList&lt;Expression&lt;Func&lt;T, bool&gt;&gt;&gt;</c> snapshots,
+    /// keyed by the concrete entity type. Cleared on every write to <see cref="_filters"/>.
+    /// </summary>
     private readonly ConcurrentDictionary<Type, object> _filtersCache = new();
 
     /// <summary>Registers a global filter expression applied to all <typeparamref name="T"/> queries via <c>BuildWithGlobal(registry)</c>.</summary>
@@ -98,6 +106,12 @@ public sealed class ValiFlowGlobalRegistry
     public IReadOnlyList<Expression<Func<T, bool>>> GetFilters<T>()
         => (IReadOnlyList<Expression<Func<T, bool>>>)_filtersCache.GetOrAdd(typeof(T), _ => BuildFilters<T>());
 
+    /// <summary>
+    /// Builds and returns the merged filter list for <typeparamref name="T"/> by collecting exact-type filters
+    /// and re-parameterizing any interface filters registered for interfaces that <typeparamref name="T"/> implements.
+    /// </summary>
+    /// <typeparam name="T">The entity type for which filters are materialized.</typeparam>
+    /// <returns>An immutable snapshot of all applicable filter expressions for <typeparamref name="T"/>.</returns>
     private IReadOnlyList<Expression<Func<T, bool>>> BuildFilters<T>()
     {
         List<LambdaExpression>? exactSnapshot = null;

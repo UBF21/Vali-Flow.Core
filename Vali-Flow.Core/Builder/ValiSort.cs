@@ -21,16 +21,30 @@ namespace Vali_Flow.Core.Builder;
 public sealed class ValiSort<T> : IValiSort<T>
 {
     // Cached open-generic MethodInfo for Queryable sort methods — avoids string-based method lookup at call time.
+
+    /// <summary>Cached <see cref="MethodInfo"/> for <c>Queryable.OrderBy</c> (ascending).</summary>
     private static readonly MethodInfo _orderByMethod     = FindQueryableMethod("OrderBy");
+
+    /// <summary>Cached <see cref="MethodInfo"/> for <c>Queryable.OrderByDescending</c>.</summary>
     private static readonly MethodInfo _orderByDescMethod = FindQueryableMethod("OrderByDescending");
+
+    /// <summary>Cached <see cref="MethodInfo"/> for <c>Queryable.ThenBy</c> (ascending).</summary>
     private static readonly MethodInfo _thenByMethod      = FindQueryableMethod("ThenBy");
+
+    /// <summary>Cached <see cref="MethodInfo"/> for <c>Queryable.ThenByDescending</c>.</summary>
     private static readonly MethodInfo _thenByDescMethod  = FindQueryableMethod("ThenByDescending");
 
+    /// <summary>
+    /// Resolves the open-generic <see cref="MethodInfo"/> for a two-parameter <see cref="Queryable"/> sort method by name.
+    /// </summary>
+    /// <param name="name">The name of the <see cref="Queryable"/> method to locate (e.g., <c>"OrderBy"</c>).</param>
+    /// <returns>The open-generic <see cref="MethodInfo"/> for the specified sort method.</returns>
     private static MethodInfo FindQueryableMethod(string name) =>
         typeof(Queryable)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .First(m => m.Name == name && m.GetParameters().Length == 2);
 
+    /// <summary>Ordered list of sort criteria applied sequentially by <see cref="Apply(IQueryable{T})"/> and <see cref="Apply(IEnumerable{T})"/>.</summary>
     private readonly List<SortEntry> _sorts = new();
 
     /// <summary>
@@ -39,8 +53,13 @@ public sealed class ValiSort<T> : IValiSort<T>
     /// </summary>
     private readonly struct SortEntry
     {
+        /// <summary>The original key-selector lambda used to build the <see cref="IQueryable{T}"/> sort call.</summary>
         public LambdaExpression Selector { get; }
+
+        /// <summary><c>true</c> when the sort direction is descending; <c>false</c> for ascending.</summary>
         public bool Descending { get; }
+
+        /// <summary><c>true</c> when this entry drives <c>OrderBy</c>/<c>OrderByDescending</c>; <c>false</c> for <c>ThenBy</c>.</summary>
         public bool IsPrimary { get; }
 
         /// <summary>Pre-compiled delegate for <c>OrderBy</c>/<c>OrderByDescending</c> on IEnumerable.</summary>
@@ -49,6 +68,15 @@ public sealed class ValiSort<T> : IValiSort<T>
         /// <summary>Pre-compiled delegate for <c>ThenBy</c>/<c>ThenByDescending</c> on IEnumerable.</summary>
         public Func<IOrderedEnumerable<T>, IOrderedEnumerable<T>>? ThenApply { get; }
 
+        /// <summary>Initializes a new <see cref="SortEntry"/> and validates that the correct delegate is provided for the entry role.</summary>
+        /// <param name="selector">The key-selector lambda expression.</param>
+        /// <param name="descending">Sort direction; <c>true</c> = descending.</param>
+        /// <param name="isPrimary"><c>true</c> when this is the primary sort key; <c>false</c> for secondary keys.</param>
+        /// <param name="orderApply">Required when <paramref name="isPrimary"/> is <c>true</c>.</param>
+        /// <param name="thenApply">Required when <paramref name="isPrimary"/> is <c>false</c>.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="orderApply"/> is <c>null</c> for a primary entry, or <paramref name="thenApply"/> is <c>null</c> for a secondary entry.
+        /// </exception>
         public SortEntry(
             LambdaExpression selector,
             bool descending,
@@ -177,12 +205,31 @@ public sealed class ValiSort<T> : IValiSort<T>
         return string.Join(", ", parts);
     }
 
+    /// <summary>Builds an <see cref="IOrderedQueryable{T}"/> primary sort call using <c>OrderBy</c> or <c>OrderByDescending</c>.</summary>
+    /// <param name="query">The source queryable to sort.</param>
+    /// <param name="selector">The key-selector lambda expression.</param>
+    /// <param name="desc"><c>true</c> to sort descending; <c>false</c> for ascending.</param>
     private static IOrderedQueryable<T> ApplyOrderBy(IQueryable<T> query, LambdaExpression selector, bool desc)
         => ApplyQuerySort(query, selector, desc ? _orderByDescMethod : _orderByMethod);
 
+    /// <summary>Builds an <see cref="IOrderedQueryable{T}"/> secondary sort call using <c>ThenBy</c> or <c>ThenByDescending</c>.</summary>
+    /// <param name="query">The already-ordered queryable to extend.</param>
+    /// <param name="selector">The key-selector lambda expression.</param>
+    /// <param name="desc"><c>true</c> to sort descending; <c>false</c> for ascending.</param>
     private static IOrderedQueryable<T> ApplyThenBy(IOrderedQueryable<T> query, LambdaExpression selector, bool desc)
         => ApplyQuerySort(query, selector, desc ? _thenByDescMethod : _thenByMethod);
 
+    /// <summary>
+    /// Constructs and executes a LINQ <see cref="Expression.Call"/> against the provider's expression tree
+    /// using the pre-cached <paramref name="genericMethod"/>, then casts the result to <see cref="IOrderedQueryable{T}"/>.
+    /// </summary>
+    /// <param name="source">The source queryable.</param>
+    /// <param name="selector">The key-selector lambda expression.</param>
+    /// <param name="genericMethod">The open-generic <see cref="MethodInfo"/> to close and invoke (e.g., <see cref="_orderByMethod"/>).</param>
+    /// <returns>The ordered queryable produced by the provider.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the provider's <c>CreateQuery</c> does not return an <see cref="IOrderedQueryable{T}"/>.
+    /// </exception>
     private static IOrderedQueryable<T> ApplyQuerySort(IQueryable<T> source, LambdaExpression selector, MethodInfo genericMethod)
     {
         var method = genericMethod.MakeGenericMethod(typeof(T), selector.ReturnType);

@@ -40,22 +40,39 @@ public partial class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>,
     IDateOnlyExpressionQuery<ValiFlowQuery<T>, T>,
     ITimeOnlyExpressionQuery<ValiFlowQuery<T>, T>
 {
+    /// <summary>EF Core-safe boolean condition component (<c>IsTrue</c>, <c>IsFalse</c>).</summary>
     [ForwardInterface]
     private readonly IBooleanExpressionQuery<ValiFlowQuery<T>, T> _boolean;
+
+    /// <summary>Comparison condition component (null checks, equality, enum membership).</summary>
     [ForwardInterface]
     private readonly IComparisonExpression<ValiFlowQuery<T>, T> _comparison;
+
+    /// <summary>EF Core-safe string condition component (StartsWith, EndsWith, Contains, etc.).</summary>
     [ForwardInterface]
     private readonly IStringExpressionQuery<ValiFlowQuery<T>, T> _string;
+
+    /// <summary>EF Core-safe collection condition component (IsEmpty, IsNotEmpty, CountEquals, etc.).</summary>
     [ForwardInterface]
     private readonly ICollectionExpressionQuery<ValiFlowQuery<T>, T> _collection;
+
+    /// <summary>EF Core-safe numeric condition component (GreaterThan, InRange, IsBetween, etc.).</summary>
     [ForwardInterface]
     private readonly INumericExpressionQuery<ValiFlowQuery<T>, T> _numeric;
+
+    /// <summary>EF Core-safe <see cref="DateTime"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateTimeExpressionQuery<ValiFlowQuery<T>, T> _dateTime;
+
+    /// <summary>EF Core-safe <see cref="DateTimeOffset"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateTimeOffsetExpressionQuery<ValiFlowQuery<T>, T> _dateTimeOffset;
+
+    /// <summary>EF Core-safe <see cref="DateOnly"/> condition component.</summary>
     [ForwardInterface]
     private readonly IDateOnlyExpressionQuery<ValiFlowQuery<T>, T> _dateOnly;
+
+    /// <summary>EF Core-safe <see cref="TimeOnly"/> condition component.</summary>
     [ForwardInterface]
     private readonly ITimeOnlyExpressionQuery<ValiFlowQuery<T>, T> _timeOnly;
 
@@ -128,9 +145,13 @@ public partial class ValiFlowQuery<T> : BaseExpression<ValiFlowQuery<T>, T>,
         return CombineExpressions(left.Build(), right.Build(), and);
     }
 
-    // This override satisfies the abstract contract from BaseExpression.
-    // ValiFlowQuery.ValidateNested overrides the full method and never delegates to this factory.
-    // UnreachableException signals an internal bug if the base ever routes through this path.
+    /// <summary>
+    /// Satisfies the abstract factory contract of <see cref="Classes.Base.BaseExpression{TBuilder,T}"/>.
+    /// <see cref="ValidateNested{TProperty}"/> overrides the full nested-validation path and never delegates
+    /// to this method; reaching it indicates a bug in <c>BaseExpression</c>.
+    /// </summary>
+    /// <typeparam name="TProperty">The nested entity type.</typeparam>
+    /// <exception cref="System.Diagnostics.UnreachableException">Always thrown — this code path must never execute.</exception>
     protected override ValiFlow<TProperty> CreateNestedBuilder<TProperty>()
         => throw new System.Diagnostics.UnreachableException(
             $"{nameof(ValiFlowQuery<T>)}.{nameof(ValidateNested)} overrides the full path — " +

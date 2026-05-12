@@ -1,16 +1,29 @@
 using System.Linq.Expressions;
-#pragma warning disable CS1591 // Missing XML comment — implementation class, docs on interface
 using Vali_Flow.Core.Classes.Base;
 using Vali_Flow.Core.Interfaces.Types;
 using static Vali_Flow.Core.Utils.ExpressionHelpers;
 
 namespace Vali_Flow.Core.Classes.Types;
 
+/// <summary>
+/// Provides fluent <see cref="DateTime"/> condition methods for the expression builder pipeline.
+/// </summary>
+/// <typeparam name="TBuilder">
+/// The concrete builder type returned by each method to enable fluent chaining.
+/// Must inherit <see cref="BaseExpression{TBuilder,T}"/> and implement <see cref="IDateTimeExpression{TBuilder,T}"/>.
+/// </typeparam>
+/// <typeparam name="T">The entity type whose properties are being evaluated.</typeparam>
 public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     where TBuilder : BaseExpression<TBuilder, T>, IDateTimeExpression<TBuilder, T>, new()
 {
+    /// <summary>The underlying builder used to accumulate conditions.</summary>
     private readonly BaseExpression<TBuilder, T> _builder;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="DateTimeExpression{TBuilder,T}"/> with the given builder.
+    /// </summary>
+    /// <param name="builder">The parent expression builder that owns the condition list.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is <see langword="null"/>.</exception>
     public DateTimeExpression(BaseExpression<TBuilder, T> builder)
     {
         _builder = builder ?? throw new ArgumentNullException(nameof(builder));
@@ -19,6 +32,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value must be in the future.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <c>DateTime.Now</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The comparison is always against the current time at evaluation time.
@@ -33,6 +48,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value must be in the past.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <c>DateTime.Now</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The comparison is always against the current time at evaluation time.
@@ -45,6 +62,11 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> date falls within [<paramref name="startDate"/>, <paramref name="endDate"/>] (date-only, inclusive).</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="startDate">The inclusive lower bound (date part only).</param>
+    /// <param name="endDate">The inclusive upper bound (date part only). Must be &gt;= <paramref name="startDate"/>.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="endDate"/> is earlier than <paramref name="startDate"/>.</exception>
     /// <remarks>
     /// Compares only the date part (<c>val.Date</c>), ignoring time-of-day.
     /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable to SQL by EF Core.
@@ -65,6 +87,10 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// two entity-bound date selectors (inclusive). Both boundary values are normalized via
     /// <c>.Date</c> to strip time-of-day, consistent with the constant-boundary overload.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="startDateSelector">Expression selecting the inclusive lower-bound <see cref="DateTime"/> from the same entity.</param>
+    /// <param name="endDateSelector">Expression selecting the inclusive upper-bound <see cref="DateTime"/> from the same entity.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder BetweenDates(Expression<Func<T, DateTime>> selector,
         Expression<Func<T, DateTime>> startDateSelector, Expression<Func<T, DateTime>> endDateSelector)
     {
@@ -94,6 +120,9 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> date part equals <paramref name="date"/> (date-only comparison).</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="date">The reference date to match (time-of-day is ignored).</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// Compares only the date part (<c>val.Date == date.Date</c>), ignoring time-of-day.
     /// <b>EF Core:</b> <c>val.Date</c> is not universally translatable to SQL by EF Core.
@@ -109,6 +138,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls on today's date.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <c>DateTime.Today</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The comparison is always against today's date at evaluation time.
@@ -125,6 +156,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls on yesterday's date.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <c>DateTime.Today</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The comparison is always against yesterday's date at evaluation time.
@@ -141,6 +174,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls on tomorrow's date.
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <c>DateTime.Today</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The comparison is always against tomorrow's date at evaluation time.
@@ -158,6 +193,10 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls within the N days preceding
     /// today (today excluded). Matches dates in the half-open range [Today-N, Today).
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="days">Number of past days to include. Must be a positive integer.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="days"/> is not positive.</exception>
     /// <remarks>
     /// <c>DateTime.Today</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The boundary shifts with the current date at evaluation time.
@@ -178,6 +217,10 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// Adds a condition that the selected <see cref="DateTime"/> value falls within the N days following
     /// today (today excluded). Matches dates in the half-open range (Today, Today+N].
     /// </summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="days">Number of future days to include. Must be a positive integer.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="days"/> is not positive.</exception>
     /// <remarks>
     /// <c>DateTime.Today</c> is accessed as a property in the expression tree and is evaluated fresh
     /// each time the predicate executes. The boundary shifts with the current date at evaluation time.
@@ -195,6 +238,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on a Saturday or Sunday.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsWeekend(Expression<Func<T, DateTime>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -204,6 +249,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on a weekday (Monday–Friday).</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsWeekday(Expression<Func<T, DateTime>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -213,6 +260,8 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> falls in a leap year.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// <b>EF Core:</b> <c>DateTime.IsLeapYear</c> is not translatable to SQL by EF Core.
     /// Use this method only with in-memory collections (LINQ-to-Objects).
@@ -227,6 +276,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls in the same calendar month and year as <paramref name="date"/>.</summary>
     /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
     /// <param name="date">The reference date whose month and year are matched.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// Compares <c>.Year</c> and <c>.Month</c> scalar properties — translatable to SQL by EF Core on all major providers.
     /// </remarks>
@@ -240,6 +290,7 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     /// <summary>Validates that the selected <see cref="DateTime"/> falls in the same calendar year as <paramref name="date"/>.</summary>
     /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
     /// <param name="date">The reference date whose year is matched.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     /// <remarks>
     /// Compares the <c>.Year</c> scalar property — translatable to SQL by EF Core on all major providers.
     /// </remarks>
@@ -251,6 +302,9 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> falls on the specified <paramref name="day"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="day">The <see cref="DayOfWeek"/> value to match.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsDayOfWeek(Expression<Func<T, DateTime>> selector, DayOfWeek day)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -259,6 +313,10 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> is in the specified month (1–12).</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="month">The calendar month number (1–12).</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="month"/> is outside [1, 12].</exception>
     public TBuilder IsInMonth(Expression<Func<T, DateTime>> selector, int month)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -269,6 +327,10 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> is in the specified <paramref name="year"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="year">The four-digit calendar year (1–9999).</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="year"/> is outside [1, 9999].</exception>
     public TBuilder IsInYear(Expression<Func<T, DateTime>> selector, int year)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -279,6 +341,9 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> is strictly before <paramref name="date"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="date">The exclusive upper bound.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsBefore(Expression<Func<T, DateTime>> selector, DateTime date)
     {
         ArgumentNullException.ThrowIfNull(selector);
@@ -287,6 +352,9 @@ public class DateTimeExpression<TBuilder, T> : IDateTimeExpression<TBuilder, T>
     }
 
     /// <summary>Validates that the selected <see cref="DateTime"/> is strictly after <paramref name="date"/>.</summary>
+    /// <param name="selector">Expression selecting the <see cref="DateTime"/> property to evaluate.</param>
+    /// <param name="date">The exclusive lower bound.</param>
+    /// <returns>The builder instance for fluent chaining.</returns>
     public TBuilder IsAfter(Expression<Func<T, DateTime>> selector, DateTime date)
     {
         ArgumentNullException.ThrowIfNull(selector);

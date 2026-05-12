@@ -10,8 +10,12 @@ namespace Vali_Flow.Core.Interfaces.General;
 public interface IBooleanExpressionQuery<out TBuilder, T>
 {
     /// <summary>Validates that the selected bool property is <see langword="true"/>.</summary>
+    /// <param name="selector">Expression selecting the boolean property.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsTrue(Expression<Func<T, bool>> selector);
 
     /// <summary>Validates that the selected bool property is <see langword="false"/>.</summary>
+    /// <param name="selector">Expression selecting the boolean property.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsFalse(Expression<Func<T, bool>> selector);
 }

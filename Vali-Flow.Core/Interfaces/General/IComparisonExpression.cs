@@ -42,17 +42,32 @@ public interface IComparisonExpression<out TBuilder, T>
     TBuilder NotEqualTo<TValue>(Expression<Func<T, TValue>> selector, TValue value) where TValue : IEquatable<TValue>;
 
     /// <summary>Validates that the selected <typeparamref name="TEnum"/> value is a defined member of its enum type.</summary>
+    /// <typeparam name="TEnum">The enum type to validate against.</typeparam>
+    /// <param name="selector">Expression selecting the enum property.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsInEnum<TEnum>(Expression<Func<T, TEnum>> selector) where TEnum : struct, Enum;
 
     /// <summary>Validates that the selected property equals <c>default(<typeparamref name="TValue"/>)</c>.</summary>
+    /// <typeparam name="TValue">The type of the selected property.</typeparam>
+    /// <param name="selector">Expression selecting the property to compare against its default value.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsDefault<TValue>(Expression<Func<T, TValue>> selector);
 
     /// <summary>Validates that the selected property does NOT equal <c>default(<typeparamref name="TValue"/>)</c>.</summary>
+    /// <typeparam name="TValue">The type of the selected property.</typeparam>
+    /// <param name="selector">Expression selecting the property to compare against its default value.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsNotDefault<TValue>(Expression<Func<T, TValue>> selector);
 
-    /// <summary>Validates that the selected value is null. Alias for <c>Null</c>.</summary>
+    /// <summary>Validates that the selected value is null. Alias for <see cref="Null{TProperty}"/>.</summary>
+    /// <typeparam name="TValue">The type of the selected nullable property.</typeparam>
+    /// <param name="selector">Expression selecting the nullable property.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsNull<TValue>(Expression<Func<T, TValue?>> selector);
 
-    /// <summary>Validates that the selected value is not null. Alias for <c>NotNull</c>.</summary>
+    /// <summary>Validates that the selected value is not null. Alias for <see cref="NotNull{TProperty}"/>.</summary>
+    /// <typeparam name="TValue">The type of the selected nullable property.</typeparam>
+    /// <param name="selector">Expression selecting the nullable property.</param>
+    /// <returns>The builder instance for method chaining.</returns>
     TBuilder IsNotNull<TValue>(Expression<Func<T, TValue?>> selector);
 }

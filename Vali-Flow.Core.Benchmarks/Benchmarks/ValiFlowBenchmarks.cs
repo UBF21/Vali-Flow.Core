@@ -5,21 +5,50 @@ using Vali_Flow.Core.Builder;
 
 namespace Vali_Flow.Core.Benchmarks;
 
+/// <summary>
+/// Lightweight product model used exclusively as benchmark input data.
+/// All properties reflect a realistic domain entity without pulling in any real model dependency.
+/// </summary>
+/// <param name="Name">Product display name; may be <see langword="null"/> for invalid-input scenarios.</param>
+/// <param name="Price">Unit price in decimal currency; negative values represent invalid inputs.</param>
+/// <param name="Stock">Available stock quantity; zero or negative values represent invalid inputs.</param>
+/// <param name="IsActive">Whether the product is currently active in the catalogue.</param>
+/// <param name="CreatedAt">UTC creation timestamp; future values represent invalid inputs.</param>
 public record BenchProduct(string? Name, decimal Price, int Stock, bool IsActive, DateTime CreatedAt);
 
+/// <summary>
+/// BenchmarkDotNet suite that measures the performance of <see cref="ValiFlow{T}"/> across
+/// the most common usage patterns: cold vs. warm expression building, cached-func invocation,
+/// validation with valid and invalid inputs, cloning, and complex sub-group expressions.
+/// </summary>
+/// <remarks>
+/// Run with <c>dotnet run -c Release --project Vali-Flow.Core.Benchmarks</c>.
+/// Results are ordered fastest-to-slowest; the warm <c>IsValid()</c> call is the baseline.
+/// </remarks>
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
 public class ValiFlowBenchmarks
 {
+    /// <summary>A fully valid <see cref="BenchProduct"/> used as the positive test input.</summary>
     private static BenchProduct ValidProduct => new("Laptop", 999.99m, 10, true, DateTime.UtcNow.AddDays(-30));
+
+    /// <summary>A deliberately invalid <see cref="BenchProduct"/> used to measure short-circuit paths.</summary>
     private static BenchProduct InvalidProduct => new(null, -1m, 0, false, DateTime.UtcNow.AddDays(1));
 
-    // Pre-built builders and expressions reused across iterations
+    /// <summary>Pre-configured builder reused across benchmark iterations to isolate build cost.</summary>
     private ValiFlow<BenchProduct> _cachedBuilder = null!;
+
+    /// <summary>Expression tree materialized once during setup; reused by expression-level benchmarks.</summary>
     private Expression<Func<BenchProduct, bool>> _builtExpression = null!;
+
+    /// <summary>Compiled delegate produced by <c>BuildCached()</c>; represents the fastest invocation path.</summary>
     private Func<BenchProduct, bool> _cachedFunc = null!;
 
+    /// <summary>
+    /// Initializes all shared state (builder, expression, compiled func) before any benchmark iteration runs.
+    /// Called once per process by BenchmarkDotNet.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -81,18 +110,24 @@ public class ValiFlowBenchmarks
     public bool IsValidWarm()
         => _cachedBuilder.IsValid(ValidProduct);
 
+    /// <summary>IsValid() on a pre-warmed builder with data that fails validation — exercises early-exit paths.</summary>
     [Benchmark(Description = "IsValid() — warm, invalid input")]
     public bool IsValidWarmInvalid()
         => _cachedBuilder.IsValid(InvalidProduct);
 
     // ── Clone benchmark ───────────────────────────────────────────────────────
 
+    /// <summary>Measures the cost of <c>Clone()</c>, which performs a shallow structural share of the condition list.</summary>
     [Benchmark(Description = "Clone() — shallow structural share")]
     public ValiFlow<BenchProduct> CloneBuilder()
         => _cachedBuilder.Clone();
 
     // ── Complex builder ───────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Full cold build of a complex expression that includes an <c>AddSubGroup</c> with an <c>Or</c> branch —
+    /// exercises the full operator-precedence grouping path in <c>BaseExpression.Build()</c>.
+    /// </summary>
     [Benchmark(Description = "Build() — complex (sub-group, Or)")]
     public Expression<Func<BenchProduct, bool>> BuildComplex()
     {
@@ -114,6 +149,10 @@ public class ValiFlowBenchmarks
 
     // ── Compiled func invocation ──────────────────────────────────────────────
 
+    /// <summary>
+    /// Invokes the pre-compiled <see cref="Func{T, TResult}"/> directly, with zero expression-tree
+    /// overhead. Serves as a lower-bound reference for the compiled-delegate execution cost.
+    /// </summary>
     [Benchmark(Description = "Compiled Func<> invocation (no expression overhead)")]
     public bool CompiledFuncInvoke()
         => _cachedFunc(ValidProduct);
