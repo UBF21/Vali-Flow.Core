@@ -1265,3 +1265,39 @@ public class WithMessageFactoryTests
         result.Errors.Should().ContainSingle(e => e.Message == "factory message");
     }
 }
+
+public class ComparisonExpressionCoverageTests
+{
+    private enum Status { Draft, Published, Archived }
+    private record StatusEntity(Status Status, int Code, string? Label);
+
+    [Fact]
+    public void IsInEnum_ValidDefinedValue_ReturnsTrue_UndefinedValue_ReturnsFalse()
+    {
+        var filter = new ValiFlow<StatusEntity>().IsInEnum(e => e.Status).Build().Compile();
+        filter(new StatusEntity(Status.Published, 1, "x")).Should().BeTrue();
+        filter(new StatusEntity((Status)99, 1, "x")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsDefault_And_IsNotDefault_WorkCorrectlyForValueType()
+    {
+        var isDefaultFilter = new ValiFlow<StatusEntity>().IsDefault(e => e.Code).Build().Compile();
+        isDefaultFilter(new StatusEntity(Status.Draft, 0, null)).Should().BeTrue();
+        isDefaultFilter(new StatusEntity(Status.Draft, 5, null)).Should().BeFalse();
+
+        var isNotDefaultFilter = new ValiFlow<StatusEntity>().IsNotDefault(e => e.Code).Build().Compile();
+        isNotDefaultFilter(new StatusEntity(Status.Draft, 5, null)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void EqualTo_And_NotEqualTo_WorkCorrectlyForReferenceType()
+    {
+        var equalFilter = new ValiFlow<StatusEntity>().EqualTo(e => e.Label, "target").Build().Compile();
+        equalFilter(new StatusEntity(Status.Draft, 1, "target")).Should().BeTrue();
+        equalFilter(new StatusEntity(Status.Draft, 1, "other")).Should().BeFalse();
+
+        var notEqualFilter = new ValiFlow<StatusEntity>().NotEqualTo(e => e.Label, "target").Build().Compile();
+        notEqualFilter(new StatusEntity(Status.Draft, 1, "other")).Should().BeTrue();
+    }
+}
