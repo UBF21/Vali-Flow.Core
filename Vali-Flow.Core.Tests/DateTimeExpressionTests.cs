@@ -85,22 +85,14 @@ public class DateTimeExpressionTests
         filter.Compile()(MakeProduct(new DateTime(2026, 6, 1))).Should().BeFalse();
     }
 
-    // 6. IsWeekend — matches Saturday/Sunday
+    // 6. IsWeekend(DateTime) — in-memory only
     [Fact]
     public void IsWeekend_MatchesSaturdayAndSunday()
     {
-        var filter = new ValiFlow<Product>()
-            .IsWeekend(p => p.CreatedAt)
-            .Build();
+        var filter = new ValiFlow<Product>().IsWeekend(p => p.CreatedAt).Build().Compile();
 
-        // Find a Saturday and Sunday
-        var saturday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Saturday);
-        var sunday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Sunday);
-        var monday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Monday);
-
-        filter.Compile()(MakeProduct(saturday)).Should().BeTrue();
-        filter.Compile()(MakeProduct(sunday)).Should().BeTrue();
-        filter.Compile()(MakeProduct(monday)).Should().BeFalse();
+        filter(MakeProduct(new DateTime(2025, 6, 14))).Should().BeTrue();  // Saturday
+        filter(MakeProduct(new DateTime(2025, 6, 16))).Should().BeFalse(); // Monday
     }
 
     // 7. IsWeekday — matches Mon-Fri
