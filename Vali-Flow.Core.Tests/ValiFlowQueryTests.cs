@@ -1839,4 +1839,58 @@ public class ValiFlowQueryTests
         filter(new ScalarNumerics(0, 0, 0, 0, 5)).Should().BeTrue();
         filter(new ScalarNumerics(0, 0, 0, 0, 15)).Should().BeFalse();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery nullable overloads
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private record ShortEntity(short? NullableShort);
+
+    [Fact]
+    public void NullableLong_GreaterThan_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().GreaterThan(e => e.NullableLong, 10L).Build().Compile();
+        filter(new QueryEntityEx(null, 20L, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableDecimal_InRange_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().InRange(e => e.NullableDecimal, 10m, 20m).Build().Compile();
+        filter(new QueryEntityEx(null, null, 15m, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableDouble_LessThan_NullValue_ReturnsFalse()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().LessThan(e => e.NullableDouble, 5.0).Build().Compile();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+        filter(new QueryEntityEx(null, null, null, 1.0, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NullableFloat_HasValue_DistinguishesNullFromValue()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().HasValue(e => e.NullableFloat).Build().Compile();
+        filter(new QueryEntityEx(null, null, null, null, 1.5f, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableShort_GreaterThan_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<ShortEntity>().GreaterThan(e => e.NullableShort, (short)10).Build().Compile();
+        filter(new ShortEntity((short)20)).Should().BeTrue();
+        filter(new ShortEntity(null)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableShort_InRange_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<ShortEntity>().InRange(e => e.NullableShort, (short)1, (short)10).Build().Compile();
+        filter(new ShortEntity((short)5)).Should().BeTrue();
+        filter(new ShortEntity((short)20)).Should().BeFalse();
+    }
 }
