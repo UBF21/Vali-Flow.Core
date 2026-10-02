@@ -1689,4 +1689,154 @@ public class ValiFlowQueryTests
         filter(MakeEntity(createdAt: new DateTime(2025, 7, 1))).Should().BeTrue();
         filter(MakeEntity(createdAt: new DateTime(2025, 7, 2))).Should().BeFalse();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery scalar families: long / double / decimal / float / short
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private record ScalarNumerics(long LongValue, double DoubleValue, decimal DecimalValue, float FloatValue, short ShortValue);
+
+    // ── long ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Long_GreaterThan_MatchesLargerValue()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().GreaterThan(e => e.LongValue, 100L).Build().Compile();
+        filter(new ScalarNumerics(200L, 0, 0, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(50L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Long_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.LongValue, 100L, 1L);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Long_IsEven_And_IsMultipleOf_WorkCorrectly()
+    {
+        var evenFilter = new ValiFlowQuery<ScalarNumerics>().IsEven(e => e.LongValue).Build().Compile();
+        evenFilter(new ScalarNumerics(4L, 0, 0, 0, 0)).Should().BeTrue();
+        evenFilter(new ScalarNumerics(3L, 0, 0, 0, 0)).Should().BeFalse();
+
+        var multipleFilter = new ValiFlowQuery<ScalarNumerics>().IsMultipleOf(e => e.LongValue, 5L).Build().Compile();
+        multipleFilter(new ScalarNumerics(15L, 0, 0, 0, 0)).Should().BeTrue();
+        multipleFilter(new ScalarNumerics(7L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    // ── double ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Double_Positive_And_Negative_WorkCorrectly()
+    {
+        var positiveFilter = new ValiFlowQuery<ScalarNumerics>().Positive(e => e.DoubleValue).Build().Compile();
+        positiveFilter(new ScalarNumerics(0, 1.5, 0, 0, 0)).Should().BeTrue();
+        positiveFilter(new ScalarNumerics(0, -1.5, 0, 0, 0)).Should().BeFalse();
+
+        var negativeFilter = new ValiFlowQuery<ScalarNumerics>().Negative(e => e.DoubleValue).Build().Compile();
+        negativeFilter(new ScalarNumerics(0, -1.5, 0, 0, 0)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Double_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.DoubleValue, 10.0, 1.0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Double_MinValue_MaxValue_WorkCorrectly()
+    {
+        var minFilter = new ValiFlowQuery<ScalarNumerics>().MinValue(e => e.DoubleValue, 10.0).Build().Compile();
+        minFilter(new ScalarNumerics(0, 10.0, 0, 0, 0)).Should().BeTrue();
+        minFilter(new ScalarNumerics(0, 9.9, 0, 0, 0)).Should().BeFalse();
+
+        var maxFilter = new ValiFlowQuery<ScalarNumerics>().MaxValue(e => e.DoubleValue, 10.0).Build().Compile();
+        maxFilter(new ScalarNumerics(0, 10.0, 0, 0, 0)).Should().BeTrue();
+        maxFilter(new ScalarNumerics(0, 10.1, 0, 0, 0)).Should().BeFalse();
+    }
+
+    // ── decimal ───────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Decimal_Zero_And_NotZero_WorkCorrectly()
+    {
+        var zeroFilter = new ValiFlowQuery<ScalarNumerics>().Zero(e => e.DecimalValue).Build().Compile();
+        zeroFilter(new ScalarNumerics(0, 0, 0m, 0, 0)).Should().BeTrue();
+        zeroFilter(new ScalarNumerics(0, 0, 5m, 0, 0)).Should().BeFalse();
+
+        var notZeroFilter = new ValiFlowQuery<ScalarNumerics>().NotZero(e => e.DecimalValue).Build().Compile();
+        notZeroFilter(new ScalarNumerics(0, 0, 5m, 0, 0)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Decimal_InRange_MatchesWithinBounds()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().InRange(e => e.DecimalValue, 10m, 20m).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 15m, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 25m, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Decimal_LessThanOrEqualTo_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().LessThanOrEqualTo(e => e.DecimalValue, 10m).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 10m, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 10.01m, 0, 0)).Should().BeFalse();
+    }
+
+    // ── float ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Float_GreaterThanOrEqualTo_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().GreaterThanOrEqualTo(e => e.FloatValue, 5f).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 5f, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 4.9f, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Float_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.FloatValue, 10f, 1f);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Float_MinValue_MaxValue_WorkCorrectly()
+    {
+        var minFilter = new ValiFlowQuery<ScalarNumerics>().MinValue(e => e.FloatValue, 2f).Build().Compile();
+        minFilter(new ScalarNumerics(0, 0, 0, 2f, 0)).Should().BeTrue();
+        minFilter(new ScalarNumerics(0, 0, 0, 1f, 0)).Should().BeFalse();
+    }
+
+    // ── short ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Short_Positive_And_Negative_WorkCorrectly()
+    {
+        var positiveFilter = new ValiFlowQuery<ScalarNumerics>().Positive(e => e.ShortValue).Build().Compile();
+        positiveFilter(new ScalarNumerics(0, 0, 0, 0, 5)).Should().BeTrue();
+        positiveFilter(new ScalarNumerics(0, 0, 0, 0, -5)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Short_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.ShortValue, (short)10, (short)1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Short_LessThan_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().LessThan(e => e.ShortValue, (short)10).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 0, 5)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 0, 15)).Should().BeFalse();
+    }
 }
