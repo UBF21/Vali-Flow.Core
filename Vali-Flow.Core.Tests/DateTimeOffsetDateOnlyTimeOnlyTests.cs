@@ -1313,5 +1313,64 @@ public class DateTimeOffsetDateOnlyTimeOnlyTests
             new DateOnly(2026, 3, 20))).Should().BeFalse();
     }
 
+    // ── DateOnly (non-Query) coverage gaps ───────────────────────────────────
+
+    [Fact]
+    public void DateOnly_InLastDays_MatchesWithinWindow()
+    {
+        var filter = new ValiFlow<Event>().InLastDays(e => e.EventDate, 7).Build().Compile();
+
+        filter(MakeEvent(eventDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-3)))).Should().BeTrue();
+        filter(MakeEvent(eventDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_SameMonthAs_MatchesSameMonthAndYear()
+    {
+        var reference = new DateOnly(2025, 9, 1);
+        var filter = new ValiFlow<Event>().SameMonthAs(e => e.EventDate, reference).Build().Compile();
+
+        filter(MakeEvent(eventDate: new DateOnly(2025, 9, 20))).Should().BeTrue();
+        filter(MakeEvent(eventDate: new DateOnly(2024, 9, 20))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Event>();
+        var act = () => builder.InNextDays(e => e.EventDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // ── DateTimeOffset (non-Query) coverage gaps ─────────────────────────────
+
+    [Fact]
+    public void DateTimeOffset_ExactDate_MatchesSameUtcDay()
+    {
+        var target = new DateTimeOffset(2025, 8, 10, 5, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlow<Event>().ExactDate(e => e.StartOffset, target).Build().Compile();
+
+        filter(MakeEvent(startOffset: new DateTimeOffset(2025, 8, 10, 20, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEvent(startOffset: new DateTimeOffset(2025, 8, 11, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_SameYearAs_MatchesSameYearOnly()
+    {
+        var reference = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlow<Event>().SameYearAs(e => e.StartOffset, reference).Build().Compile();
+
+        filter(MakeEvent(startOffset: new DateTimeOffset(2025, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEvent(startOffset: new DateTimeOffset(2024, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Event>();
+        var act = () => builder.InLastDays(e => e.StartOffset, -3);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
 }
 

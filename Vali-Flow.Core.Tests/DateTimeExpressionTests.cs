@@ -364,6 +364,33 @@ public class DateTimeExpressionTests
         filter.Compile()(MakeProduct(DateTime.Today)).Should().BeFalse();
     }
 
+    // ── Coverage gaps: InLastDays guard, IsInYear guard ──────────────────────
+
+    [Fact]
+    public void InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.InLastDays(p => p.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void InLastDays_MatchesWithinWindow()
+    {
+        var filter = new ValiFlow<Product>().InLastDays(p => p.CreatedAt, 5).Build().Compile();
+
+        filter(MakeProduct(DateTime.Today.AddDays(-2))).Should().BeTrue();
+        filter(MakeProduct(DateTime.Today.AddDays(-10))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsInYear(p => p.CreatedAt, 10000);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
     private static DateTime GetNextDayOfWeek(DateTime from, DayOfWeek dayOfWeek)
     {
         int daysUntil = ((int)dayOfWeek - (int)from.DayOfWeek + 7) % 7;
