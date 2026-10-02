@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Linq.Expressions;
 using Xunit;
 using FluentAssertions;
@@ -261,5 +262,41 @@ public class ExpressionExplainerTests
         Expression<Func<Item, bool>> expr = item => item.Value - 1 > 0;
         var result = Explain(expr);
         result.Should().Contain("-");
+    }
+
+    // ── Coverage gaps: Multiply/Divide/default NodeType, Negate unary, extension method ──
+
+    [Fact]
+    public void Explain_BinaryMultiply_ShowsMultiplicationOperator()
+    {
+        Expression<Func<Item, bool>> expr = item => item.Value * 2 > 10;
+        var result = Explain(expr);
+        result.Should().Contain("*");
+    }
+
+    [Fact]
+    public void Explain_BinaryDivide_ShowsDivisionOperator()
+    {
+        Expression<Func<Item, bool>> expr = item => item.Value / 2 > 1;
+        var result = Explain(expr);
+        result.Should().Contain("/");
+    }
+
+    [Fact]
+    public void Explain_UnaryNegate_WrapsInNodeTypeBrackets()
+    {
+        Expression<Func<Item, bool>> expr = item => -item.Value < 0;
+        var result = Explain(expr);
+        result.Should().Contain("[Negate]");
+    }
+
+    [Fact]
+    public void Explain_ExtensionMethodCall_RendersAsReceiverDotMethod()
+    {
+        Expression<Func<Item, bool>> expr = item => item.Name!.AsEnumerable().Any();
+        var result = Explain(expr);
+        result.Should().Contain("Name");
+        result.Should().Contain(".AsEnumerable(");
+        result.Should().Contain(".Any(");
     }
 }
