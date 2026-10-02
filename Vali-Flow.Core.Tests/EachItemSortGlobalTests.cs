@@ -598,6 +598,64 @@ public class EachItemSortGlobalTests
         result[2].Name.Should().Be("Gamma");
     }
 
+    // ── ValiSort coverage gaps: ThenBy descending branch ─────────────────────
+
+    [Fact]
+    public void ValiSort_ThenByDescending_OrdersSecondaryKeyDescending()
+    {
+        var items = new[]
+        {
+            new Product("B", 10m, 2, true, DateTime.Now, new List<string>()),
+            new Product("B", 5m, 1, true, DateTime.Now, new List<string>()),
+            new Product("A", 1m, 1, true, DateTime.Now, new List<string>()),
+        };
+
+        var sort = new ValiSort<Product>()
+            .By(p => p.Name)
+            .ThenBy(p => p.Price, descending: true);
+
+        var sorted = sort.Apply(items).ToList();
+
+        sorted[0].Name.Should().Be("A");
+        sorted[1].Name.Should().Be("B");
+        sorted[1].Price.Should().Be(10m); // descending secondary key: higher price first within "B"
+        sorted[2].Price.Should().Be(5m);
+    }
+
+    [Fact]
+    public void ValiSort_ThenByAscending_StillOrdersCorrectly()
+    {
+        // Companion to the descending test above — confirms both branches of ApplyThenBy
+        // (ascending vs descending) are exercised, not just the descending one.
+        var items = new[]
+        {
+            new Product("B", 10m, 2, true, DateTime.Now, new List<string>()),
+            new Product("B", 5m, 1, true, DateTime.Now, new List<string>()),
+        };
+
+        var sort = new ValiSort<Product>().By(p => p.Name).ThenBy(p => p.Price);
+        var sorted = sort.Apply(items).ToList();
+
+        sorted[0].Price.Should().Be(5m); // ascending secondary key: lower price first
+        sorted[1].Price.Should().Be(10m);
+    }
+
+    [Fact]
+    public void ValiSort_By_SingleKey_OrdersCorrectly()
+    {
+        var items = new[]
+        {
+            new Product("C", 1m, 1, true, DateTime.Now, new List<string>()),
+            new Product("A", 1m, 1, true, DateTime.Now, new List<string>()),
+            new Product("B", 1m, 1, true, DateTime.Now, new List<string>()),
+        };
+
+        var sort = new ValiSort<Product>().By(p => p.Name);
+        var sorted = sort.Apply(items).Select(p => p.Name).ToList();
+
+        sorted.Should().Equal("A", "B", "C");
+    }
+
     // =========================================================================
     // ValiFlowGlobal Tests
     // =========================================================================
