@@ -157,6 +157,55 @@ public class BaseExpressionTests
         // A is false, B is true, C is false -> (A AND B) = false, C = false -> should fail
         compiled(MakeProduct(quantity: 0, isActive: true, price: 10m)).Should().BeFalse();
     }
+
+    // ── Regression: NotNull/Null on non-nullable value types (int/DateTime/bool) ──
+
+    [Fact]
+    public void NotNull_OnNonNullableInt_DoesNotThrow_AndAlwaysPasses()
+    {
+        var act = () => new ValiFlow<Product>().NotNull(p => p.Quantity).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().NotNull(p => p.Quantity).Build().Compile();
+        filter(new Product("A", 10m, 0, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NotNull_OnNonNullableDateTime_DoesNotThrow_AndAlwaysPasses()
+    {
+        var act = () => new ValiFlow<Product>().NotNull(p => p.CreatedAt).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().NotNull(p => p.CreatedAt).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Null_OnNonNullableBool_DoesNotThrow_AndAlwaysFails()
+    {
+        var act = () => new ValiFlow<Product>().Null(p => p.IsActive).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().Null(p => p.IsActive).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsNotNull_OnNonNullableInt_DoesNotThrow()
+    {
+        // IsNotNull is a pure alias for NotNull — confirms the fix propagates through the alias.
+        var act = () => new ValiFlow<Product>().IsNotNull(p => p.Quantity).Build();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void NotNull_OnNullableReferenceType_StillWorksAsBefore()
+    {
+        // Regression guard: the existing reference-type path must remain unaffected by the fix.
+        var filter = new ValiFlow<Product>().NotNull(p => p.Name).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product(null, 10m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
 }
 
 public class EvaluationMethodTests
