@@ -9,6 +9,7 @@ public record Order(int Id, decimal Total, bool IsActive, List<OrderItem> Items)
 public record OrderItem(string Name, decimal Price, int Quantity);
 public record Widget(string Name, decimal Price, bool IsDeleted);
 
+[Collection("ValiFlowGlobal")]
 public class EachItemSortGlobalTests
 {
     // =========================================================================

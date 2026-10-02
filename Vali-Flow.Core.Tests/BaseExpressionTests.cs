@@ -791,6 +791,15 @@ public class RegressionTests
 public interface INamedEntity { string? Name { get; } }
 public record ConcreteNamedEntity(string? Name) : INamedEntity;
 
+/// <summary>
+/// Serializes all test classes that mutate the shared static <see cref="ValiFlowGlobal"/> singleton
+/// (ClearAll/Register/Clear) so they never run concurrently under xUnit's default cross-class
+/// parallelism — otherwise one test's ClearAll() can wipe another's in-flight registration.
+/// </summary>
+[CollectionDefinition("ValiFlowGlobal", DisableParallelization = true)]
+public class ValiFlowGlobalCollection { }
+
+[Collection("ValiFlowGlobal")]
 public class ValiFlowGlobalTests
 {
     private static Product MakeProduct(
