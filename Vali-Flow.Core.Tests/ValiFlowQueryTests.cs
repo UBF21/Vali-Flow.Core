@@ -1546,4 +1546,70 @@ public class ValiFlowQueryTests
         Action act = () => builder.NotIn(e => e.Name, new List<string>());
         act.Should().Throw<ArgumentException>();
     }
+
+    // ── DateTimeOffset coverage gaps (IsInMonth/IsInYear/IsToday/ExactDate/SameMonthAs/
+    //    InLastDays/IsWeekend/IsInQuarter guards) ───────────────────────────────
+
+    [Fact]
+    public void DateTimeOffset_IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInMonth(e => e.UpdatedAt, 13);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_ExactDate_MatchesSameUtcDay()
+    {
+        var target = new DateTimeOffset(2025, 6, 15, 10, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().ExactDate(e => e.UpdatedAt, target).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 15, 23, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 1, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_SameMonthAs_MatchesSameMonthAndYear()
+    {
+        var reference = new DateTimeOffset(2025, 3, 1, 0, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().SameMonthAs(e => e.UpdatedAt, reference).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 3, 20, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2024, 3, 20, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InLastDays(e => e.UpdatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsWeekend_MatchesSaturdayAndSunday()
+    {
+        // 2025-06-14 is a Saturday (UTC).
+        var filter = new ValiFlowQuery<QueryEntity>().IsWeekend(e => e.UpdatedAt).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 14, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsInQuarter_InvalidQuarter_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInQuarter(e => e.UpdatedAt, 5);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsInQuarter_MatchesCorrectQuarter()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsInQuarter(e => e.UpdatedAt, 2).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 5, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
 }
