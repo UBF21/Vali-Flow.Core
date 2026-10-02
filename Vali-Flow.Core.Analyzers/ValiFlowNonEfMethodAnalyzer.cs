@@ -65,16 +65,15 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
         "IsIPv6",
         "IsHexColor",
         "IsSlug",
-        // IStringStateExpression — char-level LINQ
-        "IsTrimmed",
-        "IsLowerCase",
-        "IsUpperCase",
+        // IStringStateExpression — char-level LINQ (IsTrimmed/IsLowerCase/IsUpperCase excluded:
+        // ValiFlowQuery<T> has its own EF-safe reimplementation of these three — see
+        // StringExpressionQuery.cs. Flagging them here was a false positive.)
         "HasOnlyDigits",
         "HasOnlyLetters",
         "HasLettersAndNumbers",
         "HasSpecialCharacters",
-        // IStringContentExpression — StringComparison / ToLower
-        "EqualToIgnoreCase",
+        // IStringContentExpression — StringComparison / ToLower (EqualToIgnoreCase excluded:
+        // same reason — ValiFlowQuery<T> has its own EF-safe ToLower()-based reimplementation.)
         "IsOneOf",
         // ICollectionExpression — predicate lambdas / Distinct / GroupBy
         "All",
