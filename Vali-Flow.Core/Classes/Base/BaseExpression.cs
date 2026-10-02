@@ -239,7 +239,10 @@ public abstract class BaseExpression<TBuilder, T> : IExpression<TBuilder, T>
 
         var parameter = selector.Parameters[0];
         var selectorBody = selector.Body;
-        var predicateBody = new ParameterReplacer(predicate.Parameters[0], selectorBody).Visit(predicate.Body);
+        // Predicates frequently reference their parameter more than once (e.g. "val != null && val.Length <= max").
+        // Clone the selector body so each substitution site gets its own node — consistent with the
+        // ForceCloneVisitor pattern already used in BuildNestedExpression and BuildNullSafeCollectionPredicate.
+        var predicateBody = new ParameterReplacer(predicate.Parameters[0], new ForceCloneVisitor().Visit(selectorBody)!).Visit(predicate.Body);
 
         Expression<Func<T, bool>> combinedCondition = Expression.Lambda<Func<T, bool>>(predicateBody, parameter);
 

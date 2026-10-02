@@ -206,6 +206,38 @@ public class BaseExpressionTests
         filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
         filter(new Product(null, 10m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
     }
+
+    // ── Regression: Add<TValue> must not alias the selector body across predicate branches ──
+
+    [Fact]
+    public void Add_WithPredicateReferencingParameterTwice_CompilesAndEvaluatesCorrectly()
+    {
+        // MinLength-style predicate: "val != null && val.Length <= max" references its
+        // parameter twice. If the selector body were aliased (same Expression instance
+        // reused in both positions), this must still compile and evaluate correctly —
+        // Expression.Compile() tolerates aliasing, so this mainly guards against a future
+        // regression where a non-idempotent selector (e.g. one with a conversion) breaks.
+        var filter = new ValiFlow<Product>()
+            .MaxLength(p => p.Name, 3)
+            .Build()
+            .Compile();
+
+        filter(new Product("ab", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product("abcdef", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+        filter(new Product(null, 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsValid_WithRepeatedSelectorPredicate_MatchesBuildCompiledResult()
+    {
+        // IsValid() goes through ConditionEntry.CompiledFunc (NOT Build()'s re-mapping).
+        // This confirms both paths agree once selectorBody is cloned defensively.
+        var validator = new ValiFlow<Product>().MaxLength(p => p.Name, 3);
+        var viaBuild = validator.Build().Compile();
+        var product = new Product("abcdef", 1m, 1, true, DateTime.Now, new List<string>());
+
+        validator.IsValid(product).Should().Be(viaBuild(product));
+    }
 }
 
 public class EvaluationMethodTests
