@@ -398,9 +398,8 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Claude Code
-CLAUDE.md
-.claudeignore
 .claude/
+.codegraph/
 
 # .NET build output
 [Bb]in/
