@@ -1893,4 +1893,69 @@ public class ValiFlowQueryTests
         filter(new ShortEntity((short)5)).Should().BeTrue();
         filter(new ShortEntity((short)20)).Should().BeFalse();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // StringExpressionQuery coverage gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void String_IsTrimmed_DistinguishesTrimmedFromPadded()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsTrimmed(e => e.Name).Build().Compile();
+        filter(MakeEntity(name: "Alice")).Should().BeTrue();
+        filter(MakeEntity(name: " Alice ")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_EqualToIgnoreCase_MatchesRegardlessOfCase()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().EqualToIgnoreCase(e => e.Name, "ALICE").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "bob")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_ContainsIgnoreCase_MatchesRegardlessOfCase()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().ContainsIgnoreCase(e => e.Name, "LIC").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "bob")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_NotContains_NullPassesAndNonMatchingPasses()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().NotContains(e => e.Name, "xyz").Build().Compile();
+        filter(MakeEntity(name: null)).Should().BeTrue();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "xyzabc")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_NotStartsWith_And_NotEndsWith_WorkCorrectly()
+    {
+        var notStarts = new ValiFlowQuery<QueryEntity>().NotStartsWith(e => e.Name, "al").Build().Compile();
+        notStarts(MakeEntity(name: "bob")).Should().BeTrue();
+        notStarts(MakeEntity(name: "alice")).Should().BeFalse();
+
+        var notEnds = new ValiFlowQuery<QueryEntity>().NotEndsWith(e => e.Name, "ce").Build().Compile();
+        notEnds(MakeEntity(name: "bob")).Should().BeTrue();
+        notEnds(MakeEntity(name: "alice")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_MinLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.MinLength(e => e.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_StartsWith_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.StartsWith(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
 }
