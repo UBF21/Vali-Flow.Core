@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Models;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -19,6 +20,10 @@ public record QueryEntity(
 
 public class ValiFlowQueryTests
 {
+    // ── Nested records for testing ─────────────────────────────────────────────
+    private record Address(string? City);
+    private record Customer(string? Name, Address? HomeAddress);
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static QueryEntity MakeEntity(
@@ -1957,5 +1962,64 @@ public class ValiFlowQueryTests
         var builder = new ValiFlowQuery<QueryEntity>();
         var act = () => builder.StartsWith(e => e.Name, "");
         act.Should().Throw<ArgumentException>();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ValiFlowQuery.cs gaps: ValidateNested guard, WithError/WithSeverity forwarders
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ValidateNested_WithComplexNestedObject_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlowQuery<Customer>();
+        var act = () => builder.ValidateNested(c => c.HomeAddress, _ => { /* no conditions added */ });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ValidateNested_WithComplexNestedObject_WithCondition_ValidatesNestedProperty()
+    {
+        var filter = new ValiFlowQuery<Customer>()
+            .ValidateNested(c => c.HomeAddress, addr => addr.IsNotNullOrEmpty(a => a.City))
+            .Build().Compile();
+
+        filter(new Customer("Alice", new Address("Lima"))).Should().BeTrue();
+        filter(new Customer("Alice", new Address(null))).Should().BeFalse();
+        filter(new Customer("Alice", null)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WithError_SeverityOverload_SetsSeverityOnLastCondition()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithError("ERR001", "Name is required", Severity.Warning);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ERR001" && e.Severity == Severity.Warning);
+    }
+
+    [Fact]
+    public void WithError_PropertyPathAndSeverityOverload_SetsBoth()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithError("ERR002", "Name is required", "Name", Severity.Error);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ERR002" && e.PropertyPath == "Name" && e.Severity == Severity.Error);
+    }
+
+    [Fact]
+    public void WithSeverity_SetsSeverityOnLastCondition()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithMessage("Name is required")
+            .WithSeverity(Severity.Critical);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.Errors.Should().ContainSingle(e => e.Severity == Severity.Critical);
     }
 }
