@@ -1612,4 +1612,81 @@ public class ValiFlowQueryTests
         filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 5, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
         filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
     }
+
+    // ── DateOnly coverage gaps ──────────────────────────────────────────────────
+
+    [Fact]
+    public void DateOnly_IsYesterday_MatchesYesterday()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsYesterday(e => e.BirthDate).Build().Compile();
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1));
+
+        filter(MakeEntity(birthDate: yesterday)).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InNextDays(e => e.BirthDate, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsDayOfWeek_MatchesSpecifiedDay()
+    {
+        // 2025-06-16 is a Monday.
+        var filter = new ValiFlowQuery<QueryEntity>().IsDayOfWeek(e => e.BirthDate, DayOfWeek.Monday).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 6, 16))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 6, 17))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsLastDayOfMonth_MatchesLastDay()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsLastDayOfMonth(e => e.BirthDate).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 30))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 29))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_SameYearAs_MatchesSameYearOnly()
+    {
+        var reference = new DateOnly(2025, 1, 1);
+        var filter = new ValiFlowQuery<QueryEntity>().SameYearAs(e => e.BirthDate, reference).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 11, 30))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2024, 11, 30))).Should().BeFalse();
+    }
+
+    // ── DateTime coverage gaps ──────────────────────────────────────────────────
+
+    [Fact]
+    public void DateTime_IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInMonth(e => e.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTime_IsWeekday_MatchesMondayThroughFriday()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsWeekday(e => e.CreatedAt).Build().Compile();
+
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 16))).Should().BeTrue();  // Monday
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 14))).Should().BeFalse(); // Saturday
+    }
+
+    [Fact]
+    public void DateTime_IsFirstDayOfMonth_MatchesFirstDay()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsFirstDayOfMonth(e => e.CreatedAt).Build().Compile();
+
+        filter(MakeEntity(createdAt: new DateTime(2025, 7, 1))).Should().BeTrue();
+        filter(MakeEntity(createdAt: new DateTime(2025, 7, 2))).Should().BeFalse();
+    }
 }
