@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -237,6 +238,58 @@ public class BaseExpressionTests
         var product = new Product("abcdef", 1m, 1, true, DateTime.Now, new List<string>());
 
         validator.IsValid(product).Should().Be(viaBuild(product));
+    }
+
+    [Fact]
+    public void InRange_Generic_InvalidRange_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Price, 10m, 1m);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void InRange_GenericWithInt_InvalidRange_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Quantity, 10, 1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void EqualTo_Generic_NullValue_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.EqualTo(p => p.Name, (string?)null!);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void IComparableExpression_LessThanOrEqualTo_ViaInterface_WorksCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var filter = builder.LessThanOrEqualTo(p => p.Name!, "M").Build().Compile();
+
+        filter(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product("Z", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IComparableExpression_EqualTo_ViaInterface_InRangeInvalid_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Name!, "Z", "A");
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void CrossPropertyComparable_ReferenceType_WorksCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var filter = builder.GreaterThan(p => p.Name!, p => p.Tags.Count > 0 ? p.Tags[0] : "").Build().Compile();
+
+        filter(new Product("B", 1m, 1, true, DateTime.Now, new List<string> { "A" })).Should().BeTrue();
+        filter(new Product("A", 1m, 1, true, DateTime.Now, new List<string> { "B" })).Should().BeFalse();
     }
 }
 
