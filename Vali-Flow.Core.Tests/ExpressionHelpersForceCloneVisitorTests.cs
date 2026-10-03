@@ -53,4 +53,27 @@ public class ExpressionHelpersForceCloneVisitorTests
         // When Start > End, the range becomes backwards, so the condition fails
         filter(new Measurement(1, new[] { 1 }, 1m, end.AddDays(1), end)).Should().BeFalse();
     }
+
+    // 4. VisitUnary — selector body is a cast/conversion, not plain member access.
+    [Fact]
+    public void InRange_CrossProperty_WithNullableCastSelector_ClonesUnaryNodeCorrectly()
+    {
+        var filter = new ValiFlowQuery<Measurement>()
+            .InRange(m => (int)m.RawValue, m => m.RawValue - 5, m => m.RawValue + 5)
+            .Build().Compile();
+
+        filter(new Measurement(100, new[] { 1 }, 1m, DateTime.Now, DateTime.Now)).Should().BeTrue();
+    }
+
+    // 5. VisitMethodCall — selector body is a method call (ToString/ToUpper-style), not plain member access.
+    [Fact]
+    public void Contains_MultiSelector_WithMethodCallSelector_ClonesMethodCallNodeCorrectly()
+    {
+        var filter = new ValiFlow<Measurement>()
+            .Contains("1", new System.Linq.Expressions.Expression<System.Func<Measurement, string?>>[] { m => m.RawValue.ToString() })
+            .Build().Compile();
+
+        filter(new Measurement(1, new[] { 1 }, 1m, DateTime.Now, DateTime.Now)).Should().BeTrue();
+        filter(new Measurement(99, new[] { 1 }, 1m, DateTime.Now, DateTime.Now)).Should().BeFalse();
+    }
 }
