@@ -1618,6 +1618,72 @@ public class ValiFlowQueryTests
         filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
     }
 
+    [Fact]
+    public void DateTimeOffset_IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInYear(e => e.UpdatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsToday_MatchesTodayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsToday(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow)).Should().BeTrue();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow.AddDays(-2))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsYesterday_MatchesYesterdayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsYesterday(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow.AddDays(-1))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InNextDays(e => e.UpdatedAt, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_SameYearAs_MatchesSameYearOnly()
+    {
+        var reference = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().SameYearAs(e => e.UpdatedAt, reference).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2024, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsDayOfWeek_MatchesSpecifiedDay()
+    {
+        // 2025-06-16 is a Monday.
+        var filter = new ValiFlowQuery<QueryEntity>().IsDayOfWeek(e => e.UpdatedAt, DayOfWeek.Monday).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsFirstDayOfMonth_MatchesFirstDayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsFirstDayOfMonth(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 7, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 7, 2, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsLastDayOfMonth_MatchesLastDayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsLastDayOfMonth(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 4, 30, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 4, 29, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
     // ── DateOnly coverage gaps ──────────────────────────────────────────────────
 
     [Fact]
