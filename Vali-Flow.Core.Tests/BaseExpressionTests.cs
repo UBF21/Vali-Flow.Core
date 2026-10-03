@@ -292,6 +292,20 @@ public class BaseExpressionTests
         filter(new Product("B", 1m, 1, true, DateTime.Now, new List<string> { "A" })).Should().BeTrue();
         filter(new Product("A", 1m, 1, true, DateTime.Now, new List<string> { "B" })).Should().BeFalse();
     }
+
+    [Fact]
+    public void ValiFlow_ExplicitInterface_LessThanOrEqualTo_And_EqualTo_WorkCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+
+        var lteFilter = builder.LessThanOrEqualTo(p => p.Name!, "M").Build().Compile();
+        lteFilter(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+
+        IComparableExpression<ValiFlow<Product>, Product> builder2 = new ValiFlow<Product>();
+        var eqFilter = builder2.EqualTo(p => p.Name!, "Alice").Build().Compile();
+        eqFilter(new Product("Alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        eqFilter(new Product("Bob", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
 }
 
 public class EvaluationMethodTests
