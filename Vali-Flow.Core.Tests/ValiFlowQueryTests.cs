@@ -2022,4 +2022,113 @@ public class ValiFlowQueryTests
         var result = builder.Validate(new Customer(null, null));
         result.Errors.Should().ContainSingle(e => e.Severity == Severity.Critical);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DateOnlyExpressionQuery — Round 2 remaining gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void DateOnly_BetweenDates_ToBeforeFrom_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.BetweenDates(e => e.BirthDate, new DateOnly(2025, 1, 1), new DateOnly(2024, 1, 1));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInYear(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        var act2 = () => builder.IsInYear(e => e.BirthDate, 10000);
+        act2.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_FutureDate_MatchesFutureOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().FutureDate(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_PastDate_MatchesPastOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().PastDate(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_ExactDate_MatchesExactDayOnly()
+    {
+        var target = new DateOnly(2025, 6, 15);
+        var filter = new ValiFlowQuery<QueryEntity>().ExactDate(e => e.BirthDate, target).Build().Compile();
+        filter(MakeEntity(birthDate: target)).Should().BeTrue();
+        filter(MakeEntity(birthDate: target.AddDays(1))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsTomorrow_MatchesTomorrowOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsTomorrow(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InLastDays(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_InNextDays_MatchesWithinWindow()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().InNextDays(e => e.BirthDate, 5).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_SameMonthAs_MatchesSameMonthAndYear()
+    {
+        var reference = new DateOnly(2025, 8, 1);
+        var filter = new ValiFlowQuery<QueryEntity>().SameMonthAs(e => e.BirthDate, reference).Build().Compile();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 8, 20))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2024, 8, 20))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsWeekend_And_IsWeekday_AreMutuallyConsistent()
+    {
+        // 2025-06-14 is a Saturday.
+        var weekendFilter = new ValiFlowQuery<QueryEntity>().IsWeekend(e => e.BirthDate).Build().Compile();
+        var weekdayFilter = new ValiFlowQuery<QueryEntity>().IsWeekday(e => e.BirthDate).Build().Compile();
+
+        weekendFilter(MakeEntity(birthDate: new DateOnly(2025, 6, 14))).Should().BeTrue();
+        weekdayFilter(MakeEntity(birthDate: new DateOnly(2025, 6, 14))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsInQuarter_InvalidQuarter_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInQuarter(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        var act2 = () => builder.IsInQuarter(e => e.BirthDate, 5);
+        act2.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsInQuarter_MatchesCorrectQuarter()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsInQuarter(e => e.BirthDate, 1).Build().Compile();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 1, 15))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 15))).Should().BeFalse();
+    }
 }
