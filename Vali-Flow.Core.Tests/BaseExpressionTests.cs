@@ -8,6 +8,10 @@ namespace Vali_Flow.Core.Tests;
 
 public record Product(string? Name, decimal Price, int Quantity, bool IsActive, DateTime CreatedAt, List<string> Tags);
 
+public record Address(string? City);
+
+public record Customer(string? Name, Address? HomeAddress);
+
 public class BaseExpressionTests
 {
     private static Product MakeProduct(
@@ -1515,6 +1519,126 @@ public class ComparisonExpressionCoverageTests
     {
         var builder = new ValiFlow<Product>();
         var act = () => builder.AnyItem<string>(p => p.Tags, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void AddSubGroup_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())); // freezes
+
+        var forked = original.AddSubGroup(g => g.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void Or_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.Or();
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void AddIf_BooleanOverload_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.AddIf(true, p => p.IsActive);
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void AddIf_SelectorPredicateOverload_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.AddIf(true, p => p.Quantity, q => q > 0);
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void When_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.When(p => p.IsActive, b => b.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void Unless_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.Unless(p => !p.IsActive, b => b.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void ValidateNested_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Customer>().IsNotNullOrEmpty(c => c.Name);
+        original.IsValid(new Customer("A", new Address("X")));
+
+        var forked = original.ValidateNested(c => c.HomeAddress, b => b.IsNotNullOrEmpty(a => a.City));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void When_EmptyThenAction_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.When(p => p.IsActive, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Unless_EmptyUnlessAction_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Unless(p => !p.IsActive, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void WithMessage_EmptyValue_Throws()
+    {
+        var builder = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        var act = () => builder.WithMessage("");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Add_AlwaysFalseConstant_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Add(_ => false);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void IsFalse_WithConstantTrueBody_Throws()
+    {
+        // IsFalse(x => true) builds Expression.Not(Constant(true)) without C# constant-folding it away
+        // (unlike a literal `_ => false`, which Roslyn folds to a bare ConstantExpression) — this is the
+        // one reachable way to hit BaseExpression.cs's "Not(Constant(bool))" validation branch.
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsFalse(p => true);
         act.Should().Throw<ArgumentException>();
     }
 }
