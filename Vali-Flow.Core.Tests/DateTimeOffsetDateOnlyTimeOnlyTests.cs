@@ -1440,5 +1440,21 @@ public class DateTimeOffsetDateOnlyTimeOnlyTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    [Fact]
+    public void TimeOnly_IsBetween_ToBeforeFrom_Throws()
+    {
+        var builder = new ValiFlow<Event>();
+        var act = () => builder.IsBetween(e => e.StartTime, new TimeOnly(10, 0), new TimeOnly(5, 0));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void TimeOnly_IsInHour_InvalidHour_Throws()
+    {
+        var builder = new ValiFlow<Event>();
+        var act = () => builder.IsInHour(e => e.StartTime, 24);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
 }
 

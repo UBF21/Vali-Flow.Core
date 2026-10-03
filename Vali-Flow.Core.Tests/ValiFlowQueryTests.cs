@@ -2274,4 +2274,20 @@ public class ValiFlowQueryTests
         filter(MakeEntity(createdAt: new DateTime(2025, 11, 1))).Should().BeTrue();
         filter(MakeEntity(createdAt: new DateTime(2025, 2, 1))).Should().BeFalse();
     }
+
+    [Fact]
+    public void TimeOnly_IsBetween_ToBeforeFrom_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsBetween(e => e.WorkStart, new TimeOnly(10, 0), new TimeOnly(5, 0));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void TimeOnly_IsInHour_InvalidHour_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInHour(e => e.WorkStart, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }
