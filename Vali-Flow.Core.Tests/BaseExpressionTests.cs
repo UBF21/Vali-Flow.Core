@@ -12,6 +12,17 @@ public record Address(string? City);
 
 public record Customer(string? Name, Address? HomeAddress);
 
+/// <summary>
+/// Serializes every test class that calls <c>RegexMatch</c> against the shared static
+/// <c>StringExpressionCache</c> (capped at 1000 distinct patterns), so a test that fills
+/// the cache to capacity (<see cref="BaseExpressionTests.RegexMatch_CacheExceedsCapacity_ThrowsOnOverflow"/>)
+/// can never race against another class's unrelated RegexMatch calls under xUnit's default
+/// cross-class parallelism.
+/// </summary>
+[CollectionDefinition("RegexCache", DisableParallelization = true)]
+public class RegexCacheCollection { }
+
+[Collection("RegexCache")]
 public class BaseExpressionTests
 {
     private static Product MakeProduct(

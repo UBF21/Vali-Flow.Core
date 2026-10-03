@@ -18,6 +18,7 @@ public record QueryEntity(
     List<string> Tags,
     int? OptionalScore);
 
+[Collection("RegexCache")]
 public class ValiFlowQueryTests
 {
     // ── Nested records for testing ─────────────────────────────────────────────
