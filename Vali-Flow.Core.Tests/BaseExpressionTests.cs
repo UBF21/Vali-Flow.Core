@@ -1,5 +1,6 @@
 using Xunit;
 using FluentAssertions;
+using System.Linq.Expressions;
 using Vali_Flow.Core.Builder;
 using Vali_Flow.Core.Interfaces.Types;
 
@@ -1361,5 +1362,129 @@ public class ComparisonExpressionCoverageTests
 
         var notEqualFilter = new ValiFlow<StatusEntity>().NotEqualTo(e => e.Label, "target").Build().Compile();
         notEqualFilter(new StatusEntity(Status.Draft, 1, "other")).Should().BeTrue();
+    }
+
+    [Fact]
+    public void MinLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.MinLength(p => p.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void MaxLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.MaxLength(p => p.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void ExactLength_NegativeValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.ExactLength(p => p.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void EndsWith_WithStringComparisonOverload_EmptyValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EndsWith(p => p.Name, "", StringComparison.OrdinalIgnoreCase);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void EndsWith_WithStringComparisonOverload_WorksCorrectly()
+    {
+        var filter = new ValiFlow<Product>().EndsWith(p => p.Name, "ICE", StringComparison.OrdinalIgnoreCase).Build().Compile();
+        filter(new Product("Alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void StartsWith_WithStringComparisonOverload_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.StartsWith(p => p.Name, null!, StringComparison.Ordinal);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_WithStringComparisonOverload_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Contains(p => p.Name, null!, StringComparison.OrdinalIgnoreCase);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void EqualToIgnoreCase_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EqualToIgnoreCase(p => p.Name, null!);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_MultiSelector_AllWhitespaceValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Contains("   ", new[] { (Expression<Func<Product, string?>>)(p => p.Name) });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_MultiSelector_WithInvariantCultureIgnoreCase_WorksCorrectly()
+    {
+        var filter = new ValiFlow<Product>().Contains("ALICE", new[] { (Expression<Func<Product, string?>>)(p => p.Name) }, StringComparison.InvariantCultureIgnoreCase).Build().Compile();
+        filter(new Product("alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void RegexMatch_CacheExceedsCapacity_ThrowsOnOverflow()
+    {
+        // StringExpressionCache is a static, process-wide cache shared by every ValiFlow<T>/StringExpression<,>
+        // instance, capped at 1000 distinct patterns. This test intentionally pushes it past capacity with
+        // unique patterns to exercise the cache-full guard — it does NOT assume a clean cache (other tests
+        // in the suite may have already inserted some patterns), it only asserts that AT SOME POINT within
+        // 1100 unique patterns, the guard fires.
+        //
+        // IMPORTANT: This test must restore the cache to its pre-test state in a finally block to prevent
+        // pollution of subsequent tests. Using reflection, we snapshot the current cache keys before the test,
+        // then remove any keys added by this test in the finally block.
+
+        var cacheType = typeof(ValiFlow<Product>).Assembly
+            .GetType("Vali_Flow.Core.Classes.Types.StringExpressionCache")!;
+        var cacheField = cacheType.GetField("_regexCache",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var cache = (System.Collections.Concurrent.ConcurrentDictionary<string, System.Text.RegularExpressions.Regex>)
+            cacheField.GetValue(null)!;
+        var originalKeys = cache.Keys.ToList();
+
+        try
+        {
+            var builder = new ValiFlow<Product>();
+            Action act = () =>
+            {
+                for (int i = 0; i < 1100; i++)
+                {
+                    builder.RegexMatch(p => p.Name, $"^unique-pattern-{i}-[a-z]+$");
+                }
+            };
+            act.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            // Restore cache to pre-test state: remove only the keys this test added
+            foreach (var key in cache.Keys.ToList())
+            {
+                if (!originalKeys.Contains(key))
+                {
+                    cache.TryRemove(key, out _);
+                }
+            }
+        }
     }
 }
