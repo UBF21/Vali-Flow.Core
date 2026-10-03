@@ -1501,4 +1501,20 @@ public class ComparisonExpressionCoverageTests
             }
         }
     }
+
+    [Fact]
+    public void EachItem_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EachItem<string>(p => p.Tags, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void AnyItem_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.AnyItem<string>(p => p.Tags, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
 }
