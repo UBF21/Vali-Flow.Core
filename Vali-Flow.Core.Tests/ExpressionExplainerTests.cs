@@ -299,4 +299,12 @@ public class ExpressionExplainerTests
         result.Should().Contain(".AsEnumerable(");
         result.Should().Contain(".Any(");
     }
+
+    [Fact]
+    public void Explain_BinaryModulo_ShowsRawNodeTypeFallback()
+    {
+        Expression<Func<Item, bool>> expr = item => item.Value % 2 == 0;
+        var result = Explain(expr);
+        result.Should().Contain("Modulo");
+    }
 }
