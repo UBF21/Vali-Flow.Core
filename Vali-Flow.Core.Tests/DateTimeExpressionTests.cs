@@ -389,4 +389,31 @@ public class DateTimeExpressionTests
         if (daysUntil == 0) daysUntil = 7;
         return from.AddDays(daysUntil).Date;
     }
+
+    // 9. BetweenDates guard — Round 2
+    [Fact]
+    public void BetweenDates_EndBeforeStart_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.BetweenDates(p => p.CreatedAt, DateTime.Today, DateTime.Today.AddDays(-1));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // 10. InNextDays guard — Round 2
+    [Fact]
+    public void InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.InNextDays(p => p.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // 11. IsInMonth guard — Round 2
+    [Fact]
+    public void IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsInMonth(p => p.CreatedAt, 13);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }
