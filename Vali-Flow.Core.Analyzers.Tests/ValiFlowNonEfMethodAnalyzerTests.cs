@@ -154,4 +154,55 @@ public class Usage
         var diagnostics = await GetVf001DiagnosticsAsync(source);
         diagnostics.Should().ContainSingle(d => d.Id == "VF001", "a type derived from ValiFlowQuery<T> must still be flagged via the base-type walk");
     }
+
+    [Fact]
+    public async Task NonMemberAccessInvocation_DoesNotTriggerVF001()
+    {
+        var source = @"
+public class Usage
+{
+    public void Run() { Foo(); }
+    private void Foo() { }
+}";
+        var diagnostics = await GetVf001DiagnosticsAsync(source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DelegateFieldInvocation_IsNonMemberAccessSyntax_DoesNotTriggerVF001()
+    {
+        // A bare delegate-field invocation like `All()` has no receiver, so it parses as an
+        // IdentifierNameSyntax invocation, not a MemberAccessExpressionSyntax — this hits the
+        // same non-member-access early return as NonMemberAccessInvocation_DoesNotTriggerVF001
+        // above (not the methodSymbol == null branch, which a delegate Invoke call never hits).
+        var source = @"
+public class Usage
+{
+    public System.Func<bool> All = () => true;
+    public void Run() { All(); }
+}";
+        var diagnostics = await GetVf001DiagnosticsAsync(source);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UnrelatedTypeWithSameMethodName_DoesNotTriggerVF001()
+    {
+        var source = @"
+using System.Collections.Generic;
+public class Usage
+{
+    public void Run()
+    {
+        var list = new List<int> { 1, 2, 3 };
+        list.All(x => x > 0);
+    }
+}
+public static class ListExt
+{
+    public static bool All(this List<int> list, System.Func<int,bool> predicate) => true;
+}";
+        var diagnostics = await GetVf001DiagnosticsAsync(source);
+        diagnostics.Should().BeEmpty("List<int> is not ValiFlowQuery<T> and the base-type walk must terminate at object without matching");
+    }
 }

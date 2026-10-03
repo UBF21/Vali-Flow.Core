@@ -183,7 +183,7 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
 
     /// <summary>
     /// Returns <see langword="true"/> if <paramref name="type"/> matches
-    /// <c>ValiFlowQuery</c> by short name or by fully-qualified display string.
+    /// <c>ValiFlowQuery</c> by exact short name.
     /// </summary>
     /// <param name="type">A single type symbol to test.</param>
     private static bool MatchesValiFlowQuery(ITypeSymbol type)
