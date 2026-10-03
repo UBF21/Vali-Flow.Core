@@ -2427,4 +2427,59 @@ public class ValiFlowQueryTests
         var act = () => builder.InRange(e => e.NullableLong, 10L, 1L);
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
+
+    [Fact]
+    public void String_MaxLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.MaxLength(e => e.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_ExactLength_NegativeValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.ExactLength(e => e.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_EndsWith_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.EndsWith(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void String_Contains_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.Contains(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void String_IsLowerCase_And_IsUpperCase_WorkCorrectly()
+    {
+        var lowerFilter = new ValiFlowQuery<QueryEntity>().IsLowerCase(e => e.Name).Build().Compile();
+        lowerFilter(MakeEntity(name: "alice")).Should().BeTrue();
+        lowerFilter(MakeEntity(name: "Alice")).Should().BeFalse();
+
+        var upperFilter = new ValiFlowQuery<QueryEntity>().IsUpperCase(e => e.Name).Build().Compile();
+        upperFilter(MakeEntity(name: "ALICE")).Should().BeTrue();
+        upperFilter(MakeEntity(name: "Alice")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_StartsWithIgnoreCase_And_EndsWithIgnoreCase_GuardAndHappyPath()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.StartsWithIgnoreCase(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+
+        var filter = new ValiFlowQuery<QueryEntity>().EndsWithIgnoreCase(e => e.Name, "ICE").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+    }
 }
