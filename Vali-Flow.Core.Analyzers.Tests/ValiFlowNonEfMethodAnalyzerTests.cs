@@ -101,4 +101,57 @@ public class Usage
         var diagnostics = await GetVf001DiagnosticsAsync(ControlSource);
         diagnostics.Should().ContainSingle(d => d.Id == "VF001");
     }
+
+    [Fact]
+    public async Task SimilarlyNamedType_InSameNamespace_DoesNotTriggerFalsePositive()
+    {
+        var source = @"
+using Vali_Flow.Core.Builder;
+namespace Vali_Flow.Core.Builder { public class ValiFlowQueryExtra { public void All() {} } }
+public class Entity { public string? Name { get; set; } }
+public class Usage
+{
+    public void Run()
+    {
+        var q = new Vali_Flow.Core.Builder.ValiFlowQueryExtra();
+        q.All();
+    }
+}";
+        var diagnostics = await GetVf001DiagnosticsAsync(source);
+        diagnostics.Should().BeEmpty("ValiFlowQueryExtra is not ValiFlowQuery<T> and must not be flagged by a substring match on its name");
+    }
+
+    // Deviation from brief: the brief's literal repro calls `q.IsEmail(e => e.Name)` on a type
+    // derived from ValiFlowQuery<T>. As established above for ControlSource/IsOneOf, IsEmail
+    // (and every other NonEfMethods name) is not actually exposed on ValiFlowQuery<T> in this
+    // codebase — only ValiFlow<T> implements IStringFormatExpression/ICollectionExpression — so
+    // that call would not compile and the analyzer would never see a resolved symbol. The
+    // analyzer matches purely on method name + receiver type (never methodSymbol.ContainingType),
+    // so declaring the extension method on the ValiFlowQuery<Entity> base (same pattern as
+    // ControlSource) and invoking it through a derived type faithfully exercises the same
+    // base-type-walk code path the brief intends to cover.
+    [Fact]
+    public async Task DerivedValiFlowQueryType_StillTriggersVF001ViaInheritance()
+    {
+        var source = @"
+using System;
+using System.Linq.Expressions;
+using Vali_Flow.Core.Builder;
+public class Entity { public string? Name { get; set; } }
+public static class DerivedTestExtensions
+{
+    public static void IsEmail(this ValiFlowQuery<Entity> q, Expression<Func<Entity, string?>> selector) { }
+}
+public class MyQuery<T> : ValiFlowQuery<T> { }
+public class Usage
+{
+    public void Run()
+    {
+        var q = new MyQuery<Entity>();
+        q.IsEmail(e => e.Name);
+    }
+}";
+        var diagnostics = await GetVf001DiagnosticsAsync(source);
+        diagnostics.Should().ContainSingle(d => d.Id == "VF001", "a type derived from ValiFlowQuery<T> must still be flagged via the base-type walk");
+    }
 }

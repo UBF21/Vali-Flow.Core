@@ -89,9 +89,6 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
     /// <summary>Short (unqualified) name of the <c>ValiFlowQuery</c> type.</summary>
     private const string ValiFlowQueryTypeName = "ValiFlowQuery";
 
-    /// <summary>Fully-qualified namespace-prefixed name used as a fallback match.</summary>
-    private const string ValiFlowQueryFullName = "Vali_Flow.Core.Builder.ValiFlowQuery";
-
     /// <summary>
     /// Registers the syntax-node action that fires on every invocation expression.
     /// </summary>
@@ -191,13 +188,8 @@ public sealed class ValiFlowNonEfMethodAnalyzer : DiagnosticAnalyzer
     /// <param name="type">A single type symbol to test.</param>
     private static bool MatchesValiFlowQuery(ITypeSymbol type)
     {
-        // Match by short name OR full metadata name (covers generic and non-generic)
-        if (type.Name == ValiFlowQueryTypeName)
-        {
-            return true;
-        }
-
-        var fullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return fullName.Contains(ValiFlowQueryFullName);
+        // Exact short-name match handles the common case (including generic instantiations,
+        // since ITypeSymbol.Name excludes type arguments).
+        return type.Name == ValiFlowQueryTypeName;
     }
 }
