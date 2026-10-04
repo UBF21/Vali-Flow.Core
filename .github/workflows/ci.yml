@@ -1,10 +1,17 @@
 name: CI
 
-# Pull requests and pushes to main. Single required check for branch protection: "CI OK".
+# Pull requests, pushes to main and reuse from release.yml (workflow_call). Single required check
+# for branch protection: "CI OK".
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:
+    inputs:
+      version-suffix:
+        description: Prerelease label appended to every package version (for example rc.1). Empty packs the versions declared in the csproj files.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -269,6 +276,8 @@ jobs:
     name: Pack NuGet packages
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_SUFFIX: ${{ inputs.version-suffix }}
     steps:
       - uses: actions/checkout@v4
 
@@ -278,10 +287,27 @@ jobs:
             8.0.x
             9.0.x
 
+      - name: Apply the prerelease label
+        if: ${{ inputs.version-suffix != '' }}
+        run: |
+          if ! [[ "$VERSION_SUFFIX" =~ ^[0-9A-Za-z.-]+$ ]]; then
+            echo "::error::version-suffix may only contain letters, digits, dots and hyphens"
+            exit 1
+          fi
+          # Vali-Flow.Core.Analyzers/Generator pin their own Version (1.x) independently of the
+          # core's (2.x); the label is appended per project via this shared MSBuild import.
+          cat > Directory.Build.targets <<'XML'
+          <Project>
+            <PropertyGroup Condition="'$(PrereleaseLabel)' != ''">
+              <Version>$(Version)-$(PrereleaseLabel)</Version>
+            </PropertyGroup>
+          </Project>
+          XML
+
       - name: Pack the core first, then the Roslyn companion packages
         run: |
           for project in Vali-Flow.Core Vali-Flow.Core.Analyzers Vali-Flow.Core.Generator; do
-            dotnet pack "$project/$project.csproj" -c Release -o artifacts
+            dotnet pack "$project/$project.csproj" -c Release -o artifacts ${VERSION_SUFFIX:+-p:PrereleaseLabel="$VERSION_SUFFIX"}
           done
 
       - name: Verify package contents
