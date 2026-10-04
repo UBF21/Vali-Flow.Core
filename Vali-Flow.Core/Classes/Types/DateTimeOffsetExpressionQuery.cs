@@ -286,10 +286,17 @@ public class DateTimeOffsetExpressionQuery<TBuilder, T> : IDateTimeOffsetExpress
     /// <param name="selector">Property selector for the <see cref="DateTimeOffset"/> member.</param>
     /// <returns>The builder instance for fluent chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is <see langword="null"/>.</exception>
+    /// <remarks>Computed from <c>Year</c>/<c>Month</c>/<c>Day</c> (plain integers) via nested
+    /// ternaries instead of <see cref="DateTime.DaysInMonth(int, int)"/> or
+    /// <c>AddDays</c>/<c>AddMonths</c>: neither is reliably translatable across EF Core relational
+    /// providers (confirmed: <c>DateTimeOffset.AddDays</c> itself fails translation on SQLite).
+    /// Integer arithmetic + ternary is universally translated to SQL CASE/IIF.</remarks>
     public TBuilder IsLastDayOfMonth(Expression<Func<T, DateTimeOffset>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<DateTimeOffset, bool>> p = val => val.Day == DateTime.DaysInMonth(val.Year, val.Month);
+        Expression<Func<DateTimeOffset, bool>> p = val => val.Day == (val.Month == 2
+            ? (val.Year % 4 == 0 && (val.Year % 100 != 0 || val.Year % 400 == 0) ? 29 : 28)
+            : (val.Month == 4 || val.Month == 6 || val.Month == 9 || val.Month == 11 ? 30 : 31));
         return _builder.Add(selector, p);
     }
 
