@@ -91,12 +91,20 @@ jobs:
           dotnet build Vali-Flow.Core.sln -c Release --no-restore -v:minimal -bl:logs/build.binlog 2>&1 | tee logs/02-build.log
 
       # Every project runs even if an earlier one fails, so the trace always holds the complete result of the cell.
+      # Vali-Flow.Core.Tests multi-targets net8.0;net9.0 and runs on both cells. Analyzers.Tests and
+      # Generator.Tests each have a single <TargetFramework>net9.0</TargetFramework> (no net8.0 build
+      # output exists for them at all) — skip them on the net8.0 cell instead of letting `dotnet test`
+      # fail outright on a framework they were never built for.
       - name: Unit tests with coverage on ${{ matrix.tfm }}
         shell: bash
         run: |
           set -o pipefail
           status=0
-          for project in Vali-Flow.Core.Tests Vali-Flow.Core.Analyzers.Tests Vali-Flow.Core.Generator.Tests; do
+          projects="Vali-Flow.Core.Tests"
+          if [ "${{ matrix.tfm }}" = "net9.0" ]; then
+            projects="$projects Vali-Flow.Core.Analyzers.Tests Vali-Flow.Core.Generator.Tests"
+          fi
+          for project in $projects; do
             echo "::group::$project on ${{ matrix.tfm }}"
             dotnet test "$project" -c Release --no-build -f "${{ matrix.tfm }}" \
               --logger "console;verbosity=detailed" \
