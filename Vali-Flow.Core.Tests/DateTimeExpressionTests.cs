@@ -85,22 +85,14 @@ public class DateTimeExpressionTests
         filter.Compile()(MakeProduct(new DateTime(2026, 6, 1))).Should().BeFalse();
     }
 
-    // 6. IsWeekend — matches Saturday/Sunday
+    // 6. IsWeekend(DateTime) — in-memory only
     [Fact]
     public void IsWeekend_MatchesSaturdayAndSunday()
     {
-        var filter = new ValiFlow<Product>()
-            .IsWeekend(p => p.CreatedAt)
-            .Build();
+        var filter = new ValiFlow<Product>().IsWeekend(p => p.CreatedAt).Build().Compile();
 
-        // Find a Saturday and Sunday
-        var saturday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Saturday);
-        var sunday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Sunday);
-        var monday = GetNextDayOfWeek(DateTime.Today, DayOfWeek.Monday);
-
-        filter.Compile()(MakeProduct(saturday)).Should().BeTrue();
-        filter.Compile()(MakeProduct(sunday)).Should().BeTrue();
-        filter.Compile()(MakeProduct(monday)).Should().BeFalse();
+        filter(MakeProduct(new DateTime(2025, 6, 14))).Should().BeTrue();  // Saturday
+        filter(MakeProduct(new DateTime(2025, 6, 16))).Should().BeFalse(); // Monday
     }
 
     // 7. IsWeekday — matches Mon-Fri
@@ -364,10 +356,64 @@ public class DateTimeExpressionTests
         filter.Compile()(MakeProduct(DateTime.Today)).Should().BeFalse();
     }
 
+    // ── Coverage gaps: InLastDays guard, IsInYear guard ──────────────────────
+
+    [Fact]
+    public void InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.InLastDays(p => p.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void InLastDays_MatchesWithinWindow()
+    {
+        var filter = new ValiFlow<Product>().InLastDays(p => p.CreatedAt, 5).Build().Compile();
+
+        filter(MakeProduct(DateTime.Today.AddDays(-2))).Should().BeTrue();
+        filter(MakeProduct(DateTime.Today.AddDays(-10))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsInYear(p => p.CreatedAt, 10000);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
     private static DateTime GetNextDayOfWeek(DateTime from, DayOfWeek dayOfWeek)
     {
         int daysUntil = ((int)dayOfWeek - (int)from.DayOfWeek + 7) % 7;
         if (daysUntil == 0) daysUntil = 7;
         return from.AddDays(daysUntil).Date;
+    }
+
+    // 9. BetweenDates guard — Round 2
+    [Fact]
+    public void BetweenDates_EndBeforeStart_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.BetweenDates(p => p.CreatedAt, DateTime.Today, DateTime.Today.AddDays(-1));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // 10. InNextDays guard — Round 2
+    [Fact]
+    public void InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.InNextDays(p => p.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // 11. IsInMonth guard — Round 2
+    [Fact]
+    public void IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsInMonth(p => p.CreatedAt, 13);
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 }

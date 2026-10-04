@@ -319,7 +319,7 @@ public class CollectionExpression<TBuilder, T> : ICollectionExpression<TBuilder,
     /// Both the null-check and the method-call get independent clones of the selector body
     /// so the same expression node never appears twice in the tree.
     /// </summary>
-    private Expression<Func<T, bool>> BuildNullSafeCollectionPredicate<TValue>(
+    private static Expression<Func<T, bool>> BuildNullSafeCollectionPredicate<TValue>(
         Expression<Func<T, IEnumerable<TValue>>> selector,
         System.Reflection.MethodInfo method,
         LambdaExpression predicate)

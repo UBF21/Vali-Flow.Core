@@ -581,12 +581,6 @@ public class StringExpression<TBuilder, T> : IStringExpression<TBuilder, T>
 /// <see cref="Regex"/> instance is reused regardless of which builder type or entity
 /// type is in use, and that the 1,000-entry cap applies globally, not per closed type.
 /// </summary>
-/// <summary>
-/// Non-generic static cache shared across all closed generic instantiations of
-/// <see cref="StringExpression{TBuilder,T}"/>. This ensures that the same compiled
-/// <see cref="Regex"/> instance is reused regardless of which builder type or entity
-/// type is in use, and that the 1,000-entry cap applies globally, not per closed type.
-/// </summary>
 internal static class StringExpressionCache
 {
     /// <summary>Thread-safe map from pattern string to compiled <see cref="Regex"/> instance.</summary>

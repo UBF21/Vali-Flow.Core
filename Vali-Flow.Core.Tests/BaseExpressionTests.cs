@@ -1,11 +1,28 @@
 using Xunit;
 using FluentAssertions;
+using System.Linq.Expressions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Interfaces.Types;
 
 namespace Vali_Flow.Core.Tests;
 
 public record Product(string? Name, decimal Price, int Quantity, bool IsActive, DateTime CreatedAt, List<string> Tags);
 
+public record Address(string? City);
+
+public record Customer(string? Name, Address? HomeAddress);
+
+/// <summary>
+/// Serializes every test class that calls <c>RegexMatch</c> against the shared static
+/// <c>StringExpressionCache</c> (capped at 1000 distinct patterns), so a test that fills
+/// the cache to capacity (<see cref="BaseExpressionTests.RegexMatch_CacheExceedsCapacity_ThrowsOnOverflow"/>)
+/// can never race against another class's unrelated RegexMatch calls under xUnit's default
+/// cross-class parallelism.
+/// </summary>
+[CollectionDefinition("RegexCache", DisableParallelization = true)]
+public class RegexCacheCollection { }
+
+[Collection("RegexCache")]
 public class BaseExpressionTests
 {
     private static Product MakeProduct(
@@ -156,6 +173,153 @@ public class BaseExpressionTests
         compiled(MakeProduct(quantity: 5, isActive: false, price: 10m)).Should().BeFalse();
         // A is false, B is true, C is false -> (A AND B) = false, C = false -> should fail
         compiled(MakeProduct(quantity: 0, isActive: true, price: 10m)).Should().BeFalse();
+    }
+
+    // ── Regression: NotNull/Null on non-nullable value types (int/DateTime/bool) ──
+
+    [Fact]
+    public void NotNull_OnNonNullableInt_DoesNotThrow_AndAlwaysPasses()
+    {
+        var act = () => new ValiFlow<Product>().NotNull(p => p.Quantity).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().NotNull(p => p.Quantity).Build().Compile();
+        filter(new Product("A", 10m, 0, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NotNull_OnNonNullableDateTime_DoesNotThrow_AndAlwaysPasses()
+    {
+        var act = () => new ValiFlow<Product>().NotNull(p => p.CreatedAt).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().NotNull(p => p.CreatedAt).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Null_OnNonNullableBool_DoesNotThrow_AndAlwaysFails()
+    {
+        var act = () => new ValiFlow<Product>().Null(p => p.IsActive).Build();
+        act.Should().NotThrow();
+
+        var filter = new ValiFlow<Product>().Null(p => p.IsActive).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsNotNull_OnNonNullableInt_DoesNotThrow()
+    {
+        // IsNotNull is a pure alias for NotNull — confirms the fix propagates through the alias.
+        var act = () => new ValiFlow<Product>().IsNotNull(p => p.Quantity).Build();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void NotNull_OnNullableReferenceType_StillWorksAsBefore()
+    {
+        // Regression guard: the existing reference-type path must remain unaffected by the fix.
+        var filter = new ValiFlow<Product>().NotNull(p => p.Name).Build().Compile();
+        filter(new Product("A", 10m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product(null, 10m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
+
+    // ── Regression: Add<TValue> must not alias the selector body across predicate branches ──
+
+    [Fact]
+    public void Add_WithPredicateReferencingParameterTwice_CompilesAndEvaluatesCorrectly()
+    {
+        // MinLength-style predicate: "val != null && val.Length <= max" references its
+        // parameter twice. If the selector body were aliased (same Expression instance
+        // reused in both positions), this must still compile and evaluate correctly —
+        // Expression.Compile() tolerates aliasing, so this mainly guards against a future
+        // regression where a non-idempotent selector (e.g. one with a conversion) breaks.
+        var filter = new ValiFlow<Product>()
+            .MaxLength(p => p.Name, 3)
+            .Build()
+            .Compile();
+
+        filter(new Product("ab", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product("abcdef", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+        filter(new Product(null, 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsValid_WithRepeatedSelectorPredicate_MatchesBuildCompiledResult()
+    {
+        // IsValid() goes through ConditionEntry.CompiledFunc (NOT Build()'s re-mapping).
+        // This confirms both paths agree once selectorBody is cloned defensively.
+        var validator = new ValiFlow<Product>().MaxLength(p => p.Name, 3);
+        var viaBuild = validator.Build().Compile();
+        var product = new Product("abcdef", 1m, 1, true, DateTime.Now, new List<string>());
+
+        validator.IsValid(product).Should().Be(viaBuild(product));
+    }
+
+    [Fact]
+    public void InRange_Generic_InvalidRange_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Price, 10m, 1m);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void InRange_GenericWithInt_InvalidRange_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Quantity, 10, 1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void EqualTo_Generic_NullValue_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.EqualTo(p => p.Name, (string?)null!);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void IComparableExpression_LessThanOrEqualTo_ViaInterface_WorksCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var filter = builder.LessThanOrEqualTo(p => p.Name!, "M").Build().Compile();
+
+        filter(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        filter(new Product("Z", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IComparableExpression_EqualTo_ViaInterface_InRangeInvalid_Throws()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var act = () => builder.InRange(p => p.Name!, "Z", "A");
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void CrossPropertyComparable_ReferenceType_WorksCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+        var filter = builder.GreaterThan(p => p.Name!, p => p.Tags.Count > 0 ? p.Tags[0] : "").Build().Compile();
+
+        filter(new Product("B", 1m, 1, true, DateTime.Now, new List<string> { "A" })).Should().BeTrue();
+        filter(new Product("A", 1m, 1, true, DateTime.Now, new List<string> { "B" })).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ValiFlow_ExplicitInterface_LessThanOrEqualTo_And_EqualTo_WorkCorrectly()
+    {
+        IComparableExpression<ValiFlow<Product>, Product> builder = new ValiFlow<Product>();
+
+        var lteFilter = builder.LessThanOrEqualTo(p => p.Name!, "M").Build().Compile();
+        lteFilter(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+
+        IComparableExpression<ValiFlow<Product>, Product> builder2 = new ValiFlow<Product>();
+        var eqFilter = builder2.EqualTo(p => p.Name!, "Alice").Build().Compile();
+        eqFilter(new Product("Alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+        eqFilter(new Product("Bob", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeFalse();
     }
 }
 
@@ -710,6 +874,15 @@ public class RegressionTests
 public interface INamedEntity { string? Name { get; } }
 public record ConcreteNamedEntity(string? Name) : INamedEntity;
 
+/// <summary>
+/// Serializes all test classes that mutate the shared static <see cref="ValiFlowGlobal"/> singleton
+/// (ClearAll/Register/Clear) so they never run concurrently under xUnit's default cross-class
+/// parallelism — otherwise one test's ClearAll() can wipe another's in-flight registration.
+/// </summary>
+[CollectionDefinition("ValiFlowGlobal", DisableParallelization = true)]
+public class ValiFlowGlobalCollection { }
+
+[Collection("ValiFlowGlobal")]
 public class ValiFlowGlobalTests
 {
     private static Product MakeProduct(
@@ -1182,5 +1355,301 @@ public class WithMessageFactoryTests
         var result = validator.Validate(MakeProduct(name: null));
         // WithMessage(Func) was called last — factory message wins
         result.Errors.Should().ContainSingle(e => e.Message == "factory message");
+    }
+}
+
+public class ComparisonExpressionCoverageTests
+{
+    private enum Status { Draft, Published, Archived }
+    private record StatusEntity(Status Status, int Code, string? Label);
+
+    [Fact]
+    public void IsInEnum_ValidDefinedValue_ReturnsTrue_UndefinedValue_ReturnsFalse()
+    {
+        var filter = new ValiFlow<StatusEntity>().IsInEnum(e => e.Status).Build().Compile();
+        filter(new StatusEntity(Status.Published, 1, "x")).Should().BeTrue();
+        filter(new StatusEntity((Status)99, 1, "x")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsDefault_And_IsNotDefault_WorkCorrectlyForValueType()
+    {
+        var isDefaultFilter = new ValiFlow<StatusEntity>().IsDefault(e => e.Code).Build().Compile();
+        isDefaultFilter(new StatusEntity(Status.Draft, 0, null)).Should().BeTrue();
+        isDefaultFilter(new StatusEntity(Status.Draft, 5, null)).Should().BeFalse();
+
+        var isNotDefaultFilter = new ValiFlow<StatusEntity>().IsNotDefault(e => e.Code).Build().Compile();
+        isNotDefaultFilter(new StatusEntity(Status.Draft, 5, null)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void EqualTo_And_NotEqualTo_WorkCorrectlyForReferenceType()
+    {
+        var equalFilter = new ValiFlow<StatusEntity>().EqualTo(e => e.Label, "target").Build().Compile();
+        equalFilter(new StatusEntity(Status.Draft, 1, "target")).Should().BeTrue();
+        equalFilter(new StatusEntity(Status.Draft, 1, "other")).Should().BeFalse();
+
+        var notEqualFilter = new ValiFlow<StatusEntity>().NotEqualTo(e => e.Label, "target").Build().Compile();
+        notEqualFilter(new StatusEntity(Status.Draft, 1, "other")).Should().BeTrue();
+    }
+
+    [Fact]
+    public void MinLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.MinLength(p => p.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void MaxLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.MaxLength(p => p.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void ExactLength_NegativeValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.ExactLength(p => p.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void EndsWith_WithStringComparisonOverload_EmptyValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EndsWith(p => p.Name, "", StringComparison.OrdinalIgnoreCase);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void EndsWith_WithStringComparisonOverload_WorksCorrectly()
+    {
+        var filter = new ValiFlow<Product>().EndsWith(p => p.Name, "ICE", StringComparison.OrdinalIgnoreCase).Build().Compile();
+        filter(new Product("Alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void StartsWith_WithStringComparisonOverload_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.StartsWith(p => p.Name, null!, StringComparison.Ordinal);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_WithStringComparisonOverload_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Contains(p => p.Name, null!, StringComparison.OrdinalIgnoreCase);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void EqualToIgnoreCase_NullValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EqualToIgnoreCase(p => p.Name, null!);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_MultiSelector_AllWhitespaceValue_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Contains("   ", new[] { (Expression<Func<Product, string?>>)(p => p.Name) });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Contains_MultiSelector_WithInvariantCultureIgnoreCase_WorksCorrectly()
+    {
+        var filter = new ValiFlow<Product>().Contains("ALICE", new[] { (Expression<Func<Product, string?>>)(p => p.Name) }, StringComparison.InvariantCultureIgnoreCase).Build().Compile();
+        filter(new Product("alice", 1m, 1, true, DateTime.Now, new List<string>())).Should().BeTrue();
+    }
+
+    [Fact]
+    public void RegexMatch_CacheExceedsCapacity_ThrowsOnOverflow()
+    {
+        // StringExpressionCache is a static, process-wide cache shared by every ValiFlow<T>/StringExpression<,>
+        // instance, capped at 1000 distinct patterns. This test intentionally pushes it past capacity with
+        // unique patterns to exercise the cache-full guard — it does NOT assume a clean cache (other tests
+        // in the suite may have already inserted some patterns), it only asserts that AT SOME POINT within
+        // 1100 unique patterns, the guard fires.
+        //
+        // IMPORTANT: This test must restore the cache to its pre-test state in a finally block to prevent
+        // pollution of subsequent tests. Using reflection, we snapshot the current cache keys before the test,
+        // then remove any keys added by this test in the finally block.
+
+        var cacheType = typeof(ValiFlow<Product>).Assembly
+            .GetType("Vali_Flow.Core.Classes.Types.StringExpressionCache")!;
+        var cacheField = cacheType.GetField("_regexCache",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var cache = (System.Collections.Concurrent.ConcurrentDictionary<string, System.Text.RegularExpressions.Regex>)
+            cacheField.GetValue(null)!;
+        var originalKeys = cache.Keys.ToList();
+
+        try
+        {
+            var builder = new ValiFlow<Product>();
+            Action act = () =>
+            {
+                for (int i = 0; i < 1100; i++)
+                {
+                    builder.RegexMatch(p => p.Name, $"^unique-pattern-{i}-[a-z]+$");
+                }
+            };
+            act.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            // Restore cache to pre-test state: remove only the keys this test added
+            foreach (var key in cache.Keys.ToList())
+            {
+                if (!originalKeys.Contains(key))
+                {
+                    cache.TryRemove(key, out _);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void EachItem_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.EachItem<string>(p => p.Tags, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void AnyItem_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.AnyItem<string>(p => p.Tags, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void AddSubGroup_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>())); // freezes
+
+        var forked = original.AddSubGroup(g => g.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void Or_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.Or();
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void AddIf_BooleanOverload_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.AddIf(true, p => p.IsActive);
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void AddIf_SelectorPredicateOverload_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.AddIf(true, p => p.Quantity, q => q > 0);
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void When_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.When(p => p.IsActive, b => b.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void Unless_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        original.IsValid(new Product("A", 1m, 1, true, DateTime.Now, new List<string>()));
+
+        var forked = original.Unless(p => !p.IsActive, b => b.Add(p => p.IsActive));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void ValidateNested_AfterFreeze_ReturnsForkNotOriginal()
+    {
+        var original = new ValiFlow<Customer>().IsNotNullOrEmpty(c => c.Name);
+        original.IsValid(new Customer("A", new Address("X")));
+
+        var forked = original.ValidateNested(c => c.HomeAddress, b => b.IsNotNullOrEmpty(a => a.City));
+
+        forked.Should().NotBeSameAs(original);
+    }
+
+    [Fact]
+    public void When_EmptyThenAction_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.When(p => p.IsActive, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Unless_EmptyUnlessAction_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Unless(p => !p.IsActive, _ => { });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void WithMessage_EmptyValue_Throws()
+    {
+        var builder = new ValiFlow<Product>().IsTrue(p => p.IsActive);
+        var act = () => builder.WithMessage("");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Add_AlwaysFalseConstant_Throws()
+    {
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.Add(_ => false);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void IsFalse_WithConstantTrueBody_Throws()
+    {
+        // IsFalse(x => true) builds Expression.Not(Constant(true)) without C# constant-folding it away
+        // (unlike a literal `_ => false`, which Roslyn folds to a bare ConstantExpression) — this is the
+        // one reachable way to hit BaseExpression.cs's "Not(Constant(bool))" validation branch.
+        var builder = new ValiFlow<Product>();
+        var act = () => builder.IsFalse(p => true);
+        act.Should().Throw<ArgumentException>();
     }
 }

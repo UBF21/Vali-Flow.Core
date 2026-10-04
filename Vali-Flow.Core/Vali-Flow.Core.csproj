@@ -15,6 +15,10 @@
         <Copyright>Copyright © 2026 FM. All rights reserved.</Copyright>
         <RepositoryUrl>https://github.com/UBF21/Vali-Flow.Core</RepositoryUrl>
         <PackageReleaseNotes>
+## 2.0.3
+### Fixed
+- IsLastDayOfMonth() on DateTimeExpressionQuery, DateTimeOffsetExpressionQuery and DateOnlyExpressionQuery: replaced DateTime.DaysInMonth(...) (not translatable by any EF Core relational provider) with a provider-agnostic Year/Month/Day integer formula. Verified against real SQLite and PostgreSQL, not just EF Core InMemory.
+
 ## 2.0.1
 ### Documentation &amp; Metadata
 - README.md: removed inline logo, improved License and Contributions sections
@@ -331,7 +335,7 @@
 - Fixed InRange: min &lt;= max validation
 - Fixed ValiSort enumerable reflection: MethodInfo cached per key type (plain Dictionary, non-thread-safe by design)
         </PackageReleaseNotes>
-        <Version>2.0.2</Version>
+        <Version>2.0.3</Version>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PackageIcon>VF_logo.png</PackageIcon>

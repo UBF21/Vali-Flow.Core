@@ -141,11 +141,18 @@ public class DateOnlyExpressionQuery<TBuilder, T> : IDateOnlyExpressionQuery<TBu
     /// <param name="selector">Property selector for the <see cref="DateOnly"/> member.</param>
     /// <returns>The builder instance for fluent chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is <see langword="null"/>.</exception>
-    /// <remarks>Detected by checking whether adding one day changes the month.</remarks>
+    /// <remarks>Computed from <c>Year</c>/<c>Month</c>/<c>Day</c> (plain integers) via nested
+    /// ternaries rather than <c>AddDays</c>/<c>DateTime.DaysInMonth</c>, for consistency with the
+    /// <see cref="DateTimeExpressionQuery{TBuilder,T}"/>/<see cref="DateTimeOffsetExpressionQuery{TBuilder,T}"/>
+    /// siblings — their <c>AddDays</c>-based original was confirmed non-translatable on at least
+    /// one real relational provider (SQLite). Integer arithmetic + ternary is universally
+    /// translated to SQL CASE/IIF.</remarks>
     public TBuilder IsLastDayOfMonth(Expression<Func<T, DateOnly>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        Expression<Func<DateOnly, bool>> p = val => val.AddDays(1).Month != val.Month;
+        Expression<Func<DateOnly, bool>> p = val => val.Day == (val.Month == 2
+            ? (val.Year % 4 == 0 && (val.Year % 100 != 0 || val.Year % 400 == 0) ? 29 : 28)
+            : (val.Month == 4 || val.Month == 6 || val.Month == 9 || val.Month == 11 ? 30 : 31));
         return _builder.Add(selector, p);
     }
 

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Xunit;
 using FluentAssertions;
 using Vali_Flow.Core.Builder;
+using Vali_Flow.Core.Models;
 
 namespace Vali_Flow.Core.Tests;
 
@@ -17,8 +18,13 @@ public record QueryEntity(
     List<string> Tags,
     int? OptionalScore);
 
+[Collection("RegexCache")]
 public class ValiFlowQueryTests
 {
+    // ── Nested records for testing ─────────────────────────────────────────────
+    private record Address(string? City);
+    private record Customer(string? Name, Address? HomeAddress);
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static QueryEntity MakeEntity(
@@ -1545,5 +1551,936 @@ public class ValiFlowQueryTests
         var builder = new ValiFlowQuery<QueryEntity>();
         Action act = () => builder.NotIn(e => e.Name, new List<string>());
         act.Should().Throw<ArgumentException>();
+    }
+
+    // ── DateTimeOffset coverage gaps (IsInMonth/IsInYear/IsToday/ExactDate/SameMonthAs/
+    //    InLastDays/IsWeekend/IsInQuarter guards) ───────────────────────────────
+
+    [Fact]
+    public void DateTimeOffset_IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInMonth(e => e.UpdatedAt, 13);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_ExactDate_MatchesSameUtcDay()
+    {
+        var target = new DateTimeOffset(2025, 6, 15, 10, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().ExactDate(e => e.UpdatedAt, target).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 15, 23, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 1, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_SameMonthAs_MatchesSameMonthAndYear()
+    {
+        var reference = new DateTimeOffset(2025, 3, 1, 0, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().SameMonthAs(e => e.UpdatedAt, reference).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 3, 20, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2024, 3, 20, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InLastDays(e => e.UpdatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsWeekend_MatchesSaturdayAndSunday()
+    {
+        // 2025-06-14 is a Saturday (UTC).
+        var filter = new ValiFlowQuery<QueryEntity>().IsWeekend(e => e.UpdatedAt).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 14, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsInQuarter_InvalidQuarter_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInQuarter(e => e.UpdatedAt, 5);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsInQuarter_MatchesCorrectQuarter()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsInQuarter(e => e.UpdatedAt, 2).Build().Compile();
+
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 5, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInYear(e => e.UpdatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsToday_MatchesTodayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsToday(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow)).Should().BeTrue();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow.AddDays(-2))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsYesterday_MatchesYesterdayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsYesterday(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow.AddDays(-1))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: DateTimeOffset.UtcNow)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InNextDays(e => e.UpdatedAt, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTimeOffset_SameYearAs_MatchesSameYearOnly()
+    {
+        var reference = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var filter = new ValiFlowQuery<QueryEntity>().SameYearAs(e => e.UpdatedAt, reference).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2024, 11, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsDayOfWeek_MatchesSpecifiedDay()
+    {
+        // 2025-06-16 is a Monday.
+        var filter = new ValiFlowQuery<QueryEntity>().IsDayOfWeek(e => e.UpdatedAt, DayOfWeek.Monday).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 16, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 6, 17, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsFirstDayOfMonth_MatchesFirstDayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsFirstDayOfMonth(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 7, 1, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 7, 2, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTimeOffset_IsLastDayOfMonth_MatchesLastDayOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsLastDayOfMonth(e => e.UpdatedAt).Build().Compile();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 4, 30, 0, 0, 0, TimeSpan.Zero))).Should().BeTrue();
+        filter(MakeEntity(updatedAt: new DateTimeOffset(2025, 4, 29, 0, 0, 0, TimeSpan.Zero))).Should().BeFalse();
+    }
+
+    // ── DateOnly coverage gaps ──────────────────────────────────────────────────
+
+    [Fact]
+    public void DateOnly_IsYesterday_MatchesYesterday()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsYesterday(e => e.BirthDate).Build().Compile();
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1));
+
+        filter(MakeEntity(birthDate: yesterday)).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InNextDays(e => e.BirthDate, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsDayOfWeek_MatchesSpecifiedDay()
+    {
+        // 2025-06-16 is a Monday.
+        var filter = new ValiFlowQuery<QueryEntity>().IsDayOfWeek(e => e.BirthDate, DayOfWeek.Monday).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 6, 16))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 6, 17))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsLastDayOfMonth_MatchesLastDay()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsLastDayOfMonth(e => e.BirthDate).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 30))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 29))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_SameYearAs_MatchesSameYearOnly()
+    {
+        var reference = new DateOnly(2025, 1, 1);
+        var filter = new ValiFlowQuery<QueryEntity>().SameYearAs(e => e.BirthDate, reference).Build().Compile();
+
+        filter(MakeEntity(birthDate: new DateOnly(2025, 11, 30))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2024, 11, 30))).Should().BeFalse();
+    }
+
+    // ── DateTime coverage gaps ──────────────────────────────────────────────────
+
+    [Fact]
+    public void DateTime_IsInMonth_InvalidMonth_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInMonth(e => e.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTime_IsWeekday_MatchesMondayThroughFriday()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsWeekday(e => e.CreatedAt).Build().Compile();
+
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 16))).Should().BeTrue();  // Monday
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 14))).Should().BeFalse(); // Saturday
+    }
+
+    [Fact]
+    public void DateTime_IsFirstDayOfMonth_MatchesFirstDay()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsFirstDayOfMonth(e => e.CreatedAt).Build().Compile();
+
+        filter(MakeEntity(createdAt: new DateTime(2025, 7, 1))).Should().BeTrue();
+        filter(MakeEntity(createdAt: new DateTime(2025, 7, 2))).Should().BeFalse();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery scalar families: long / double / decimal / float / short
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private record ScalarNumerics(long LongValue, double DoubleValue, decimal DecimalValue, float FloatValue, short ShortValue);
+
+    // ── long ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Long_GreaterThan_MatchesLargerValue()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().GreaterThan(e => e.LongValue, 100L).Build().Compile();
+        filter(new ScalarNumerics(200L, 0, 0, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(50L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Long_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.LongValue, 100L, 1L);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Long_IsEven_And_IsMultipleOf_WorkCorrectly()
+    {
+        var evenFilter = new ValiFlowQuery<ScalarNumerics>().IsEven(e => e.LongValue).Build().Compile();
+        evenFilter(new ScalarNumerics(4L, 0, 0, 0, 0)).Should().BeTrue();
+        evenFilter(new ScalarNumerics(3L, 0, 0, 0, 0)).Should().BeFalse();
+
+        var multipleFilter = new ValiFlowQuery<ScalarNumerics>().IsMultipleOf(e => e.LongValue, 5L).Build().Compile();
+        multipleFilter(new ScalarNumerics(15L, 0, 0, 0, 0)).Should().BeTrue();
+        multipleFilter(new ScalarNumerics(7L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    // ── double ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Double_Positive_And_Negative_WorkCorrectly()
+    {
+        var positiveFilter = new ValiFlowQuery<ScalarNumerics>().Positive(e => e.DoubleValue).Build().Compile();
+        positiveFilter(new ScalarNumerics(0, 1.5, 0, 0, 0)).Should().BeTrue();
+        positiveFilter(new ScalarNumerics(0, -1.5, 0, 0, 0)).Should().BeFalse();
+
+        var negativeFilter = new ValiFlowQuery<ScalarNumerics>().Negative(e => e.DoubleValue).Build().Compile();
+        negativeFilter(new ScalarNumerics(0, -1.5, 0, 0, 0)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Double_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.DoubleValue, 10.0, 1.0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Double_MinValue_MaxValue_WorkCorrectly()
+    {
+        var minFilter = new ValiFlowQuery<ScalarNumerics>().MinValue(e => e.DoubleValue, 10.0).Build().Compile();
+        minFilter(new ScalarNumerics(0, 10.0, 0, 0, 0)).Should().BeTrue();
+        minFilter(new ScalarNumerics(0, 9.9, 0, 0, 0)).Should().BeFalse();
+
+        var maxFilter = new ValiFlowQuery<ScalarNumerics>().MaxValue(e => e.DoubleValue, 10.0).Build().Compile();
+        maxFilter(new ScalarNumerics(0, 10.0, 0, 0, 0)).Should().BeTrue();
+        maxFilter(new ScalarNumerics(0, 10.1, 0, 0, 0)).Should().BeFalse();
+    }
+
+    // ── decimal ───────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Decimal_Zero_And_NotZero_WorkCorrectly()
+    {
+        var zeroFilter = new ValiFlowQuery<ScalarNumerics>().Zero(e => e.DecimalValue).Build().Compile();
+        zeroFilter(new ScalarNumerics(0, 0, 0m, 0, 0)).Should().BeTrue();
+        zeroFilter(new ScalarNumerics(0, 0, 5m, 0, 0)).Should().BeFalse();
+
+        var notZeroFilter = new ValiFlowQuery<ScalarNumerics>().NotZero(e => e.DecimalValue).Build().Compile();
+        notZeroFilter(new ScalarNumerics(0, 0, 5m, 0, 0)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Decimal_InRange_MatchesWithinBounds()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().InRange(e => e.DecimalValue, 10m, 20m).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 15m, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 25m, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Decimal_LessThanOrEqualTo_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().LessThanOrEqualTo(e => e.DecimalValue, 10m).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 10m, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 10.01m, 0, 0)).Should().BeFalse();
+    }
+
+    // ── float ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Float_GreaterThanOrEqualTo_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().GreaterThanOrEqualTo(e => e.FloatValue, 5f).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 5f, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 4.9f, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Float_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.FloatValue, 10f, 1f);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Float_MinValue_MaxValue_WorkCorrectly()
+    {
+        var minFilter = new ValiFlowQuery<ScalarNumerics>().MinValue(e => e.FloatValue, 2f).Build().Compile();
+        minFilter(new ScalarNumerics(0, 0, 0, 2f, 0)).Should().BeTrue();
+        minFilter(new ScalarNumerics(0, 0, 0, 1f, 0)).Should().BeFalse();
+    }
+
+    // ── short ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Short_Positive_And_Negative_WorkCorrectly()
+    {
+        var positiveFilter = new ValiFlowQuery<ScalarNumerics>().Positive(e => e.ShortValue).Build().Compile();
+        positiveFilter(new ScalarNumerics(0, 0, 0, 0, 5)).Should().BeTrue();
+        positiveFilter(new ScalarNumerics(0, 0, 0, 0, -5)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Short_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<ScalarNumerics>();
+        var act = () => builder.InRange(e => e.ShortValue, (short)10, (short)1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Short_LessThan_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().LessThan(e => e.ShortValue, (short)10).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 0, 5)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 0, 15)).Should().BeFalse();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery nullable overloads
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private record ShortEntity(short? NullableShort);
+
+    [Fact]
+    public void NullableLong_GreaterThan_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().GreaterThan(e => e.NullableLong, 10L).Build().Compile();
+        filter(new QueryEntityEx(null, 20L, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableDecimal_InRange_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().InRange(e => e.NullableDecimal, 10m, 20m).Build().Compile();
+        filter(new QueryEntityEx(null, null, 15m, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableDouble_LessThan_NullValue_ReturnsFalse()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().LessThan(e => e.NullableDouble, 5.0).Build().Compile();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+        filter(new QueryEntityEx(null, null, null, 1.0, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NullableFloat_HasValue_DistinguishesNullFromValue()
+    {
+        var filter = new ValiFlowQuery<QueryEntityEx>().HasValue(e => e.NullableFloat).Build().Compile();
+        filter(new QueryEntityEx(null, null, null, null, 1.5f, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        filter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableShort_GreaterThan_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<ShortEntity>().GreaterThan(e => e.NullableShort, (short)10).Build().Compile();
+        filter(new ShortEntity((short)20)).Should().BeTrue();
+        filter(new ShortEntity(null)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableShort_InRange_WithValue_MatchesCorrectly()
+    {
+        var filter = new ValiFlowQuery<ShortEntity>().InRange(e => e.NullableShort, (short)1, (short)10).Build().Compile();
+        filter(new ShortEntity((short)5)).Should().BeTrue();
+        filter(new ShortEntity((short)20)).Should().BeFalse();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // StringExpressionQuery coverage gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void String_IsTrimmed_DistinguishesTrimmedFromPadded()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsTrimmed(e => e.Name).Build().Compile();
+        filter(MakeEntity(name: "Alice")).Should().BeTrue();
+        filter(MakeEntity(name: " Alice ")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_EqualToIgnoreCase_MatchesRegardlessOfCase()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().EqualToIgnoreCase(e => e.Name, "ALICE").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "bob")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_ContainsIgnoreCase_MatchesRegardlessOfCase()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().ContainsIgnoreCase(e => e.Name, "LIC").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "bob")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_NotContains_NullPassesAndNonMatchingPasses()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().NotContains(e => e.Name, "xyz").Build().Compile();
+        filter(MakeEntity(name: null)).Should().BeTrue();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
+        filter(MakeEntity(name: "xyzabc")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_NotStartsWith_And_NotEndsWith_WorkCorrectly()
+    {
+        var notStarts = new ValiFlowQuery<QueryEntity>().NotStartsWith(e => e.Name, "al").Build().Compile();
+        notStarts(MakeEntity(name: "bob")).Should().BeTrue();
+        notStarts(MakeEntity(name: "alice")).Should().BeFalse();
+
+        var notEnds = new ValiFlowQuery<QueryEntity>().NotEndsWith(e => e.Name, "ce").Build().Compile();
+        notEnds(MakeEntity(name: "bob")).Should().BeTrue();
+        notEnds(MakeEntity(name: "alice")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_MinLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.MinLength(e => e.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_StartsWith_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.StartsWith(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ValiFlowQuery.cs gaps: ValidateNested guard, WithError/WithSeverity forwarders
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ValidateNested_WithComplexNestedObject_EmptyConfigure_Throws()
+    {
+        var builder = new ValiFlowQuery<Customer>();
+        var act = () => builder.ValidateNested(c => c.HomeAddress, _ => { /* no conditions added */ });
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ValidateNested_WithComplexNestedObject_WithCondition_ValidatesNestedProperty()
+    {
+        var filter = new ValiFlowQuery<Customer>()
+            .ValidateNested(c => c.HomeAddress, addr => addr.IsNotNullOrEmpty(a => a.City))
+            .Build().Compile();
+
+        filter(new Customer("Alice", new Address("Lima"))).Should().BeTrue();
+        filter(new Customer("Alice", new Address(null))).Should().BeFalse();
+        filter(new Customer("Alice", null)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WithError_SeverityOverload_SetsSeverityOnLastCondition()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithError("ERR001", "Name is required", Severity.Warning);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ERR001" && e.Severity == Severity.Warning);
+    }
+
+    [Fact]
+    public void WithError_PropertyPathAndSeverityOverload_SetsBoth()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithError("ERR002", "Name is required", "Name", Severity.Error);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ERR002" && e.PropertyPath == "Name" && e.Severity == Severity.Error);
+    }
+
+    [Fact]
+    public void WithSeverity_SetsSeverityOnLastCondition()
+    {
+        var builder = new ValiFlowQuery<Customer>()
+            .IsNotNullOrEmpty(c => c.Name)
+            .WithMessage("Name is required")
+            .WithSeverity(Severity.Critical);
+
+        var result = builder.Validate(new Customer(null, null));
+        result.Errors.Should().ContainSingle(e => e.Severity == Severity.Critical);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DateOnlyExpressionQuery — Round 2 remaining gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void DateOnly_BetweenDates_ToBeforeFrom_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.BetweenDates(e => e.BirthDate, new DateOnly(2025, 1, 1), new DateOnly(2024, 1, 1));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsInYear_InvalidYear_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInYear(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        var act2 = () => builder.IsInYear(e => e.BirthDate, 10000);
+        act2.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_FutureDate_MatchesFutureOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().FutureDate(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_PastDate_MatchesPastOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().PastDate(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_ExactDate_MatchesExactDayOnly()
+    {
+        var target = new DateOnly(2025, 6, 15);
+        var filter = new ValiFlowQuery<QueryEntity>().ExactDate(e => e.BirthDate, target).Build().Compile();
+        filter(MakeEntity(birthDate: target)).Should().BeTrue();
+        filter(MakeEntity(birthDate: target.AddDays(1))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsTomorrow_MatchesTomorrowOnly()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsTomorrow(e => e.BirthDate).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InLastDays(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_InNextDays_MatchesWithinWindow()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().InNextDays(e => e.BirthDate, 5).Build().Compile();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)))).Should().BeTrue();
+        filter(MakeEntity(birthDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10)))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_SameMonthAs_MatchesSameMonthAndYear()
+    {
+        var reference = new DateOnly(2025, 8, 1);
+        var filter = new ValiFlowQuery<QueryEntity>().SameMonthAs(e => e.BirthDate, reference).Build().Compile();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 8, 20))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2024, 8, 20))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsWeekend_And_IsWeekday_AreMutuallyConsistent()
+    {
+        // 2025-06-14 is a Saturday.
+        var weekendFilter = new ValiFlowQuery<QueryEntity>().IsWeekend(e => e.BirthDate).Build().Compile();
+        var weekdayFilter = new ValiFlowQuery<QueryEntity>().IsWeekday(e => e.BirthDate).Build().Compile();
+
+        weekendFilter(MakeEntity(birthDate: new DateOnly(2025, 6, 14))).Should().BeTrue();
+        weekdayFilter(MakeEntity(birthDate: new DateOnly(2025, 6, 14))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateOnly_IsInQuarter_InvalidQuarter_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInQuarter(e => e.BirthDate, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        var act2 = () => builder.IsInQuarter(e => e.BirthDate, 5);
+        act2.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateOnly_IsInQuarter_MatchesCorrectQuarter()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsInQuarter(e => e.BirthDate, 1).Build().Compile();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 1, 15))).Should().BeTrue();
+        filter(MakeEntity(birthDate: new DateOnly(2025, 4, 15))).Should().BeFalse();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DateTimeExpressionQuery — Round 2 remaining gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void DateTime_FutureDate_And_PastDate_AreMutuallyExclusive()
+    {
+        var futureFilter = new ValiFlowQuery<QueryEntity>().FutureDate(e => e.CreatedAt).Build().Compile();
+        var pastFilter = new ValiFlowQuery<QueryEntity>().PastDate(e => e.CreatedAt).Build().Compile();
+
+        var future = MakeEntity(createdAt: DateTime.UtcNow.AddDays(1));
+        futureFilter(future).Should().BeTrue();
+        pastFilter(future).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTime_ExactDate_MatchesExactDayOnly()
+    {
+        var target = new DateTime(2025, 5, 10);
+        var filter = new ValiFlowQuery<QueryEntity>().ExactDate(e => e.CreatedAt, target).Build().Compile();
+        filter(MakeEntity(createdAt: target.AddHours(20))).Should().BeTrue();
+        filter(MakeEntity(createdAt: target.AddDays(1))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTime_IsTomorrow_And_IsYesterday_AreMutuallyExclusive()
+    {
+        var tomorrowFilter = new ValiFlowQuery<QueryEntity>().IsTomorrow(e => e.CreatedAt).Build().Compile();
+        var yesterdayFilter = new ValiFlowQuery<QueryEntity>().IsYesterday(e => e.CreatedAt).Build().Compile();
+
+        var tomorrow = MakeEntity(createdAt: DateTime.UtcNow.Date.AddDays(1));
+        tomorrowFilter(tomorrow).Should().BeTrue();
+        yesterdayFilter(tomorrow).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTime_InLastDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InLastDays(e => e.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTime_InNextDays_InvalidDays_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.InNextDays(e => e.CreatedAt, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTime_IsWeekend_MatchesSaturdayAndSunday()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsWeekend(e => e.CreatedAt).Build().Compile();
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 14))).Should().BeTrue();
+        filter(MakeEntity(createdAt: new DateTime(2025, 6, 16))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void DateTime_IsInQuarter_InvalidQuarter_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInQuarter(e => e.CreatedAt, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        var act2 = () => builder.IsInQuarter(e => e.CreatedAt, 5);
+        act2.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void DateTime_IsInQuarter_MatchesCorrectQuarter()
+    {
+        var filter = new ValiFlowQuery<QueryEntity>().IsInQuarter(e => e.CreatedAt, 4).Build().Compile();
+        filter(MakeEntity(createdAt: new DateTime(2025, 11, 1))).Should().BeTrue();
+        filter(MakeEntity(createdAt: new DateTime(2025, 2, 1))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void TimeOnly_IsBetween_ToBeforeFrom_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsBetween(e => e.WorkStart, new TimeOnly(10, 0), new TimeOnly(5, 0));
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void TimeOnly_IsInHour_InvalidHour_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.IsInHour(e => e.WorkStart, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery — Round 2: remaining scalar matrix gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Long_NotZero_And_Negative_WorkCorrectly()
+    {
+        var notZeroFilter = new ValiFlowQuery<ScalarNumerics>().NotZero(e => e.LongValue).Build().Compile();
+        notZeroFilter(new ScalarNumerics(5L, 0, 0, 0, 0)).Should().BeTrue();
+        notZeroFilter(new ScalarNumerics(0L, 0, 0, 0, 0)).Should().BeFalse();
+
+        var negativeFilter = new ValiFlowQuery<ScalarNumerics>().Negative(e => e.LongValue).Build().Compile();
+        negativeFilter(new ScalarNumerics(-5L, 0, 0, 0, 0)).Should().BeTrue();
+        negativeFilter(new ScalarNumerics(0L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Long_IsOdd_WorksCorrectly()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().IsOdd(e => e.LongValue).Build().Compile();
+        filter(new ScalarNumerics(3L, 0, 0, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(4L, 0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Double_GreaterThanOrEqualTo_And_LessThan_WorkCorrectly()
+    {
+        var gteFilter = new ValiFlowQuery<ScalarNumerics>().GreaterThanOrEqualTo(e => e.DoubleValue, 5.0).Build().Compile();
+        gteFilter(new ScalarNumerics(0, 5.0, 0, 0, 0)).Should().BeTrue();
+        gteFilter(new ScalarNumerics(0, 4.9, 0, 0, 0)).Should().BeFalse();
+
+        var ltFilter = new ValiFlowQuery<ScalarNumerics>().LessThan(e => e.DoubleValue, 5.0).Build().Compile();
+        ltFilter(new ScalarNumerics(0, 4.9, 0, 0, 0)).Should().BeTrue();
+        ltFilter(new ScalarNumerics(0, 5.0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Decimal_GreaterThan_And_MinValue_WorkCorrectly()
+    {
+        var gtFilter = new ValiFlowQuery<ScalarNumerics>().GreaterThan(e => e.DecimalValue, 10m).Build().Compile();
+        gtFilter(new ScalarNumerics(0, 0, 10.01m, 0, 0)).Should().BeTrue();
+        gtFilter(new ScalarNumerics(0, 0, 10m, 0, 0)).Should().BeFalse();
+
+        var minFilter = new ValiFlowQuery<ScalarNumerics>().MinValue(e => e.DecimalValue, 10m).Build().Compile();
+        minFilter(new ScalarNumerics(0, 0, 10m, 0, 0)).Should().BeTrue();
+        minFilter(new ScalarNumerics(0, 0, 9.99m, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Float_Zero_And_NotZero_WorkCorrectly()
+    {
+        var zeroFilter = new ValiFlowQuery<ScalarNumerics>().Zero(e => e.FloatValue).Build().Compile();
+        zeroFilter(new ScalarNumerics(0, 0, 0, 0f, 0)).Should().BeTrue();
+        zeroFilter(new ScalarNumerics(0, 0, 0, 1f, 0)).Should().BeFalse();
+
+        var notZeroFilter = new ValiFlowQuery<ScalarNumerics>().NotZero(e => e.FloatValue).Build().Compile();
+        notZeroFilter(new ScalarNumerics(0, 0, 0, 1f, 0)).Should().BeTrue();
+        notZeroFilter(new ScalarNumerics(0, 0, 0, 0f, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Short_Zero_And_NotZero_And_MaxValue_WorkCorrectly()
+    {
+        var zeroFilter = new ValiFlowQuery<ScalarNumerics>().Zero(e => e.ShortValue).Build().Compile();
+        zeroFilter(new ScalarNumerics(0, 0, 0, 0, (short)0)).Should().BeTrue();
+
+        var maxFilter = new ValiFlowQuery<ScalarNumerics>().MaxValue(e => e.ShortValue, (short)10).Build().Compile();
+        maxFilter(new ScalarNumerics(0, 0, 0, 0, (short)10)).Should().BeTrue();
+        maxFilter(new ScalarNumerics(0, 0, 0, 0, (short)11)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Double_InRange_MatchesWithinBounds()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().InRange(e => e.DoubleValue, 10.0, 20.0).Build().Compile();
+        filter(new ScalarNumerics(0, 15.0, 0, 0, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 25.0, 0, 0, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Float_InRange_MatchesWithinBounds()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().InRange(e => e.FloatValue, 10f, 20f).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 15f, 0)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 25f, 0)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Short_InRange_MatchesWithinBounds()
+    {
+        var filter = new ValiFlowQuery<ScalarNumerics>().InRange(e => e.ShortValue, (short)1, (short)10).Build().Compile();
+        filter(new ScalarNumerics(0, 0, 0, 0, (short)5)).Should().BeTrue();
+        filter(new ScalarNumerics(0, 0, 0, 0, (short)20)).Should().BeFalse();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NumericExpressionQuery — Round 2: remaining nullable overload gaps
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void NullableInt_GreaterThan_And_LessThan_WithValue_MatchCorrectly()
+    {
+        var gtFilter = new ValiFlowQuery<QueryEntityEx>().GreaterThan(e => e.NullableInt, 10).Build().Compile();
+        gtFilter(new QueryEntityEx(20, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        gtFilter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+
+        var ltFilter = new ValiFlowQuery<QueryEntityEx>().LessThan(e => e.NullableInt, 10).Build().Compile();
+        ltFilter(new QueryEntityEx(5, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NullableDecimal_GreaterThan_And_LessThan_WithValue_MatchCorrectly()
+    {
+        var gtFilter = new ValiFlowQuery<QueryEntityEx>().GreaterThan(e => e.NullableDecimal, 10m).Build().Compile();
+        gtFilter(new QueryEntityEx(null, null, 20m, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+
+        var ltFilter = new ValiFlowQuery<QueryEntityEx>().LessThan(e => e.NullableDecimal, 10m).Build().Compile();
+        ltFilter(new QueryEntityEx(null, null, 5m, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeTrue();
+        ltFilter(new QueryEntityEx(null, null, null, null, null, DateTime.UtcNow, DateOnly.MinValue)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NullableInt_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntityEx>();
+        var act = () => builder.InRange(e => e.NullableInt, 10, 1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void NullableLong_InRange_InvalidRange_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntityEx>();
+        var act = () => builder.InRange(e => e.NullableLong, 10L, 1L);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_MaxLength_InvalidValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.MaxLength(e => e.Name, 0);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_ExactLength_NegativeValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.ExactLength(e => e.Name, -1);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void String_EndsWith_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.EndsWith(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void String_Contains_EmptyValue_Throws()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.Contains(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void String_IsLowerCase_And_IsUpperCase_WorkCorrectly()
+    {
+        var lowerFilter = new ValiFlowQuery<QueryEntity>().IsLowerCase(e => e.Name).Build().Compile();
+        lowerFilter(MakeEntity(name: "alice")).Should().BeTrue();
+        lowerFilter(MakeEntity(name: "Alice")).Should().BeFalse();
+
+        var upperFilter = new ValiFlowQuery<QueryEntity>().IsUpperCase(e => e.Name).Build().Compile();
+        upperFilter(MakeEntity(name: "ALICE")).Should().BeTrue();
+        upperFilter(MakeEntity(name: "Alice")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void String_StartsWithIgnoreCase_And_EndsWithIgnoreCase_GuardAndHappyPath()
+    {
+        var builder = new ValiFlowQuery<QueryEntity>();
+        var act = () => builder.StartsWithIgnoreCase(e => e.Name, "");
+        act.Should().Throw<ArgumentException>();
+
+        var filter = new ValiFlowQuery<QueryEntity>().EndsWithIgnoreCase(e => e.Name, "ICE").Build().Compile();
+        filter(MakeEntity(name: "alice")).Should().BeTrue();
     }
 }

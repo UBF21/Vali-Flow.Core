@@ -4,6 +4,7 @@ using Vali_Flow.Core.Builder;
 
 namespace Vali_Flow.Core.Tests;
 
+[Collection("RegexCache")]
 public class StringExpressionTests
 {
     private static Product MakeProduct(string? name = "Test") =>

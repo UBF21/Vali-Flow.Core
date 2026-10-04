@@ -30,6 +30,27 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
             SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
+    /// <summary>Reported when a <c>[ForwardInterface]</c> field is not typed as an interface.</summary>
+    private static readonly DiagnosticDescriptor NotAnInterfaceRule = new(
+        id: "VFGEN001",
+        title: "ForwardInterface field must be typed as an interface",
+        messageFormat: "Field '{0}' is marked [ForwardInterface] but its type is not an interface; no forwarding methods will be generated",
+        category: "Vali_Flow.Core.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    /// <summary>Reported when a <c>[ForwardInterface]</c> field's interface has no forwardable members.</summary>
+    private static readonly DiagnosticDescriptor NoForwardableMembersRule = new(
+        id: "VFGEN002",
+        title: "ForwardInterface interface has no forwardable members",
+        messageFormat: "Interface '{0}' has no methods to forward; no forwarding methods will be generated for this field",
+        category: "Vali_Flow.Core.Generator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    /// <summary>Carries either a successfully extracted field entry, or a diagnostic explaining why extraction failed.</summary>
+    private sealed record ExtractResult(FieldEntry? Entry, Diagnostic? Diagnostic);
+
     // ── Pure-data models ──────────────────────────────────────────────────────
 
     /// <summary>Immutable data model representing a single interface method to be forwarded.</summary>
@@ -92,17 +113,23 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
     /// <param name="context">The incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var pipeline = context.SyntaxProvider
+        var results = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 AttributeFullName,
                 predicate: static (node, _) => node is VariableDeclaratorSyntax,
                 transform: static (ctx, ct) => ExtractEntry(ctx, ct))
-            .Where(static e => e is not null)
-            .Collect()
-            .Select(static (items, _) => GroupByClass(items!));
+            .Collect();
 
-        context.RegisterSourceOutput(pipeline, static (spc, classModels) =>
+        context.RegisterSourceOutput(results, static (spc, items) =>
         {
+            foreach (var item in items)
+            {
+                if (item.Diagnostic != null)
+                    spc.ReportDiagnostic(item.Diagnostic);
+            }
+
+            var entries = items.Where(i => i.Entry != null).Select(i => i.Entry!).ToImmutableArray();
+            var classModels = GroupByClass(entries);
             foreach (var model in classModels)
                 spc.AddSource($"{model.ClassName}.Forwarding.g.cs", Emit(model));
         });
@@ -111,24 +138,29 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
     // ── Extraction ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Transforms a single <c>[ForwardInterface]</c>-decorated variable declarator into a
-    /// <see cref="FieldEntry"/>, or returns <see langword="null"/> if the symbol is invalid
-    /// (not a field, not typed as an interface, or produces no method entries).
+    /// Transforms a single <c>[ForwardInterface]</c>-decorated variable declarator into an
+    /// <see cref="ExtractResult"/> — either a populated <see cref="FieldEntry"/>, or a
+    /// <see cref="Diagnostic"/> explaining why extraction failed (VFGEN001/VFGEN002).
     /// </summary>
     /// <param name="ctx">Roslyn generator attribute context for the decorated node.</param>
     /// <param name="ct">Cancellation token forwarded from the compilation pipeline.</param>
-    /// <returns>A populated <see cref="FieldEntry"/>, or <see langword="null"/>.</returns>
-    private static FieldEntry? ExtractEntry(
+    /// <returns>An <see cref="ExtractResult"/> carrying either the entry or the diagnostic.</returns>
+    private static ExtractResult ExtractEntry(
         GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (ctx.TargetSymbol is not IFieldSymbol field) return null;
-        if (field.Type is not INamedTypeSymbol ifaceType) return null;
-        if (ifaceType.TypeKind != TypeKind.Interface) return null;
+        if (ctx.TargetSymbol is not IFieldSymbol field)
+            return new ExtractResult(null, null); // predicate already restricts to VariableDeclaratorSyntax; unreachable in practice.
+
+        if (field.Type is not INamedTypeSymbol ifaceType || ifaceType.TypeKind != TypeKind.Interface)
+        {
+            var diagnostic = Diagnostic.Create(NotAnInterfaceRule, ctx.TargetNode.GetLocation(), field.Name);
+            return new ExtractResult(null, diagnostic);
+        }
 
         var containingType = field.ContainingType;
-        if (containingType is null) return null;
+        if (containingType is null) return new ExtractResult(null, null);
 
         var ns = containingType.ContainingNamespace?.ToDisplayString() ?? "";
         var typeParamList = containingType.TypeParameters.Length > 0
@@ -136,11 +168,15 @@ public sealed class ForwardingGenerator : IIncrementalGenerator
             : "";
 
         var methods = CollectAllMethods(ifaceType, ct);
-        if (methods.IsEmpty) return null;
+        if (methods.IsEmpty)
+        {
+            var diagnostic = Diagnostic.Create(NoForwardableMembersRule, ctx.TargetNode.GetLocation(), ifaceType.Name);
+            return new ExtractResult(null, diagnostic);
+        }
 
-        return new FieldEntry(
-            containingType.Name, ns, typeParamList,
-            field.Name, methods);
+        return new ExtractResult(
+            new FieldEntry(containingType.Name, ns, typeParamList, field.Name, methods),
+            null);
     }
 
     /// <summary>

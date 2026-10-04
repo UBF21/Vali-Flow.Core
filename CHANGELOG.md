@@ -3,6 +3,16 @@
 All notable changes to Vali-Flow.Core are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [2.0.3] - 2026-10-03
+
+### Fixed
+
+- **`IsLastDayOfMonth()` on `DateTimeExpressionQuery`, `DateTimeOffsetExpressionQuery`, and `DateOnlyExpressionQuery`**: the EF Core-safe variants built `val.Day == DateTime.DaysInMonth(val.Year, val.Month)`, and `DateTime.DaysInMonth` is a static helper no EF Core relational provider (SQL Server, PostgreSQL/Npgsql, SQLite, MySQL) can translate to SQL — any call under `IQueryable` threw `InvalidOperationException` at query-compile time (discovered via a stress test running `ValiFlowQuery<T>`-filtered reads against a real PostgreSQL database). Found via code audit that an initial fix using `val.AddDays(1).Month != val.Month` is *also* not portable — `DateTimeOffset.AddDays` itself fails translation on SQLite's provider. Fixed with a provider-agnostic formula built only from `Year`/`Month`/`Day` (plain integers) and ternary/arithmetic operators — members EF Core's shared LINQ translation layer maps to SQL `CASE`/`IIF` on every relational provider, not just the one a test happens to run against.
+
+### Added
+
+- **`EfCoreRelationalTranslationTests`**: regression tests verifying `ValiFlowQuery<T>`'s "EF Core-safe" methods actually translate against a REAL relational provider (SQLite, via a new `Microsoft.EntityFrameworkCore.Sqlite` test dependency), not `UseInMemoryDatabase` — EF Core's InMemory provider evaluates most expressions client-side and would not have caught this bug. (`DateTimeOffset` is verified separately against PostgreSQL rather than SQLite — SQLite's own provider cannot translate any `DateTimeOffset` member access at all, a pre-existing, unrelated limitation that also affects the untouched `IsFirstDayOfMonth`.)
+
 ## [2.0.2] - 2026-04-15
 
 ### Fixed

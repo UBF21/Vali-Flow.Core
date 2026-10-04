@@ -27,22 +27,56 @@ public class ComparisonExpression<TBuilder,T> : IComparisonExpression<TBuilder, 
     
     /// <summary>Validates that the selected value is not null.</summary>
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
+    /// <remarks>
+    /// For a <typeparamref name="TValue"/> that closes over a non-nullable value type
+    /// (e.g. <c>int</c>, <c>DateTime</c>, <c>bool</c>, <c>Guid</c>, <c>decimal</c>, any <c>enum</c>),
+    /// the value can never be <see langword="null"/> — the condition is trivially <see langword="true"/>.
+    /// </remarks>
     public TBuilder NotNull<TValue>(Expression<Func<T, TValue?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var param = Expression.Parameter(typeof(TValue?), "value");
-        var body = Expression.NotEqual(param, Expression.Constant(null, typeof(TValue?)));
+        var closedType = typeof(TValue?);
+        if (closedType.IsValueType && Nullable.GetUnderlyingType(closedType) == null)
+        {
+            // Unconstrained TValue? erases to TValue at runtime for non-nullable value types
+            // (no Nullable<T> wrapper is produced) — the value can never be null.
+            // Note: a C# `true` literal lambda is constant-folded by Roslyn into a bare
+            // ConstantExpression, which BaseExpression's constant-condition guard
+            // (ValidateExpressionBody) rejects — so the body is built via the Expression API
+            // (1 == 1 as two runtime ConstantExpression nodes) to avoid that fold.
+            var trueParam = Expression.Parameter(typeof(T), "_");
+            var trueBody = Expression.Equal(Expression.Constant(1), Expression.Constant(1));
+            Expression<Func<T, bool>> alwaysTrue = Expression.Lambda<Func<T, bool>>(trueBody, trueParam);
+            return _builder.Add(alwaysTrue);
+        }
+
+        var param = Expression.Parameter(closedType, "value");
+        var body = Expression.NotEqual(param, Expression.Constant(null, closedType));
         Expression<Func<TValue?, bool>> predicate = Expression.Lambda<Func<TValue?, bool>>(body, param);
         return _builder.Add(selector, predicate);
     }
 
     /// <summary>Validates that the selected value is null.</summary>
     /// <typeparam name="TValue">The type of the property being compared.</typeparam>
+    /// <remarks>
+    /// For a <typeparamref name="TValue"/> that closes over a non-nullable value type,
+    /// the value can never be <see langword="null"/> — the condition is trivially <see langword="false"/>.
+    /// </remarks>
     public TBuilder Null<TValue>(Expression<Func<T, TValue?>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        var param = Expression.Parameter(typeof(TValue?), "value");
-        var body = Expression.Equal(param, Expression.Constant(null, typeof(TValue?)));
+        var closedType = typeof(TValue?);
+        if (closedType.IsValueType && Nullable.GetUnderlyingType(closedType) == null)
+        {
+            // See NotNull's comment above re: the Roslyn constant-fold / constant-condition guard.
+            var falseParam = Expression.Parameter(typeof(T), "_");
+            var falseBody = Expression.NotEqual(Expression.Constant(1), Expression.Constant(1));
+            Expression<Func<T, bool>> alwaysFalse = Expression.Lambda<Func<T, bool>>(falseBody, falseParam);
+            return _builder.Add(alwaysFalse);
+        }
+
+        var param = Expression.Parameter(closedType, "value");
+        var body = Expression.Equal(param, Expression.Constant(null, closedType));
         Expression<Func<TValue?, bool>> predicate = Expression.Lambda<Func<TValue?, bool>>(body, param);
         return _builder.Add(selector, predicate);
     }
