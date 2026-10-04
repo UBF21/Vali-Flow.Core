@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Vali-Flow.Core.svg)](https://www.nuget.org/packages/Vali-Flow.Core)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-8%20%7C%209-purple.svg)](https://dotnet.microsoft.com)
+[![.NET](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-purple.svg)](https://dotnet.microsoft.com)
 
 ## Introduction 🚀
 Welcome to Vali-Flow.Core, the foundational library for the Vali-Flow ecosystem, providing a fluent API to build logical expressions for validation in .NET applications. Designed for seamless integration with LINQ and Entity Framework (EF), Vali-Flow.Core allows developers to construct complex validation conditions in a readable and type-safe manner. It supports a variety of data types and provides methods to build expressions for filtering entities, making it ideal for use in domain logic, repositories, or query pipelines.
@@ -13,7 +13,7 @@ To add Vali-Flow.Core to your .NET project, install it via NuGet with the follow
 ```sh
 dotnet add package Vali-Flow.Core
 ```
-Ensure your project targets a compatible .NET version (e.g., .NET 8.0 or 9.0) for optimal performance. Vali-Flow.Core is lightweight and dependency-free, making it easy to integrate into any .NET application.
+Ensure your project targets a compatible .NET version (e.g., .NET 8.0 or 9.0) for optimal performance. Vali-Flow.Core is lightweight and dependency-free, making it easy to integrate into any .NET application. The package builds for `net8.0`/`net9.0` but also runs on **.NET 10** projects thanks to .NET's forward compatibility — a library built for an earlier TFM works unmodified under a newer runtime.
 
 ## Usage 🛠️
 
@@ -139,51 +139,28 @@ Expression<Func<Product, bool>> filter = validator.Build();
 ```
 ## Features and Enhancements 🌟
 
-## What's New in v2.0.0 🚀
+## What's New in v2.0.3 🚀
 
-### Breaking Changes
-- `ValidationResult.ErrorsAbove()` → **`ErrorsAtOrAbove()`** — semantics use `>=` (at or above the given severity), not `>`. Update all call sites.
-- `ValidationResult.ErrorsAtOrAbove()` returns an `IReadOnlyList<ValidationError>` backed by `AsReadOnly()` — casting to `List<T>` will fail at runtime.
+### Fixed
+- **`IsLastDayOfMonth()`** on `DateTimeExpressionQuery`, `DateTimeOffsetExpressionQuery`, and `DateOnlyExpressionQuery` built `DateTime.DaysInMonth(...)`, which no EF Core relational provider (SQL Server, PostgreSQL, SQLite, MySQL) can translate to SQL — any call inside `IQueryable` threw `InvalidOperationException`. Replaced with a provider-agnostic `Year`/`Month`/`Day` integer formula, translatable on every relational provider. Verified against real SQLite and PostgreSQL.
 
-### Performance
-- `Validate()` short-circuits OR groups — returns `Ok()` as soon as any group passes, without evaluating remaining groups.
-- `ValidationResult.Warnings` and `CriticalErrors` are now lazy — computed only when accessed, not on construction.
-- Regex cache in `RegexMatch` is now global (shared across all types) instead of per-closed-generic-type.
-- `BuildWithGlobal()` caches `Build()` — multiple calls on a frozen builder reuse the same expression tree.
+### Added
+- `EfCoreRelationalTranslationTests`: regression tests that verify `ValiFlowQuery<T>`'s EF Core-safe methods actually translate against a real relational provider (SQLite), not just `UseInMemoryDatabase`.
 
-### API Improvements
-- `CreateNestedBuilder<TProperty>()` is now `virtual` — external subclasses of `BaseExpression` no longer required to override it.
-- `Severity.Info` behavior clarified: only appears in `ValidationResult` when the condition fails AND has an attached message.
-- `WithMessage(Func<string>)` factory must not return `null` — documented in IntelliSense.
-- All regex methods (`IsEmail`, `IsUrl`, `RegexMatch`, etc.) now document `RegexMatchTimeoutException` in their XML signatures.
+### v2.0.2 — Fixed
+- `ComparisonExpression.Null()`/`NotNull()`: fixed a `WHERE 0=1` bug when used together with EF Core `GlobalQueryFilter`.
 
-### Migration Guide
-| v1.x | v2.0.0 |
-|------|--------|
-| `result.ErrorsAbove(Severity.Warning)` | `result.ErrorsAtOrAbove(Severity.Warning)` |
+### v2.0.1 — Infrastructure
+- New companion packages: `Vali-Flow.Core.Analyzers` and `Vali-Flow.Core.Generator`, both requiring `Vali-Flow.Core >= 2.0.0`.
 
-## What's New in v2.0.0
-
-### Breaking Changes
-- **Removed `BeforeDate` / `AfterDate`** — use `IsBefore` / `IsAfter` (full DateTime/DateTimeOffset comparison including time-of-day).
-- **Removed `CountEquals`** — use `Count` (identical semantics).
-- **`IStringExpression<TBuilder,T>` segregated into 4 focused sub-interfaces**:
-  - `IStringLengthExpression` — MinLength, MaxLength, ExactLength, LengthBetween
-  - `IStringContentExpression` — StartsWith, EndsWith, Contains, EqualToIgnoreCase, IsOneOf
-  - `IStringStateExpression` — IsNullOrEmpty, IsNullOrWhiteSpace, IsTrimmed, IsLowerCase, IsUpperCase, HasOnlyDigits/Letters/SpecialCharacters
-  - `IStringFormatExpression` — IsEmail, IsUrl, IsGuid, IsJson, IsBase64, RegexMatch, MatchesWildcard, IsCreditCard, IsIPv4/IPv6, IsHexColor, IsSlug
-  - If you implemented `IStringExpression` directly, implement the 4 sub-interfaces instead.
-
-### Performance
-- `ConditionEntry<T>` now compiles predicates lazily via `Lazy<Func<T,bool>>` — thread-safe without explicit locking. `Validate()` no longer acquires a per-condition lock.
-
-### Migration Guide
-
+### Breaking Changes since v1.x
 | v1.x | v2.0 |
 |------|------|
+| `result.ErrorsAbove(Severity.Warning)` | `result.ErrorsAtOrAbove(Severity.Warning)` |
 | `BeforeDate(selector, date)` | `IsBefore(selector, date)` |
 | `AfterDate(selector, date)` | `IsAfter(selector, date)` |
 | `CountEquals(selector, n)` | `Count(selector, n)` |
+| Implemented `IStringExpression` directly | Implement its 4 sub-interfaces instead: `IStringLengthExpression`, `IStringContentExpression`, `IStringStateExpression`, `IStringFormatExpression` |
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
