@@ -418,3 +418,7 @@ TestResults/
 
 # Visual Studio
 .vs/
+
+# Claude Code / Superpowers planning artifacts — local-only, never published
+docs/superpowers/
+.superpowers/
