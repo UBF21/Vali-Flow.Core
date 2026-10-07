@@ -71,17 +71,20 @@ IsAlphanumeric(selector)
 
 Reason: they use `Regex.IsMatch` internally, which has no SQL equivalent.
 
-### StringComparison or char-Based Methods
+### char-Based Methods
 
 ```csharp
 // Not available in ValiFlowQuery<T>:
-EqualToIgnoreCase(selector, value)    // uses StringComparison.OrdinalIgnoreCase
-IsTrimmed(selector)                    // uses char.IsWhiteSpace
-IsLowerCase(selector)                  // uses char-level LINQ
-IsUpperCase(selector)                  // uses char-level LINQ
 HasOnlyDigits(selector)                // uses char.IsDigit
 HasOnlyLetters(selector)               // uses char.IsLetter
 ```
+
+> `EqualToIgnoreCase`, `IsTrimmed`, `IsLowerCase`, and `IsUpperCase` **are**
+> available on `ValiFlowQuery<T>` — each has its own EF Core-safe
+> reimplementation in `StringExpressionQuery` (e.g. `IsTrimmed` translates to
+> `val == val.Trim()`, `EqualToIgnoreCase` to a `ToLower()`-based comparison).
+> They were incorrectly flagged as non-translatable by the VF001 analyzer
+> until that false positive was fixed in v2.0.3.
 
 ### Collection Methods with Lambda Predicates
 
@@ -200,26 +203,3 @@ TBuilder IsEmail(Expression<Func<T, string?>> selector);
 ```
 
 This convention is part of the **method addition checklist** documented in [02-adding-new-methods.md](../guides/02-adding-new-methods.md).
-
-## Case Study: `IsLastDayOfMonth` and the EF-Core-Safe Contract
-
-In v2.0.3, `IsLastDayOfMonth()` on `DateTimeExpressionQuery`,
-`DateTimeOffsetExpressionQuery`, and `DateOnlyExpressionQuery` was found to
-violate the EF-Core-safe contract this document describes: it built
-`val.Day == DateTime.DaysInMonth(val.Year, val.Month)`, and
-`DateTime.DaysInMonth` is a static helper that no EF Core relational
-provider (SQL Server, PostgreSQL/Npgsql, SQLite, MySQL) can translate to
-SQL. Any call under `IQueryable` threw `InvalidOperationException` at
-query-compile time — a real contract violation, not a theoretical one,
-since `IsLastDayOfMonth` is exposed on `ValiFlowQuery<T>`, the type this
-document promises is EF-Core-safe.
-
-The fix: a provider-agnostic formula built only from `Year`, `Month`, and
-`Day` (plain integers) plus ternary/arithmetic operators — the only pattern
-confirmed to translate to SQL `CASE`/`IIF` on every relational provider,
-not just the one a test happens to run against. An initial attempt using
-`val.AddDays(1).Month != val.Month` was *also* rejected: `DateTimeOffset.AddDays`
-itself fails translation on SQLite's provider.
-
-See [What's New](../09-whats-new.md) for the full writeup and the
-regression tests added to catch this class of bug going forward.

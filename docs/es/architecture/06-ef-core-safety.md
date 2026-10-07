@@ -71,17 +71,20 @@ IsAlphanumeric(selector)
 
 Motivo: usan `Regex.IsMatch` internamente, que no tiene equivalente en SQL.
 
-### Métodos basados en StringComparison o char
+### Métodos basados en char
 
 ```csharp
 // No disponibles en ValiFlowQuery<T>:
-EqualToIgnoreCase(selector, value)    // usa StringComparison.OrdinalIgnoreCase
-IsTrimmed(selector)                    // usa char.IsWhiteSpace
-IsLowerCase(selector)                  // usa char-level LINQ
-IsUpperCase(selector)                  // usa char-level LINQ
 HasOnlyDigits(selector)                // usa char.IsDigit
 HasOnlyLetters(selector)               // usa char.IsLetter
 ```
+
+> `EqualToIgnoreCase`, `IsTrimmed`, `IsLowerCase` e `IsUpperCase` **sí están
+> disponibles** en `ValiFlowQuery<T>` — cada uno tiene su propia
+> reimplementación EF-safe en `StringExpressionQuery` (por ejemplo, `IsTrimmed`
+> se traduce a `val == val.Trim()`, y `EqualToIgnoreCase` a una comparación
+> basada en `ToLower()`). El analyzer VF001 los marcaba incorrectamente como
+> no traducibles hasta que ese falso positivo se corrigió en v2.0.3.
 
 ### Métodos de colección con predicados lambda
 
@@ -200,26 +203,3 @@ TBuilder IsEmail(Expression<Func<T, string?>> selector);
 ```
 
 Esta convención es parte del **checklist de adición de métodos** documentado en [02-adding-new-methods.md](../guides/02-adding-new-methods.md).
-
-## Caso de estudio: `IsLastDayOfMonth` y el contrato EF-Core-safe
-
-En la v2.0.3 se encontró que `IsLastDayOfMonth()` en `DateTimeExpressionQuery`,
-`DateTimeOffsetExpressionQuery` y `DateOnlyExpressionQuery` violaba el
-contrato EF-Core-safe que describe este documento: construía
-`val.Day == DateTime.DaysInMonth(val.Year, val.Month)`, y
-`DateTime.DaysInMonth` es un helper estático que ningún proveedor
-relacional de EF Core (SQL Server, PostgreSQL/Npgsql, SQLite, MySQL) puede
-traducir a SQL. Cualquier llamada dentro de `IQueryable` lanzaba
-`InvalidOperationException` al compilar la query — una violación real del
-contrato, no teórica, ya que `IsLastDayOfMonth` está expuesto en
-`ValiFlowQuery<T>`, el tipo que este documento promete como EF-Core-safe.
-
-El fix: una fórmula agnóstica de proveedor construida solo con `Year`,
-`Month` y `Day` (enteros simples) más operadores ternarios/aritméticos — el
-único patrón confirmado traducible a SQL `CASE`/`IIF` en cualquier
-proveedor relacional, no solo el que una prueba puntual use. Un primer
-intento con `val.AddDays(1).Month != val.Month` también fue descartado:
-`DateTimeOffset.AddDays` falla su traducción en el proveedor de SQLite.
-
-Ver [Novedades](../09-whats-new.md) para el detalle completo y los tests de
-regresión agregados para detectar este tipo de bug a futuro.
