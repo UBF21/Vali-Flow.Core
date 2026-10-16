@@ -28,39 +28,27 @@ var rule = new ValiFlow<User>()
 
 ## Checks de nulidad
 
-### `NotNull(selector)`
+### `NotNull(selector)` / `IsNotNull(selector)`
 
-El miembro seleccionado no debe ser `null`. Lanza una excepción si el selector siempre produce un tipo de valor no anulable.
+El miembro seleccionado no debe ser `null`. Lanza una excepción si el selector siempre produce un tipo de valor no anulable. `IsNotNull` es un alias — mismo comportamiento, se prefiere por consistencia con la convención de nomenclatura `Is*`.
 
 ```csharp
 var rule = new ValiFlow<Order>()
     .NotNull(o => o.CustomerId);
-```
 
-### `IsNotNull(selector)`
-
-Alias de `NotNull`. Se prefiere este nombre por consistencia con la convención de nomenclatura `Is*`.
-
-```csharp
-var rule = new ValiFlow<Product>()
+var rule2 = new ValiFlow<Product>()
     .IsNotNull(p => p.Name);
 ```
 
-### `Null(selector)`
+### `Null(selector)` / `IsNull(selector)`
 
-El miembro seleccionado debe ser `null`.
+El miembro seleccionado debe ser `null`. `IsNull` es un alias — mismo comportamiento.
 
 ```csharp
 var rule = new ValiFlow<User>()
     .Null(u => u.DeletedAt);
-```
 
-### `IsNull(selector)`
-
-Alias de `Null`.
-
-```csharp
-var rule = new ValiFlow<Order>()
+var rule2 = new ValiFlow<Order>()
     .IsNull(o => o.CancelledAt);
 ```
 
